@@ -1,7 +1,8 @@
+import CashierDashboard from "./components/Cashier/CashierDashboard"
 import Login from "./pages/Login"
 
 function App() {
-  return <Login />
+  return <CashierDashboard />
 }
 
 export default App
