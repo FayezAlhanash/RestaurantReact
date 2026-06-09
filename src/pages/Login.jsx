@@ -1,10 +1,13 @@
 import logo from "../assets/Group.svg"
+<<<<<<< HEAD
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import Button from '@mui/material/Button';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+=======
+>>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
 function Login() {
 
     const [login, setLogin] = useState("");
@@ -47,17 +50,16 @@ function Login() {
 
                 {/* Top Section */}
                 <div className="bg-gradient-to-b from-[#8B1E1E] to-[#6E1414] h-64 flex flex-col items-center justify-center text-white">
-
                     <img
                         src={logo}
                         alt="logo"
                         className="w-24 mb-4"
-                    />
+                       />
                     <h1 className="font-['lemon'] text-4xl font-bold mb-2">
                         Welcome back sir
                     </h1>
 
-                    <p className="font-['lemon'] text-gray-200">
+                    <p className="text-gray-200">
                         Sign in to manage your restaurant
                     </p>
 
@@ -65,64 +67,80 @@ function Login() {
 
                 {/* Bottom Section */}
                 <div className="p-10 flex flex-col items-center">
+
                     <div className="mb-6">
 
+<<<<<<< HEAD
                         <label className="block text-xl font-['lemon'] mb-2 text-gray-700">
                             Email
+=======
+                        <label className="block text-xl mb-2 text-gray-700">
+                            USERNAME
+>>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
                         </label>
 
-                        <div className="w-[400px]  border border-gray-400 rounded-xl p-4 flex items-center gap-3 focus-within:border-[#7F1D1D] transition duration-300">
+                        <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3">
 
-                            <AccountCircleIcon className="text-yellow-600" />
+                            <span>👤</span>
 
                             <input
                                 type="email"
                                 placeholder="Enter your email"
+<<<<<<< HEAD
                                 value={login}
                                 onChange={(e) => setLogin(e.target.value)}
+=======
+>>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
                                 className="outline-none w-full"
                             />
 
                         </div>
 
                     </div>
+
                     <div className="mb-6">
 
-                        <label className="block  font-['lemon'] mb-2 text-gray-700 text-xl">
+                        <label className="block mb-2 text-gray-700 text-xl">
                             PASSWORD
                         </label>
 
-                        <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3 focus-within:border-[#7F1D1D] transition duration-300">
+                        <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3">
 
-                            <LockIcon className="text-yellow-600" />
+                            <span>🔒</span>
+
                             <input
                                 type="password"
                                 placeholder="Enter your password"
+<<<<<<< HEAD
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+=======
+>>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
                                 className="outline-none w-full"
                             />
 
                         </div>
 
                     </div>
+
                     <div className="w-[400px] flex items-center justify-between mb-6">
 
                         <div className="flex items-center gap-2">
 
                             <input type="checkbox" />
 
-                            <p className="font-['lemon'] text-sm text-gray-600">
+                            <p className="text-sm text-gray-600">
                                 Remember me
                             </p>
 
                         </div>
 
-                        <button className="font-['lemon'] text-sm text-[#7F1D1D] font-semibold">
+                        <button className="text-sm text-[#7F1D1D] font-semibold">
                             Forgot password?
                         </button>
 
                     </div>
+<<<<<<< HEAD
                     <Button onClick={handleLogin}
                         variant="contained"
                         fullWidth
@@ -134,14 +152,18 @@ function Login() {
                             fontFamily: "lemon",
                             textTransform: "none",
                             marginTop: "10px",
+=======
+>>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
 
-                            "&:hover": {
-                                backgroundColor: "#6E1414",
-                            },
-                        }}
+                    <button
+                        className="w-full bg-[#7F1D1D] text-white p-4 rounded-xl text-3xl mt-3"
                     >
                         Sign in
+<<<<<<< HEAD
                     </Button>
+=======
+                    </button>
+>>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
 
                 </div>
 
