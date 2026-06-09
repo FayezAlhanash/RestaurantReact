@@ -2,8 +2,44 @@ import logo from "../assets/Group.svg"
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import Button from '@mui/material/Button';
-
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 function Login() {
+
+    const [login, setLogin] = useState("");
+    const [password, setPassword] = useState("");
+
+    const navigate = useNavigate();
+
+    const handleLogin = async () => {
+        try {
+
+            const formData = new FormData();
+
+            formData.append("login", login);
+            formData.append("password", password);
+
+            const response = await axios.post(
+                "http://46.101.112.67:8000/api/login",
+                formData
+            );
+
+            console.log(response.data);
+
+            localStorage.setItem(
+                "token",
+                response.data.token
+            );
+
+            navigate("/dashboard");
+
+        } catch (error) {
+
+            console.log(error.response?.data);
+
+        }
+    };
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center">
 
@@ -32,7 +68,7 @@ function Login() {
                     <div className="mb-6">
 
                         <label className="block text-xl font-['lemon'] mb-2 text-gray-700">
-                            USERNAME
+                            Email
                         </label>
 
                         <div className="w-[400px]  border border-gray-400 rounded-xl p-4 flex items-center gap-3 focus-within:border-[#7F1D1D] transition duration-300">
@@ -42,7 +78,9 @@ function Login() {
                             <input
                                 type="email"
                                 placeholder="Enter your email"
-                                className="outline-none w-full font-['lemon']"
+                                value={login}
+                                onChange={(e) => setLogin(e.target.value)}
+                                className="outline-none w-full"
                             />
 
                         </div>
@@ -60,7 +98,9 @@ function Login() {
                             <input
                                 type="password"
                                 placeholder="Enter your password"
-                                className="outline-none w-full font-['lemon'] "
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="outline-none w-full"
                             />
 
                         </div>
@@ -83,7 +123,7 @@ function Login() {
                         </button>
 
                     </div>
-                    <Button
+                    <Button onClick={handleLogin}
                         variant="contained"
                         fullWidth
                         sx={{
@@ -102,7 +142,7 @@ function Login() {
                     >
                         Sign in
                     </Button>
-                   
+
                 </div>
 
             </div>
