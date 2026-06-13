@@ -6,7 +6,7 @@ import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
 function CategoryTabs({ activeCategory, setActiveCategory }) {
 
     return (
-        <div className="flex items-center justify-center gap-4 mb-8 overflow-x-auto font-['lemon']">
+        <div className="flex items-center justify-center gap-4 mb-8 overflow-x-auto font-['raleway']">
             {/* Active */}
             <button
                 onClick={() => setActiveCategory("shawarma")}

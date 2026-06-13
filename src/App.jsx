@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
-
+import Employee from "./components/Admin/Employee";
 import AdminLayout from "./components/Admin/AdminLayout";
 import MainContent from "./components/Admin/MainContent";
 import RestaurantsManagements from "./components/Admin/RestaurantsManagements";
@@ -11,7 +11,7 @@ import TablesManagements from "./components/Admin/TablesManagements";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter >
 
       <Routes>
 
@@ -35,6 +35,10 @@ function App() {
             path="/roles"
             element={<RolesPermission />}
           />
+          <Route
+           path="/employee"
+            element={<Employee />}
+             />
 
           <Route
             path="/tables"

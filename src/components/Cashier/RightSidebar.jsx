@@ -7,7 +7,7 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import PublicIcon from '@mui/icons-material/Public';
 function RightSidebar() {
     return (
-        <div className="w-[90px] bg-white border-l min-h-screen flex flex-col items-center justify-between py-6">
+        <div className="w-[90px] bg-white border-l min-h-screen flex flex-col items-center justify-between py-6 font-['raleway']">
 
             {/* Top Icons */}
             <div className="flex flex-col gap-6">

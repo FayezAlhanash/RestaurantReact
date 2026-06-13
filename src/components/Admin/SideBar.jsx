@@ -23,8 +23,8 @@ function SideBar() {
         },
         {
             icon: <Users size={20} />,
-            title: "Employees",
-            path: "/employees",
+            title: "Employee",
+            path: "/employee",
         },
         {
             icon: <ShieldCheck size={20} />,
@@ -41,7 +41,7 @@ function SideBar() {
     return (
         <div
             className="
-w-[260px]
+w-[300px]
 h-screen
 bg-white
 border-r

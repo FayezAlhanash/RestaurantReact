@@ -10,7 +10,7 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
     if (!isOpen) return null
     return (
 
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 font-['lemon']">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 font-['raleway']">
 
             <div className="w-[500px] bg-white rounded-3xl overflow-hidden shadow-2xl">
 

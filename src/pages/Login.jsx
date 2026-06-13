@@ -1,13 +1,10 @@
 import logo from "../assets/Group.svg"
-<<<<<<< HEAD
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import Button from '@mui/material/Button';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-=======
->>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
 function Login() {
 
     const [login, setLogin] = useState("");
@@ -44,7 +41,7 @@ function Login() {
         }
     };
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center font-[raleway]">
 
             <div className="w-[550px] bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
 
@@ -54,8 +51,8 @@ function Login() {
                         src={logo}
                         alt="logo"
                         className="w-24 mb-4"
-                       />
-                    <h1 className="font-['lemon'] text-4xl font-bold mb-2">
+                    />
+                    <h1 className=" text-4xl font-bold mb-2">
                         Welcome back sir
                     </h1>
 
@@ -69,79 +66,43 @@ function Login() {
                 <div className="p-10 flex flex-col items-center">
 
                     <div className="mb-6">
-
-<<<<<<< HEAD
-                        <label className="block text-xl font-['lemon'] mb-2 text-gray-700">
-                            Email
-=======
-                        <label className="block text-xl mb-2 text-gray-700">
+                        <label className="block text-xl  mb-2 text-gray-700">
                             USERNAME
->>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
                         </label>
 
                         <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3">
-
                             <span>👤</span>
 
                             <input
                                 type="email"
                                 placeholder="Enter your email"
-<<<<<<< HEAD
                                 value={login}
                                 onChange={(e) => setLogin(e.target.value)}
-=======
->>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
                                 className="outline-none w-full"
                             />
-
                         </div>
-
                     </div>
 
                     <div className="mb-6">
-
                         <label className="block mb-2 text-gray-700 text-xl">
                             PASSWORD
                         </label>
 
                         <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3">
-
                             <span>🔒</span>
 
                             <input
                                 type="password"
                                 placeholder="Enter your password"
-<<<<<<< HEAD
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-=======
->>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
                                 className="outline-none w-full"
                             />
-
                         </div>
-
                     </div>
 
-                    <div className="w-[400px] flex items-center justify-between mb-6">
-
-                        <div className="flex items-center gap-2">
-
-                            <input type="checkbox" />
-
-                            <p className="text-sm text-gray-600">
-                                Remember me
-                            </p>
-
-                        </div>
-
-                        <button className="text-sm text-[#7F1D1D] font-semibold">
-                            Forgot password?
-                        </button>
-
-                    </div>
-<<<<<<< HEAD
-                    <Button onClick={handleLogin}
+                    <Button
+                        onClick={handleLogin}
                         variant="contained"
                         fullWidth
                         sx={{
@@ -149,27 +110,18 @@ function Login() {
                             padding: "14px",
                             borderRadius: "14px",
                             fontSize: "30px",
-                            fontFamily: "lemon",
                             textTransform: "none",
                             marginTop: "10px",
-=======
->>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
-
-                    <button
-                        className="w-full bg-[#7F1D1D] text-white p-4 rounded-xl text-3xl mt-3"
+                        }}
                     >
                         Sign in
-<<<<<<< HEAD
                     </Button>
-=======
-                    </button>
->>>>>>> 3707a04547e3514b95c9e13b74a4aada169a80c8
-
-                </div>
 
             </div>
 
         </div>
+
+        </div >
     )
 }
 

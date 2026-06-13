@@ -10,7 +10,7 @@ function MenuItemCard({ item, onOpen }) {
       hover:-translate-y-1
       transition-all duration-300
       flex flex-col
-      font-['lemon']
+   font-['raleway']
       max-w-[260px]
     ">
       <img

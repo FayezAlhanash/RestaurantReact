@@ -87,7 +87,10 @@ function RestaurantsManagements() {
                 }).map((_, index) => (
                     <AddRestaurantsCard
                         key={index}
-                        onClick={() => setIsOpen(true)}
+                        onClick={() => {
+                            setSelectedRestaurant(null);
+                            setIsOpen(true);
+                        }}
                     />
                 ))}
 
@@ -102,15 +105,17 @@ function RestaurantsManagements() {
                     setSelectedRestaurant(null);
                 }}
                 onSave={(updatedRestaurant) => {
+                    setRestaurants((prev) => {
+                        const exists = prev.some((r) => r.id === updatedRestaurant.id);
 
-                    setRestaurants(
-                        restaurants.map((r) =>
-                            r.id === updatedRestaurant.id
-                                ? updatedRestaurant
-                                : r
-                        )
-                    );
+                        if (exists) {
+                            return prev.map((r) =>
+                                r.id === updatedRestaurant.id ? updatedRestaurant : r
+                            );
+                        }
 
+                        return [...prev, updatedRestaurant];
+                    });
                 }}
             />
         </div>

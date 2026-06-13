@@ -4,7 +4,7 @@ import PublicIcon from '@mui/icons-material/Public';
 
 function TopBar() {
     return (
-        <div className="w-[78%] ml-6 mt-3 mb-6 flex items-center gap-4">
+        <div className="w-[78%] ml-6 mt-3 mb-6 flex items-center gap-4 font-['raleway']">
 
             {/* Search Input */}
             <div className="relative flex-1">
