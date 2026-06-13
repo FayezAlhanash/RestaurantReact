@@ -12,7 +12,7 @@ function CashierDashboard() {
     const [activeCategory, setActiveCategory] = useState("shawarma");
     const [cartItems, setCartItems] = useState([])
     return (
-        <div className="min-h-screen bg-[#F5F1EB] flex font-['raleway'] ">
+        <div className="min-h-screen bg-[#F5F1EB] flex font-[Raleway] ">
 
             {/* Left Side */}
            <div className="w-[320px] h-screen sticky top-0 bg-white border-r">

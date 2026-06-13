@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 
 function AdminLayout() {
     return (
-        <div className="flex h-screen bg-[#f8f6f6] font-['lemon'] ">
+        <div className="flex h-screen bg-[#f8f6f6] font-[Raleway] ">
 
             <SideBar />
 
