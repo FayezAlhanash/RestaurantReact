@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 
 function AdminLayout() {
     return (
-        <div className="flex h-screen bg-[#f8f6f6] font-[Raleway] ">
+        <div className="flex h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f] font-[Raleway] ">
 
             <SideBar />
 

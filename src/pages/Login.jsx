@@ -1,6 +1,5 @@
 import logo from "../assets/Group.svg"
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import LockIcon from '@mui/icons-material/Lock';
+import { User, Lock } from "lucide-react";
 import Button from '@mui/material/Button';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,14 +24,32 @@ function Login() {
                 formData
             );
 
-            console.log(response.data);
-
+            console.log(response.data.user);
+            console.table(response.data.user);
             localStorage.setItem(
                 "token",
                 response.data.token
             );
+            localStorage.setItem("user", JSON.stringify(response.data.user));
 
-            navigate("/dashboard");
+            const roleId = response.data.user.role_id;
+
+            switch (roleId) {
+                case 1:
+                    navigate("/dashboard");
+                    break;
+
+                case 4:
+                    navigate("/cashier");
+                    break;
+
+                case 7:
+                    navigate("/warehouse");
+                    break;
+
+                default:
+                    alert("ليس لديك صلاحية للدخول");
+            }
 
         } catch (error) {
 
@@ -41,10 +58,8 @@ function Login() {
         }
     };
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center font-[raleway]">
-
-            <div className="w-[550px] bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
-
+        <div className="min-h-screen px-4 bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center font-[raleway]">
+            <div className="w-[90%] max-w-[550px] bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
                 {/* Top Section */}
                 <div className="bg-gradient-to-b from-[#8B1E1E] to-[#6E1414] h-64 flex flex-col items-center justify-center text-white">
                     <img
@@ -63,22 +78,20 @@ function Login() {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="p-10 flex flex-col items-center">
-
+                <div className="p-10 flex flex-col items-stretch">
                     <div className="mb-6">
                         <label className="block text-xl  mb-2 text-gray-700">
                             USERNAME
                         </label>
 
-                        <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3">
-                            <span>👤</span>
+                        <div className="w-full px-5 py-4 text-base border border-gray-300 rounded-xl flex items-center gap-3 focus-within:border-[#7F1D1D]">                            <User size={18} className="text-gray-500" />
 
                             <input
                                 type="email"
                                 placeholder="Enter your email"
                                 value={login}
                                 onChange={(e) => setLogin(e.target.value)}
-                                className="outline-none w-full"
+                                className="outline-none w-full text-sm sm:text-base"
                             />
                         </div>
                     </div>
@@ -88,15 +101,14 @@ function Login() {
                             PASSWORD
                         </label>
 
-                        <div className="w-[400px] border border-gray-400 rounded-xl p-4 flex items-center gap-3">
-                            <span>🔒</span>
+                        <div className="w-full px-5 py-4 text-base border border-gray-300 rounded-xl flex items-center gap-3 focus-within:border-[#7F1D1D]">                            <Lock size={18} className="text-gray-500" />
 
                             <input
                                 type="password"
                                 placeholder="Enter your password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="outline-none w-full"
+                                className="outline-none w-full text-sm sm:text-base"
                             />
                         </div>
                     </div>
@@ -109,7 +121,7 @@ function Login() {
                             backgroundColor: "#7F1D1D",
                             padding: "14px",
                             borderRadius: "14px",
-                            fontSize: "30px",
+                            fontSize: "18px",
                             textTransform: "none",
                             marginTop: "10px",
                         }}
@@ -117,9 +129,9 @@ function Login() {
                         Sign in
                     </Button>
 
-            </div>
+                </div>
 
-        </div>
+            </div>
 
         </div >
     )

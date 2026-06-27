@@ -4,7 +4,7 @@ import MainContent from "./MainContent";
 
 function Dashboard() {
     return (
-        <div className="flex h-screen bg-[#f8f6f6] font-['lemon']">
+        <div className="flex h-screen bg-[#682222] font-['lemon']">
             <SideBar />
 
             <div className="flex-1 flex flex-col">

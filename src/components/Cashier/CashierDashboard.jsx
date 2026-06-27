@@ -12,10 +12,9 @@ function CashierDashboard() {
     const [activeCategory, setActiveCategory] = useState("shawarma");
     const [cartItems, setCartItems] = useState([])
     return (
-        <div className="min-h-screen bg-[#F5F1EB] flex font-[Raleway] ">
-
+        <div className="min-h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f] flex flex-col md:flex-row font-[Raleway]">
             {/* Left Side */}
-           <div className="w-[320px] h-screen sticky top-0 bg-white border-r">
+            <div className="w-full md:w-[320px] md:h-screen bg-white border-r">
                 <OrderSidebar
                     cartItems={cartItems}
                     setCartItems={setCartItems}
@@ -29,7 +28,7 @@ function CashierDashboard() {
                     activeCategory={activeCategory}
                     setActiveCategory={setActiveCategory}
                 />
-                <div className="grid grid-cols-4 gap-6 px-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 px-8">
 
                     {
                         menuData.map((item) => (
@@ -58,7 +57,7 @@ function CashierDashboard() {
             </div>
 
             {/* Right Side */}
-            <div className="w-[90px] h-screen sticky top-0 bg-white border-l">
+            <div className="hidden md:block w-[90px] h-screen bg-white border-l">
                 <RightSidebar />
             </div>
 

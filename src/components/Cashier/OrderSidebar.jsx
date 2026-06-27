@@ -1,4 +1,4 @@
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Trash2 } from "lucide-react";
 function OrderSidebar({ cartItems, setCartItems }) {
     const removeItem = (indexToRemove) => {
 
@@ -20,8 +20,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
     const total = subtotal + tax
     return (
 
-        <div className="h-screen bg-white flex flex-col font-['raleway'] ">
-
+        <div className="bg-white flex flex-col font-['raleway'] h-full md:h-screen">
             {/* Header */}
             <div className="p-6 border-b">
 
@@ -86,7 +85,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
                                             onClick={() => removeItem(index)}
                                             className="text-red-700 hover:text-red-800 transition mt-2"
                                         >
-                                            <DeleteIcon sx={{ fontSize: 22 }} />
+                                            <Trash2 size={18} className="md:w-[22px] md:h-[22px]" />
                                         </button>
 
                                     </div>
@@ -110,8 +109,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
             </div>
 
             {/* Footer */}
-            <div className="border-t p-5">
-
+            <div className="border-t p-5 sticky bottom-0 bg-white">
                 <div className="flex items-center justify-between mb-3">
 
                     <span className="text-gray-500">

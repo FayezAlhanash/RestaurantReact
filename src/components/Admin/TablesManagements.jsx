@@ -1,7 +1,44 @@
+import { useState } from "react";
+import AddTableModal from "./AddTableModal";
 import { TableProperties, CircleCheck, Clock3 } from "lucide-react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { Utensils, Users } from "lucide-react";
+import { useEffect } from "react";
+import api from "../../API/axios";
 function TablesManagements() {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [tables, setTables] = useState([]);
+    const [selectedTable, setSelectedTable] = useState(null);
+    const [isViewOpen, setIsViewOpen] = useState(false);
+    const [editTable, setEditTable] = useState(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const deleteTable = async (id) => {
+        try {
+            await api.delete(`/tables/${id}`);
+            getTables(); // refresh بعد الحذف
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    const getTables = async () => {
+        try {
+            const res = await api.get("/tables");
+
+            const fixed = res.data.tables.map(t => ({
+                ...t,
+                is_active: Number(t.is_active)
+            }));
+
+            setTables(fixed);
+
+        } catch (error) {
+            console.log(error);
+        }
+    };
+    useEffect(() => {
+        getTables();
+    }, []);
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f]">
             <div className="flex items-center justify-between px-10">
@@ -102,92 +139,73 @@ function TablesManagements() {
                 </div>
 
                 <div className="grid grid-cols-5 gap-9 mt-8">
-                    <div className="border-4 border-green-500 rounded-3xl h-96 p-5 relative flex flex-col">
+                    {tables.map((table) => (
+                        <div
+                            key={table.id}
+                            className={`border-4 rounded-3xl h-96 p-5 relative flex flex-col
+       ${Number(table.is_active) === 1 ? "border-green-500" : "border-red-500"}`}
+                        >
 
-                        <span className="absolute -top-[2px] -right-[2px] font-[lemon] bg-green-700 text-white text-sm px-3 py-1 rounded-bl-xl rounded-tr-3xl">
-                            AVAILABLE
-                        </span>
+                            <span className={`absolute -top-[2px] -right-[2px] text-white text-sm px-3 py-1 rounded-bl-xl rounded-tr-3xl
+      ${Number(table.is_active) === 1 ? "bg-green-600" : "bg-red-600"}`}>
+                                {Number(table.is_active) === 1 ? "Active" : "Not Active"}
+                            </span>
 
-                        <div className="flex justify-center mt-10">
-                            <div className="flex justify-center mt-12">
+                            <div className="flex justify-center mt-10">
                                 <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
                                     <Utensils size={48} />
                                 </div>
                             </div>
-                        </div>
 
-                        <h3 className="text-3xl font-semibold text-center mt-8">
-                            Table 01
-                        </h3>
-
-                        <p className="flex items-center justify-center gap-2 text-gray-500 mt-2">
-                            <Users size={16} />
-                            <span>4 Seats</span>
-                        </p>
-                        <div className="mt-auto">
-                            <div className="border-t border-red-100 mb-5"></div>
-
-                            <div className="flex justify-center gap-6">
-                                <button className="hover:text-blue-500 transition cursor-pointer">
-                                    <Eye size={20} />
-                                </button>
-
-                                <button className="hover:text-yellow-500 transition cursor-pointer">
-                                    <Pencil size={20} />
-                                </button>
-
-                                <button className="hover:text-red-500 transition cursor-pointer">
-                                    <Trash2 size={20} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                            <h3 className="text-3xl font-semibold text-center mt-8">
+                                Table {table.table_number}
+                            </h3>
 
 
+                            <div className="mt-auto">
+                                <div className="border-t border-gray-400 mt-6 mb-6"></div>
 
-                    <div className="border-4 border-red-500 rounded-3xl h-96 p-5 relative flex flex-col">
+                                <div className="flex justify-center gap-6">
 
-                        <span className="absolute -top-[2px] font-[lemon] -right-[2px] bg-red-700 text-white text-sm px-3 py-1 rounded-bl-xl rounded-tr-3xl">
-                            Booked
-                        </span>
+                                    {/* VIEW */}
+                                    <button
+                                        onClick={() => {
+                                            setSelectedTable(table);
+                                            setIsViewOpen(true);
+                                        }}
+                                        className="hover:text-blue-500 transition-all duration-200 hover:scale-110"
+                                    >
+                                        <Eye size={26} />
+                                    </button>
 
-                        <div className="flex justify-center mt-10">
-                            <div className="flex justify-center mt-12">
-                                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
-                                    <Utensils size={48} />
+                                    {/* EDIT */}
+                                    <button
+                                        onClick={() => {
+                                            setEditTable(table);
+                                            setIsEditOpen(true);
+                                        }}
+                                        className="hover:text-yellow-500 transition-all duration-200 hover:scale-110"
+                                    >
+                                        <Pencil size={26} />
+                                    </button>
+
+                                    {/* DELETE */}
+                                    <button
+                                        onClick={() => deleteTable(table.id)}
+                                        className="hover:text-red-500 transition-all duration-200 hover:scale-110"
+                                    >
+                                        <Trash2 size={26} />
+                                    </button>
+
                                 </div>
                             </div>
                         </div>
+                    ))}
 
-                        <h3 className="text-3xl font-semibold text-center mt-8">
-                            Table 01
-                        </h3>
-
-                        <p className="flex items-center justify-center gap-2 text-gray-500 mt-2">
-                            <Users size={16} />
-                            <span>4 Seats</span>
-                        </p>
-                        <div className="mt-auto">
-                            <div className="border-t border-red-100 mb-5"></div>
-
-                            <div className="flex justify-center gap-6">
-                                <button className="hover:text-blue-500 transition cursor-pointer">
-                                    <Eye size={20} />
-                                </button>
-
-                                <button className="hover:text-yellow-500 transition cursor-pointer">
-                                    <Pencil size={20} />
-                                </button>
-
-                                <button className="hover:text-red-500 transition cursor-pointer">
-                                    <Trash2 size={20} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="border-2 border-dashed border-red-200 rounded-3xl h-96 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-[#f7ab20] hover:bg-orange-50 hover:scale-105">
-
+                    <div
+                        onClick={() => setIsModalOpen(true)}
+                        className="border-2 border-dashed border-red-200 rounded-3xl h-96 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-[#f7ab20] hover:bg-orange-50 hover:scale-105"
+                    >
                         <div className="w-20 h-20 rounded-full border-2 border-dashed border-red-200 flex items-center justify-center">
                             <span className="text-5xl text-gray-400">
                                 +
@@ -202,7 +220,37 @@ function TablesManagements() {
 
                 </div>
             </div>
+            <AddTableModal
+                isOpen={isModalOpen || isEditOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setIsEditOpen(false);
+                    setEditTable(null);
+                }}
+                editData={editTable}
+                refresh={getTables}
+            />
+            {isViewOpen && selectedTable && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+                    <div className="bg-white p-8 rounded-2xl w-[400px]">
 
+                        <h2 className="text-2xl font-bold mb-4">
+                            Table Details
+                        </h2>
+
+                        <p>Number: {selectedTable.table_number}</p>
+                        <p>Status: {selectedTable.is_active ? "Active" : "Booked"}</p>
+
+                        <button
+                            onClick={() => setIsViewOpen(false)}
+                            className="mt-5 bg-red-500 text-white px-4 py-2 rounded-xl"
+                        >
+                            Close
+                        </button>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

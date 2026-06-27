@@ -16,7 +16,7 @@ function AddEmployeeModal({ isOpen, onClose }) {
     const [phoneNumber, setPhoneNumber] = useState("");
     const [gender, setGender] = useState("");
     const [nationalNumber, setNationalNumber] = useState("");
-
+const needsRestaurant = ["manager", "chef", "warehouse"].includes(role);
     useEffect(() => {
         const fetchRestaurants = async () => {
             try {
@@ -76,10 +76,9 @@ function AddEmployeeModal({ isOpen, onClose }) {
                 "date_of_birth",
                 dateOfBirth?.toISOString().split("T")[0]
             );
-            if (role === "manager" || role === "chef") {
-                formData.append("restaurant_id", restaurantId);
-
-            }
+            if (needsRestaurant) {
+    formData.append("restaurant_id", restaurantId);
+}
 
             const response = await api.post(
                 "/admin/staff-users",
@@ -322,6 +321,35 @@ function AddEmployeeModal({ isOpen, onClose }) {
                                 </>
                             )}
                             {role === "chef" && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Restaurant
+                                        </label>
+
+                                        <select
+                                            value={restaurantId}
+                                            onChange={(e) => setRestaurantId(e.target.value)}
+                                            className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white"
+                                        >
+                                            <option value="">Select Restaurant</option>
+
+                                            {restaurants.map((restaurant) => (
+                                                <option
+                                                    key={restaurant.id}
+                                                    value={restaurant.id}
+                                                >
+                                                    {restaurant.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+
+                                    <h4 className="text-red-950">* NOTICE : Adding Manager to your system is going to Make Changes in the Restaurant System</h4>
+                                </>
+                            )}
+                              {role === "warehouse" && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium mb-1">

@@ -4,12 +4,14 @@ import api from "../../API/axios";
 import AddEmployeeModal from "./AddEmployeeModal";
 function Employee() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [restaurants, setRestaurants] = useState([]);
     const [employeeToDelete, setEmployeeToDelete] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [employees, setEmployees] = useState([]);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [editRestaurantId, setEditRestaurantId] = useState("");
     const openEditModal = (employee) => {
         setSelectedEmployee(employee);
         setIsEditOpen(true);
@@ -44,13 +46,11 @@ function Employee() {
     const handleUpdateEmployee = async () => {
         try {
 
-            await api.post(
-                `/admin/staff-users/${selectedEmployee.id}`,
-                {
-                    phone_number: selectedEmployee.phone_number,
-                    role_id: selectedEmployee.role_id,
-                }
-            );
+            await api.post(`/admin/staff-users/${selectedEmployee.id}`, {
+                phone_number: selectedEmployee.phone_number,
+                role_id: selectedEmployee.role_id,
+                restaurant_id: needsRestaurant ? editRestaurantId : null,
+            });
 
             getEmployees();
 
@@ -68,9 +68,24 @@ function Employee() {
         } catch (error) {
             console.log(error);
         }
-    }; useEffect(() => {
-        getEmployees();
-    }, []);
+    };
+    useEffect(() => {
+    const fetchRestaurants = async () => {
+        try {
+            const res = await api.get("/restaurants");
+            setRestaurants(res.data.restaurants);
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
+    fetchRestaurants();
+    getEmployees();
+}, []);
+    const needsRestaurant =
+        selectedEmployee?.role_id == 3 ||
+        selectedEmployee?.role_id == 6 ||
+        selectedEmployee?.role_id == 7;
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f]">
 
@@ -298,73 +313,98 @@ function Employee() {
                 )
             }
 
-            {
-                isEditOpen && selectedEmployee && (
-                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+           {isEditOpen && selectedEmployee && (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-                        <div className="bg-white rounded-2xl p-6 w-[400px] shadow-2xl">
+        <div className="bg-white rounded-2xl p-6 w-[400px] shadow-2xl">
 
-                            <h2 className="text-2xl font-bold mb-6">
-                                Edit Employee
-                            </h2>
+            <h2 className="text-2xl font-bold mb-6">
+                Edit Employee
+            </h2>
 
-                            <div className="space-y-4">
+            <div className="space-y-4">
 
-                                <input
-                                    type="text"
-                                    value={selectedEmployee.phone_number}
-                                    onChange={(e) =>
-                                        setSelectedEmployee({
-                                            ...selectedEmployee,
-                                            phone_number: e.target.value,
-                                        })
-                                    }
-                                    className="w-full border rounded-xl px-4 py-3"
-                                />
+                <input
+                    type="text"
+                    value={selectedEmployee.phone_number}
+                    onChange={(e) =>
+                        setSelectedEmployee({
+                            ...selectedEmployee,
+                            phone_number: e.target.value,
+                        })
+                    }
+                    className="w-full border rounded-xl px-4 py-3"
+                />
 
-                                <select
-                                    value={selectedEmployee.role_id}
-                                    onChange={(e) =>
-                                        setSelectedEmployee({
-                                            ...selectedEmployee,
-                                            role_id: e.target.value,
-                                        })
-                                    }
-                                    className="w-full border rounded-xl px-4 py-3"
-                                >
-                                    <option value="3">Manager</option>
-                                    <option value="4">Cashier</option>
-                                    <option value="5">Delivery</option>
-                                    <option value="6">Chef</option>
-                                    <option value="7">Warehouse Manager</option>
-                                     <option value="8">Waiter</option>
-                                </select>
+                <select
+                    value={selectedEmployee.role_id}
+                    onChange={(e) =>
+                        setSelectedEmployee({
+                            ...selectedEmployee,
+                            role_id: e.target.value,
+                        })
+                    }
+                    className="w-full border rounded-xl px-4 py-3"
+                >
+                    <option value="3">Manager</option>
+                    <option value="4">Cashier</option>
+                    <option value="5">Delivery</option>
+                    <option value="6">Chef</option>
+                    <option value="7">Warehouse Manager</option>
+                    <option value="8">Waiter</option>
+                </select>
 
-                            </div>
+                {/* 👇 هون الصح */}
+                {(
+                    selectedEmployee.role_id == 3 ||
+                    selectedEmployee.role_id == 6 ||
+                    selectedEmployee.role_id == 7
+                ) && (
+                    <div className="mt-4">
+                        <label className="block mb-2 font-medium">
+                            Restaurant
+                        </label>
 
-                            <div className="flex gap-3 mt-6">
+                        <select
+                            value={editRestaurantId}
+                            onChange={(e) => setEditRestaurantId(e.target.value)}
+                            className="w-full border rounded-xl px-4 py-3"
+                        >
+                            <option value="">Select Restaurant</option>
 
-                                <button
-                                    onClick={() => setIsEditOpen(false)}
-                                    className="flex-1 border rounded-xl py-3"
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    onClick={handleUpdateEmployee}
-                                    className="flex-1 bg-[#7F1D1D] text-white rounded-xl py-3"
-                                >
-                                    Save
-                                </button>
-
-                            </div>
-
-                        </div>
-
+                            {restaurants?.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                    {r.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                )
-            }
+                )}
+
+            </div>
+
+            <div className="flex gap-3 mt-6">
+
+                <button
+                    onClick={() => setIsEditOpen(false)}
+                    className="flex-1 border rounded-xl py-3"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    onClick={handleUpdateEmployee}
+                    className="flex-1 bg-[#7F1D1D] text-white rounded-xl py-3"
+                >
+                    Save
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+)}
             {
                 isDeleteOpen && employeeToDelete && (
                     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
