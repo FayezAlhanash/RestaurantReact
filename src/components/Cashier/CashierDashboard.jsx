@@ -4,7 +4,7 @@ import TopBar from "./TopBar"
 import MenuItemCard from "./MenuItem"
 import { useState } from "react"
 import ProductModal from "./ProductModal"
-import menuData from "../../data/menuData";
+import menuData from "../../Data/MenuData";
 import OrderSidebar from "./OrderSidebar"
 function CashierDashboard() {
     const [openModal, setOpenModal] = useState(false);
