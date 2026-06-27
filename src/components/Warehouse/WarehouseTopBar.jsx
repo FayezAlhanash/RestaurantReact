@@ -2,15 +2,15 @@ import { Search, Bell } from "lucide-react";
 
 function WarehouseTopBar() {
     return (
-        <div className="flex items-center justify-between px-8 py-6">
+        <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-5 sm:px-6 lg:grid-cols-[auto_1fr_auto] lg:px-8 lg:py-6">
 
             {/* Left */}
-            <h1 className="text-4xl font-bold text-[#7F1D1D]">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#7F1D1D]">
                 Inventory Dashboard
             </h1>
 
             {/* Center */}
-            <div className="relative w-[550px]">
+            <div className="relative order-3 col-span-2 w-full lg:order-none lg:col-span-1 lg:mx-auto lg:max-w-[550px]">
 
                 <Search
                     size={22}
@@ -38,7 +38,7 @@ function WarehouseTopBar() {
             </div>
 
             {/* Right */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
 
                 <button className="relative cursor-pointer">
 

@@ -13,13 +13,13 @@ function Warehouse() {
 
     return (
 
-        <div className="flex bg-[#F8F5F1] min-h-screen">
+        <div className="flex flex-col bg-[#F8F5F1] min-h-screen lg:flex-row">
 
             <WarehouseSideBar
                 onAdd={() => setOpenModal(true)}
             />
 
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
 
                 <WarehouseTopBar />
 

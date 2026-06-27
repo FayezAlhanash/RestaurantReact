@@ -11,16 +11,17 @@ function WarehouseCard({ item }) {
                 shadow-sm
                 hover:shadow-md
                 transition
-                flex
-                items-center
+                flex flex-col sm:flex-row
+                sm:items-center
                 justify-between
-                px-6
-                py-6
+                px-4 sm:px-6
+                py-4 sm:py-6
+                gap-4
             "
         >
 
             {/* Left */}
-            <div className="flex items-center gap-5">
+            <div className="flex w-full sm:w-auto items-center gap-4 sm:gap-5">
 
                 <div className="w-16 h-16 rounded-xl bg-[#F9F4F2] flex items-center justify-center">
                     <Package
@@ -42,7 +43,7 @@ function WarehouseCard({ item }) {
             </div>
 
             {/* Right */}
-            <div className="text-right">
+            <div className="flex w-full items-baseline justify-between sm:block sm:w-auto sm:text-right">
 
                 <h3 className="text-2xl font-bold text-[#7F1D1D]">
                     {item.quantity}

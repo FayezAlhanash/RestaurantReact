@@ -90,11 +90,11 @@ function Employee() {
         <div className="min-h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f]">
 
             {/*القسم لعلوي */}
-            <div className="flex items-center justify-between px-10">
+            <div className="flex flex-col items-stretch gap-4 px-4 pt-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10">
 
-                <div className="pl-5 pt-5 text-left flex flex-col ml-3 ">
+                <div className="text-left flex flex-col lg:pl-5 lg:ml-3">
 
-                    <h2 className="text-4xl font-bold ">
+                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold ">
                         EMPLOYEES MANAGEMENT
                     </h2>
 
@@ -104,14 +104,14 @@ function Employee() {
 
                 </div>
                 <button onClick={() => setIsModalOpen(true)}
-                    className="bg-[#7F1D1D] text-white px-12 py-3 rounded-xl text-lg font-semibold mt-2 mr-16 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                    className="bg-[#7F1D1D] text-white px-6 sm:px-12 py-3 rounded-xl text-lg font-semibold lg:mt-2 lg:mr-16 transition-all duration-300 hover:scale-105 hover:shadow-xl">
                     + Add Employee
                 </button>
             </div>
             {/*القسم لعلوي */}
 
             {/*CARDS */}
-            <div className="grid grid-cols-3 gap-6 px-9 mt-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 px-4 sm:px-6 lg:px-9 mt-8 lg:mt-12">
 
 
                 <div className="bg-[#ddf2ff] rounded-2xl shadow p-9 h-35 transition-all duration-300 hover:scale-105 hover:shadow-xl">
@@ -151,11 +151,11 @@ function Employee() {
 
 
             {/*STAFF SHOW */}
-            <div className="bg-white rounded-2xl shadow mt-10 mx-10 p-6">
+            <div className="bg-white rounded-2xl shadow mt-8 lg:mt-10 mx-4 sm:mx-6 lg:mx-10 p-4 sm:p-6 overflow-hidden">
 
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
 
-                    <h2 className="text-3xl font-bold">
+                    <h2 className="text-2xl sm:text-3xl font-bold">
                         Staff Directory
                     </h2>
 
@@ -164,7 +164,7 @@ function Employee() {
                         <input
                             type="text"
                             placeholder="Search..."
-                            className="w-56 bg-gray-200 rounded-full px-5 py-2 outline-none"
+                            className="min-w-0 flex-1 sm:w-56 bg-gray-200 rounded-full px-5 py-2 outline-none"
                         />
 
                         <button className="bg-[#7F1D1D] text-white px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl">
@@ -176,8 +176,8 @@ function Employee() {
 
                 </div>
 
-
-                <div className="grid grid-cols-[1.5fr_1.2fr_1.5fr_1.1fr_0.4fr] mt-8 py-4 border-t border-b text-sm font-bold text-gray-600">
+                <div className="overflow-x-auto">
+                <div className="min-w-[800px] grid grid-cols-[1.5fr_1.2fr_1.5fr_1.1fr_0.4fr] mt-8 py-4 border-t border-b text-sm font-bold text-gray-600">
                     <p>EMPLOYEE</p>
                     <p>ROLE</p>
                     <p>CONTACT</p>
@@ -191,7 +191,7 @@ function Employee() {
 
                         <div
                             key={employee.id}
-                            className="grid grid-cols-[1.5fr_1.2fr_1.5fr_1fr_0.5fr] items-center py-5 border-b"
+                            className="min-w-[800px] grid grid-cols-[1.5fr_1.2fr_1.5fr_1fr_0.5fr] items-center py-5 border-b"
                         >
                             <div>
                                 <p className="font-semibold">
@@ -253,6 +253,7 @@ function Employee() {
                     ))
 
                 }
+                </div>
             </div>
 
 
@@ -267,9 +268,9 @@ function Employee() {
             />
             {
                 isInfoOpen && selectedEmployee && (
-                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
 
-                        <div className="bg-white rounded-2xl p-6 w-[450px] shadow-2xl">
+                        <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-[450px] shadow-2xl">
 
                             <h2 className="text-2xl font-bold mb-6">
                                 Employee Details
@@ -314,9 +315,9 @@ function Employee() {
             }
 
            {isEditOpen && selectedEmployee && (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
 
-        <div className="bg-white rounded-2xl p-6 w-[400px] shadow-2xl">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-[400px] shadow-2xl">
 
             <h2 className="text-2xl font-bold mb-6">
                 Edit Employee
@@ -407,9 +408,9 @@ function Employee() {
 )}
             {
                 isDeleteOpen && employeeToDelete && (
-                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
 
-                        <div className="bg-white rounded-2xl p-6 w-[420px] shadow-2xl">
+                        <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-[420px] shadow-2xl">
 
                             <div className="flex justify-center mb-4">
                                 <div className="bg-red-100 p-4 rounded-full">

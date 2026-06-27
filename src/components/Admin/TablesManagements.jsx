@@ -2,7 +2,7 @@ import { useState } from "react";
 import AddTableModal from "./AddTableModal";
 import { TableProperties, CircleCheck, Clock3 } from "lucide-react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
-import { Utensils, Users } from "lucide-react";
+import { Utensils } from "lucide-react";
 import { useEffect } from "react";
 import api from "../../API/axios";
 function TablesManagements() {
@@ -41,10 +41,10 @@ function TablesManagements() {
     }, []);
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f]">
-            <div className="flex items-center justify-between px-10">
-                <div className="pl-5 pt-5 text-left flex flex-col ml-3">
+            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-10">
+                <div className="pt-5 text-left flex flex-col lg:pl-5 lg:ml-3">
 
-                    <h2 className="text-4xl font-bold">
+                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold">
                         TABLES MANAGEMENT
                     </h2>
                     <h5 className="text-lg mt-2 text-gray-600 ml-1">
@@ -54,8 +54,8 @@ function TablesManagements() {
                 </div>
 
             </div>
-            <div className="grid grid-cols-3 gap-6 px-7 mt-12">
-                <div className="bg-[#f8fbff] border border-blue-200 rounded-3xl p-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 px-4 sm:px-6 lg:px-7 mt-8 lg:mt-12">
+                <div className="bg-[#f8fbff] border border-blue-200 rounded-3xl p-5 sm:p-8">
 
                     <div className="flex justify-between items-start">
 
@@ -80,7 +80,7 @@ function TablesManagements() {
                 </div>
 
 
-                <div className="bg-[#fff2f2] border border-red-200 rounded-3xl p-8">
+                <div className="bg-[#fff2f2] border border-red-200 rounded-3xl p-5 sm:p-8">
 
                     <div className="flex justify-between items-start">
 
@@ -104,7 +104,7 @@ function TablesManagements() {
 
                 </div>
 
-                <div className="bg-[#f7fff1] border border-green-200 rounded-3xl p-8">
+                <div className="bg-[#f7fff1] border border-green-200 rounded-3xl p-5 sm:p-8">
 
                     <div className="flex justify-between items-start">
 
@@ -129,16 +129,16 @@ function TablesManagements() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow mt-10 mx-7 p-8">
+            <div className="bg-white rounded-3xl shadow mt-8 lg:mt-10 mx-4 sm:mx-6 lg:mx-7 p-4 sm:p-6 lg:p-8">
                 <div className="flex justify-between items-center">
 
-                    <h2 className="text-3xl font-bold">
+                    <h2 className="text-2xl sm:text-3xl font-bold">
                         Floor Plan Visualizer
                     </h2>
 
                 </div>
 
-                <div className="grid grid-cols-5 gap-9 mt-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-5 lg:gap-9 mt-8">
                     {tables.map((table) => (
                         <div
                             key={table.id}
@@ -231,8 +231,8 @@ function TablesManagements() {
                 refresh={getTables}
             />
             {isViewOpen && selectedTable && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                    <div className="bg-white p-8 rounded-2xl w-[400px]">
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white p-5 sm:p-8 rounded-2xl w-full max-w-[400px]">
 
                         <h2 className="text-2xl font-bold mb-4">
                             Table Details

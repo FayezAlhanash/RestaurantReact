@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 
 function TopBar() {
     return (
-        <div className="w-[78%] ml-6 mt-3 mb-6 flex items-center gap-4 font-['raleway']">
+        <div className="w-auto mx-4 sm:mx-6 mt-3 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 font-['raleway']">
 
             {/* Search Input */}
             <div className="relative flex-1">

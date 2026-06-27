@@ -14,6 +14,7 @@ function WarehouseModal({
     const [unit, setUnit] = useState("");
 
     useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
 
         if (ingredient) {
             setName(ingredient.name);
@@ -27,20 +28,21 @@ function WarehouseModal({
             setUnit("");
         }
 
+        /* eslint-enable react-hooks/set-state-in-effect */
     }, [ingredient]);
 
     if (!isOpen) return null;
 
     return (
 
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3 sm:p-6">
 
-            <div className="bg-white rounded-3xl w-[650px] p-8 shadow-xl">
+            <div className="bg-white rounded-3xl w-full max-w-[650px] max-h-[calc(100dvh-1.5rem)] overflow-y-auto p-5 sm:p-8 shadow-xl">
 
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
 
-                    <h2 className="text-3xl font-bold text-[#7F1D1D]">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-[#7F1D1D]">
 
                         {ingredient ? "Edit Ingredient" : "Add Ingredient"}
 
@@ -137,7 +139,7 @@ function WarehouseModal({
 
                 {/* Buttons */}
 
-                <div className="flex justify-end gap-4">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
 
                     <button
                         onClick={onClose}

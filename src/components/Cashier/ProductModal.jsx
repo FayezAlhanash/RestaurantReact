@@ -4,28 +4,29 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
     const [quantity, setQuantity] = useState(1)
     const [notes, setNotes] = useState("")
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setQuantity(1)
     }, [item])
 
     if (!isOpen) return null
     return (
 
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 font-['raleway']">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-6 font-['raleway']">
 
-            <div className="w-[500px] bg-[#d1c5c5]  rounded-3xl overflow-hidden shadow-2xl">
+            <div className="w-full max-w-[500px] max-h-[calc(100dvh-1.5rem)] bg-[#d1c5c5] rounded-3xl overflow-y-auto shadow-2xl">
 
                 {/* Image */}
                 <img
                     src={item?.image}
                     alt="burger"
-                    className="w-full h-64 object-cover"
+                    className="w-full h-40 sm:h-64 object-cover"
                 />
 
                 {/* Content */}
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
 
                     {/* Title */}
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
                         {item?.title}
                     </h1>
 
@@ -109,7 +110,7 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                     />
 
                     {/* Buttons */}
-                    <div className="flex gap-4">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4">
 
                         <button
                             onClick={() => {

@@ -14,6 +14,7 @@ function RestaurantModal({
     const [frontImage, setFrontImage] = useState(null);
     const [backImage, setBackImage] = useState(null);
     useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
 
         if (restaurant) {
 
@@ -27,6 +28,7 @@ function RestaurantModal({
 
         }
 
+        /* eslint-enable react-hooks/set-state-in-effect */
     }, [restaurant]);
     if (!isOpen) return null;
 
@@ -42,23 +44,25 @@ function RestaurantModal({
                 items-center
                 justify-center
                 z-50
+                p-3 sm:p-6
             "
         >
             <div
                 className="
         bg-white
-        w-[800px]
+        w-full max-w-[800px]
+        max-h-[calc(100dvh-1.5rem)] overflow-y-auto
         rounded-[32px]
         p-5
         shadow-2xl
     "
             >
-                <h2 className="text-3xl font-bold mb-5">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-5">
                     Add Restaurant
                 </h2>
 
                 {/* Images */}
-                <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
 
                     <label
                         className="
@@ -194,7 +198,7 @@ function RestaurantModal({
                 </div>
 
                 {/* Buttons */}
-                <div className="flex justify-end gap-4">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
 
                     <button
                         onClick={onClose}

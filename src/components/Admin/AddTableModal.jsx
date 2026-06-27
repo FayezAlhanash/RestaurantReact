@@ -6,6 +6,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
     const [isActive, setIsActive] = useState(true);
 
     useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
         if (!isOpen) return;
 
         if (!editData) {
@@ -16,6 +17,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
 
         setTableNumber(editData.table_number || "");
         setIsActive(Number(editData.is_active) === 1);
+        /* eslint-enable react-hooks/set-state-in-effect */
     }, [isOpen, editData]);
 
     const handleSubmit = async () => {
@@ -47,8 +49,8 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-            <div className="bg-white w-[400px] p-6 rounded-2xl">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-[400px] p-5 sm:p-6 rounded-2xl">
 
                 <h2 className="text-xl font-bold mb-4">
                     {editData ? "Edit Table" : "Add Table"}

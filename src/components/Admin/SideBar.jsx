@@ -6,11 +6,11 @@ import {
     ShieldCheck,
     Table,
     
-    LogOut
+    LogOut, X
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
-function SideBar() {
+function SideBar({ isOpen, onClose }) {
     const navigate = useNavigate();
     const menu = [
         {
@@ -44,21 +44,26 @@ function SideBar() {
         navigate("/", { replace: true });
     };
     return (
-        <div
-            className="
-w-[300px]
-h-screen
+        <>
+        {isOpen && <button aria-label="Close menu" onClick={onClose} className="fixed inset-0 z-40 bg-black/40 lg:hidden" />}
+        <aside
+            className={`
+w-[280px] lg:w-[300px]
+h-dvh
 bg-white
 border-r
 
 flex
 flex-col
 
-sticky
-top-0
-        "
+fixed lg:sticky
+top-0 left-0 z-50
+transition-transform duration-300
+${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}
         >
-            <div className="p-8">
+            <button aria-label="Close menu" onClick={onClose} className="absolute right-4 top-4 rounded-lg p-2 hover:bg-gray-100 lg:hidden"><X size={22} /></button>
+            <div className="p-6 lg:p-8">
                 <h1 className="text-3xl font-bold text-[#7f1d1d]">
                     Big-4
                 </h1>
@@ -74,6 +79,7 @@ top-0
                     <NavLink
                         key={index}
                         to={item.path}
+                        onClick={onClose}
                         className={({ isActive }) =>
                             `
             flex
@@ -104,7 +110,8 @@ top-0
                     <span>Logout</span>
                 </button>
             </div>
-        </div>
+        </aside>
+        </>
     );
 }
 

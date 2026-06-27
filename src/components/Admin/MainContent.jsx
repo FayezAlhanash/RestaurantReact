@@ -58,9 +58,9 @@ function MainContent() {
     ];
 
     return (
-        <div className="p-8 overflow-y-auto">
+        <div className="overflow-y-auto p-4 sm:p-6 lg:p-8">
 
-            <h1 className="text-5xl font-bold text-[#222]">
+            <h1 className="text-3xl font-bold text-[#222] sm:text-4xl lg:text-5xl">
                 Dashboard Overview
             </h1>
 
@@ -71,7 +71,7 @@ function MainContent() {
 
 
             {/* Stats 1 */}
-            <div className="grid grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
 
                 {stats.map((card, index) => (
                     <div
@@ -87,7 +87,7 @@ function MainContent() {
                             {card.title}
                         </p>
 
-                        <h2 className="text-4xl font-bold">
+                        <h2 className="break-words text-2xl font-bold sm:text-3xl xl:text-4xl">
                             {card.value}
                         </h2>
                     </div>
@@ -95,7 +95,7 @@ function MainContent() {
 
             </div>
             {/* Stats 1 */}
-            <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-1 gap-4 mb-8 xl:grid-cols-2 xl:gap-8">
                 <div className="bg-white rounded-3xl p-6 shadow-sm">
                     <WeeklyOrdersChart />
                 </div>
@@ -105,7 +105,7 @@ function MainContent() {
             </div>
 
             {/*STATS 2 */}
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-8">
 
                 {/* Earnings */}
                 <div className="

@@ -58,16 +58,16 @@ function Login() {
         }
     };
     return (
-        <div className="min-h-screen px-4 bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center font-[raleway]">
-            <div className="w-[90%] max-w-[550px] bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
+        <div className="min-h-dvh px-3 py-6 sm:px-4 bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center font-[raleway]">
+            <div className="w-full max-w-[550px] bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
                 {/* Top Section */}
-                <div className="bg-gradient-to-b from-[#8B1E1E] to-[#6E1414] h-64 flex flex-col items-center justify-center text-white">
+                <div className="bg-gradient-to-b from-[#8B1E1E] to-[#6E1414] min-h-48 sm:h-64 px-5 py-8 flex flex-col items-center justify-center text-center text-white">
                     <img
                         src={logo}
                         alt="logo"
                         className="w-24 mb-4"
                     />
-                    <h1 className=" text-4xl font-bold mb-2">
+                    <h1 className="text-2xl sm:text-4xl font-bold mb-2">
                         Welcome back sir
                     </h1>
 
@@ -78,7 +78,7 @@ function Login() {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="p-10 flex flex-col items-stretch">
+                <div className="p-5 sm:p-10 flex flex-col items-stretch">
                     <div className="mb-6">
                         <label className="block text-xl  mb-2 text-gray-700">
                             USERNAME

@@ -20,7 +20,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
     const total = subtotal + tax
     return (
 
-        <div className="bg-white flex flex-col font-['raleway'] h-full md:h-screen">
+        <div className="bg-white flex flex-col font-['raleway'] h-auto md:h-screen">
             {/* Header */}
             <div className="p-6 border-b">
 
