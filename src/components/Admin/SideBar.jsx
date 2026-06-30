@@ -9,6 +9,7 @@ import {
     LogOut, X
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { clearSession } from "../../utils/auth";
 
 function SideBar({ isOpen, onClose }) {
     const navigate = useNavigate();
@@ -40,7 +41,7 @@ function SideBar({ isOpen, onClose }) {
         },
     ];
     const handleLogout = () => {
-        localStorage.removeItem("token");
+        clearSession();
         navigate("/", { replace: true });
     };
     return (

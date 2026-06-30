@@ -4,14 +4,20 @@ import Button from '@mui/material/Button';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { clearSession, getHomePath, getRoleId } from "../utils/auth";
 function Login() {
 
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     const navigate = useNavigate();
 
     const handleLogin = async () => {
+        setIsLoading(true);
+        setErrorMessage("");
+
         try {
 
             const formData = new FormData();
@@ -24,37 +30,29 @@ function Login() {
                 formData
             );
 
-            console.log(response.data.user);
-            console.table(response.data.user);
+            const user = response.data.user;
+            const roleId = getRoleId(user);
+            const homePath = getHomePath(roleId);
+
+            if (!homePath) {
+                clearSession();
+                setErrorMessage("ليس لديك صلاحية للدخول إلى النظام");
+                return;
+            }
+
             localStorage.setItem(
                 "token",
                 response.data.token
             );
-            localStorage.setItem("user", JSON.stringify(response.data.user));
-
-            const roleId = response.data.user.role_id;
-
-            switch (roleId) {
-                case 1:
-                    navigate("/dashboard");
-                    break;
-
-                case 4:
-                    navigate("/cashier");
-                    break;
-
-                case 7:
-                    navigate("/warehouse");
-                    break;
-
-                default:
-                    alert("ليس لديك صلاحية للدخول");
-            }
+            localStorage.setItem("user", JSON.stringify(user));
+            navigate(homePath, { replace: true });
 
         } catch (error) {
-
             console.log(error.response?.data);
-
+            clearSession();
+            setErrorMessage(error.response?.data?.message || "بيانات تسجيل الدخول غير صحيحة");
+        } finally {
+            setIsLoading(false);
         }
     };
     return (
@@ -115,6 +113,7 @@ function Login() {
 
                     <Button
                         onClick={handleLogin}
+                        disabled={isLoading}
                         variant="contained"
                         fullWidth
                         sx={{
@@ -126,8 +125,14 @@ function Login() {
                             marginTop: "10px",
                         }}
                     >
-                        Sign in
+                        {isLoading ? "Signing in..." : "Sign in"}
                     </Button>
+
+                    {errorMessage && (
+                        <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700">
+                            {errorMessage}
+                        </p>
+                    )}
 
                 </div>
 

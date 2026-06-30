@@ -1,168 +1,100 @@
-import { Trash2 } from "lucide-react";
+import { Minus, Plus, Receipt, ShoppingBag, Trash2 } from "lucide-react";
+
 function OrderSidebar({ cartItems, setCartItems }) {
     const removeItem = (indexToRemove) => {
+        setCartItems((items) => items.filter((_, index) => index !== indexToRemove));
+    };
 
-        const updatedCart = cartItems.filter(
-            (_, index) => index !== indexToRemove
-        )
+    const changeQuantity = (indexToChange, amount) => {
+        setCartItems((items) =>
+            items
+                .map((item, index) =>
+                    index === indexToChange
+                        ? { ...item, quantity: Math.max(0, item.quantity + amount) }
+                        : item
+                )
+                .filter((item) => item.quantity > 0)
+        );
+    };
 
-        setCartItems(updatedCart)
-    }
+    const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    const tax = subtotal * 0.05;
+    const total = subtotal + tax;
+    const itemCount = cartItems.reduce((totalCount, item) => totalCount + item.quantity, 0);
 
-
-    const subtotal = cartItems.reduce(
-        (total, item) => total + item.price * item.quantity,
-        0
-    )
-
-    const tax = subtotal * 0.05
-
-    const total = subtotal + tax
     return (
-
-        <div className="bg-white flex flex-col font-['raleway'] h-auto md:h-screen">
-            {/* Header */}
-            <div className="p-6 border-b">
-
-                <h1 className="text-2xl font-bold text-gray-800">
-                    Current Order
-                </h1>
-
-                <p className="text-gray-400 mt-1">
-                    Order #1029
-                </p>
-
+        <div className="flex h-full min-h-[520px] flex-col bg-white">
+            <div className="flex items-center justify-between border-b border-[#EEE5E1] px-5 py-5 sm:px-6">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <ShoppingBag size={20} className="text-[#7F1D1D]" />
+                        <h2 className="text-xl font-extrabold">Current order</h2>
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-[#94837D]">Dine in · Order #1029</p>
+                </div>
+                <span className="rounded-full bg-[#F9ECEC] px-3 py-1.5 text-xs font-bold text-[#7F1D1D]">{itemCount} items</span>
             </div>
 
-            {/* Orders */}
-            <div className="flex-1 overflow-y-auto p-4">
-
-                {
-                    cartItems.map((item, index) => (
-
-                        <div
-                            key={index}
-                            className="flex gap-4 mb-5 bg-[#F8F5F1] p-3 rounded-2xl"
-                        >
-
-                            {/* Image */}
-                            <img
-                                src={item.image}
-                                alt={item.title}
-                                className="w-20 h-20 rounded-2xl object-cover"
-                            />
-
-                            {/* Info */}
-                            <div className="flex-1">
-
-                                <div className="flex items-start justify-between">
-
-                                    <div>
-
-                                        <h2 className="font-bold text-gray-800">
-                                            {item.title}
-                                        </h2>
-
-                                        <p className="text-sm text-gray-400">
-                                            {item.size}
-                                        </p>
-                                        {
-                                            item.notes && (
-                                                <p className="text-xs text-gray-500 mt-1 italic">
-                                                    "{item.notes}"
-                                                </p>
-                                            )
-                                        }
-                                    </div>
-
-                                    <div className="flex flex-col items-end">
-
-                                        <span className="font-bold text-[#7F1D1D]">
-                                            ${item.price}
-                                        </span>
-
-                                        <button
-                                            onClick={() => removeItem(index)}
-                                            className="text-red-700 hover:text-red-800 transition mt-2"
-                                        >
-                                            <Trash2 size={18} className="md:w-[22px] md:h-[22px]" />
-                                        </button>
-
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 mt-4">
-
-                                    <span className="font-bold">
-                                        x{item.quantity}
-                                    </span>
-
-                                </div>
-
-                            </div>
-
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+                {cartItems.length === 0 ? (
+                    <div className="flex h-full min-h-52 flex-col items-center justify-center text-center">
+                        <div className="grid h-16 w-16 place-items-center rounded-[22px] bg-[#F8F3EF] text-[#B29F97]">
+                            <Receipt size={28} />
                         </div>
+                        <h3 className="mt-4 font-extrabold">Your order is empty</h3>
+                        <p className="mt-1 max-w-52 text-sm leading-5 text-[#978780]">Choose an item from the menu to start a new order.</p>
+                    </div>
+                ) : (
+                    cartItems.map((item, index) => (
+                        <div key={`${item.id}-${item.size}-${index}`} className="rounded-[20px] border border-[#EEE5E1] bg-[#FCFAF8] p-3">
+                            <div className="flex gap-3">
+                                <img src={`${item.image}?auto=format&fit=crop&w=180&q=70`} alt={item.title} className="h-16 w-16 shrink-0 rounded-2xl object-cover" />
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <h3 className="truncate text-sm font-extrabold">{item.title}</h3>
+                                            <p className="mt-0.5 text-xs capitalize text-[#9A8982]">{item.size}</p>
+                                        </div>
+                                        <button onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`} className="text-[#B7A8A2] transition hover:text-[#7F1D1D]">
+                                            <Trash2 size={17} />
+                                        </button>
+                                    </div>
 
+                                    <div className="mt-3 flex items-center justify-between">
+                                        <div className="flex items-center rounded-xl border border-[#E5D8D2] bg-white p-0.5">
+                                            <button onClick={() => changeQuantity(index, -1)} aria-label="Decrease quantity" className="grid h-7 w-7 place-items-center rounded-lg text-[#7F1D1D] hover:bg-[#F9ECEC]"><Minus size={14} /></button>
+                                            <span className="w-7 text-center text-xs font-extrabold">{item.quantity}</span>
+                                            <button onClick={() => changeQuantity(index, 1)} aria-label="Increase quantity" className="grid h-7 w-7 place-items-center rounded-lg text-[#7F1D1D] hover:bg-[#F9ECEC]"><Plus size={14} /></button>
+                                        </div>
+                                        <span className="text-sm font-extrabold text-[#7F1D1D]">${(item.price * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {item.notes && <p className="mt-2 rounded-xl bg-white px-3 py-2 text-xs italic text-[#82716B]">“{item.notes}”</p>}
+                        </div>
                     ))
-                }
-
+                )}
             </div>
 
-            {/* Footer */}
-            <div className="border-t p-5 sticky bottom-0 bg-white">
-                <div className="flex items-center justify-between mb-3">
-
-                    <span className="text-gray-500">
-                        Subtotal
-                    </span>
-
-                    <span className="font-bold">
-                        ${subtotal.toFixed(2)}
-                    </span>
-
+            <div className="border-t border-[#EEE5E1] bg-white px-5 py-5 sm:px-6">
+                <div className="space-y-2.5 text-sm">
+                    <div className="flex justify-between text-[#82716B]"><span>Subtotal</span><span className="font-bold text-[#443936]">${subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-[#82716B]"><span>Tax (5%)</span><span className="font-bold text-[#443936]">${tax.toFixed(2)}</span></div>
                 </div>
-
-                <div className="flex items-center justify-between mb-6">
-
-                    <span className="text-gray-500">
-                        Tax
-                    </span>
-
-                    <span className="font-bold">
-                        ${tax.toFixed(2)}
-                    </span>
-
+                <div className="my-4 border-t border-dashed border-[#DCCFC9]" />
+                <div className="mb-5 flex items-end justify-between">
+                    <span className="font-extrabold">Total</span>
+                    <span className="text-2xl font-black text-[#7F1D1D]">${total.toFixed(2)}</span>
                 </div>
-                <div className="flex items-center justify-between mb-6">
-
-                    <span className="text-lg font-bold text-gray-800">
-                        Total
-                    </span>
-
-                    <span className="text-xl font-bold text-[#7F1D1D]">
-                        ${total.toFixed(2)}
-                    </span>
-
-                </div>
-
-                <button className="cursor-pointer w-full bg-[#7F1D1D] text-white py-4 rounded-2xl font-bold hover:bg-[#6E1414] transition">
-
-                    Place Order
-
+                <button disabled={!cartItems.length} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
+                    Place order · ${total.toFixed(2)}
                 </button>
-                <button
-                    onClick={() => setCartItems([])}
-                    className="cursor-pointer w-full mt-3 border border-red-300 text-red-600 py-3 rounded-2xl font-bold hover:bg-red-50 transition"
-                >
-
-                    Clear Order
-
-                </button>
+                {cartItems.length > 0 && (
+                    <button onClick={() => setCartItems([])} className="mt-2.5 w-full py-2 text-xs font-bold text-[#9A8982] transition hover:text-[#7F1D1D]">Clear order</button>
+                )}
             </div>
-
         </div>
-
-    )
+    );
 }
 
-export default OrderSidebar
+export default OrderSidebar;

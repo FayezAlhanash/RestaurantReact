@@ -1,15 +1,9 @@
-import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { PackagePlus, X } from "lucide-react";
 
-function WarehouseModal({
-    isOpen,
-    onClose,
-    onSave,
-    ingredient,
-}) {
-
+function WarehouseModal({ isOpen, onClose, onSave, ingredient }) {
+    const [minQuantity, setMinQuantity] = useState("");
     const [name, setName] = useState("");
-    const [category, setCategory] = useState("");
     const [quantity, setQuantity] = useState("");
     const [unit, setUnit] = useState("");
 
@@ -18,13 +12,13 @@ function WarehouseModal({
 
         if (ingredient) {
             setName(ingredient.name);
-            setCategory(ingredient.category);
-            setQuantity(ingredient.quantity);
+            setQuantity(ingredient.current_quantity);
+            setMinQuantity(ingredient.min_quantity);
             setUnit(ingredient.unit);
         } else {
             setName("");
-            setCategory("");
             setQuantity("");
+            setMinQuantity("");
             setUnit("");
         }
 
@@ -34,144 +28,114 @@ function WarehouseModal({
     if (!isOpen) return null;
 
     return (
-
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3 sm:p-6">
-
-            <div className="bg-white rounded-3xl w-full max-w-[650px] max-h-[calc(100dvh-1.5rem)] overflow-y-auto p-5 sm:p-8 shadow-xl">
-
-                {/* Header */}
-                <div className="flex justify-between items-center mb-8">
-
-                    <h2 className="text-2xl sm:text-3xl font-bold text-[#7F1D1D]">
-
-                        {ingredient ? "Edit Ingredient" : "Add Ingredient"}
-
-                    </h2>
-
-                    <button onClick={onClose}>
-                        <X size={30} />
-                    </button>
-
-                </div>
-
-                {/* Name */}
-
-                <div className="mb-5">
-
-                    <label className="block mb-2 font-semibold">
-
-                        Ingredient Name
-
-                    </label>
-
-                    <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full border rounded-xl px-4 py-3 outline-none"
-                    />
-
-                </div>
-
-                {/* Category */}
-
-                <div className="mb-5">
-
-                    <label className="block mb-2 font-semibold">
-
-                        Category
-
-                    </label>
-
-                    <input
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full border rounded-xl px-4 py-3 outline-none"
-                    />
-
-                </div>
-
-                {/* Quantity */}
-
-                <div className="mb-5">
-
-                    <label className="block mb-2 font-semibold">
-
-                        Quantity
-
-                    </label>
-
-                    <input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                        className="w-full border rounded-xl px-4 py-3 outline-none"
-                    />
-
-                </div>
-
-                {/* Unit */}
-
-                <div className="mb-8">
-
-                    <label className="block mb-2 font-semibold">
-
-                        Unit
-
-                    </label>
-
-                    <select
-                        value={unit}
-                        onChange={(e) => setUnit(e.target.value)}
-                        className="w-full border rounded-xl px-4 py-3"
-                    >
-
-                        <option value="">Select Unit</option>
-
-                        <option value="kg">Kg</option>
-                        <option value="g">Gram</option>
-                        <option value="L">Liter</option>
-                        <option value="ml">ml</option>
-                        <option value="pcs">Pieces</option>
-
-                    </select>
-
-                </div>
-
-                {/* Buttons */}
-
-                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-sm sm:p-6">
+            <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-[680px] overflow-y-auto rounded-[30px] bg-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-[#EFE5E1] px-5 py-5 sm:px-7">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#F9ECEC] text-[#7F1D1D]">
+                            <PackagePlus size={24} />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#A08980]">
+                                Inventory item
+                            </p>
+                            <h2 className="text-xl font-black text-[#7F1D1D] sm:text-2xl">
+                                {ingredient ? "Edit Ingredient" : "Add Ingredient"}
+                            </h2>
+                        </div>
+                    </div>
 
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 rounded-xl bg-gray-200"
+                        className="grid h-10 w-10 place-items-center rounded-full bg-[#F8F5F1] text-[#6D5D56] transition hover:bg-[#F9ECEC] hover:text-[#7F1D1D]"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+                    <label className="sm:col-span-2">
+                        <span className="mb-2 block text-sm font-extrabold">
+                            Ingredient Name
+                        </span>
+                        <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Example: Tomato"
+                            className="w-full rounded-2xl border border-[#E4D6CF] px-4 py-3 outline-none transition focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                        />
+                    </label>
+
+                    <label>
+                        <span className="mb-2 block text-sm font-extrabold">
+                            Current Quantity
+                        </span>
+                        <input
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            placeholder="0"
+                            className="w-full rounded-2xl border border-[#E4D6CF] px-4 py-3 outline-none transition focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                        />
+                    </label>
+
+                    <label>
+                        <span className="mb-2 block text-sm font-extrabold">
+                            Minimum Quantity
+                        </span>
+                        <input
+                            type="number"
+                            value={minQuantity}
+                            onChange={(e) => setMinQuantity(e.target.value)}
+                            placeholder="0"
+                            className="w-full rounded-2xl border border-[#E4D6CF] px-4 py-3 outline-none transition focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                        />
+                    </label>
+
+                    <label className="sm:col-span-2">
+                        <span className="mb-2 block text-sm font-extrabold">
+                            Unit
+                        </span>
+                        <select
+                            value={unit}
+                            onChange={(e) => setUnit(e.target.value)}
+                            className="w-full rounded-2xl border border-[#E4D6CF] bg-white px-4 py-3 outline-none transition focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                        >
+                            <option value="">Select Unit</option>
+                            <option value="kg">Kg</option>
+                            <option value="g">Gram</option>
+                            <option value="L">Liter</option>
+                            <option value="ml">ml</option>
+                            <option value="pcs">Pieces</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 border-t border-[#EFE5E1] px-5 py-5 sm:flex-row sm:justify-end sm:px-7">
+                    <button
+                        onClick={onClose}
+                        className="rounded-2xl border border-[#E4D6CF] px-6 py-3 font-bold transition hover:bg-[#F8F5F1]"
                     >
                         Cancel
                     </button>
 
                     <button
                         onClick={() => {
-
                             onSave({
+                                id: ingredient?.id,
                                 name,
-                                category,
-                                quantity,
                                 unit,
+                                current_quantity: Number(quantity),
+                                min_quantity: Number(minQuantity),
                             });
-
-                            onClose();
-
                         }}
-                        className="px-6 py-3 rounded-xl bg-[#7F1D1D] text-white"
+                        className="rounded-2xl bg-[#7F1D1D] px-6 py-3 font-bold text-white transition hover:bg-[#681718]"
                     >
-                        Save
+                        Save Ingredient
                     </button>
-
                 </div>
-
             </div>
-
         </div>
-
     );
 }
 

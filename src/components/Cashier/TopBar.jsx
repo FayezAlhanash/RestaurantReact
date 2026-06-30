@@ -1,60 +1,44 @@
-import { Search } from "lucide-react";
+import { Bell, Search, ShoppingBag } from "lucide-react";
 
-function TopBar() {
+function TopBar({ search, setSearch, cartCount }) {
     return (
-        <div className="w-auto mx-4 sm:mx-6 mt-3 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 font-['raleway']">
+        <header className="sticky top-0 z-20 border-b border-[#E9DED8]/80 bg-[#F5F1EB]/90 px-4 py-4 backdrop-blur-xl sm:px-6 xl:px-8">
+            <div className="flex items-center gap-3 sm:gap-5">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-xs font-black text-white shadow-sm lg:hidden">B4</div>
 
-            {/* Search Input */}
-            <div className="relative flex-1">
+                <div className="relative min-w-0 flex-1">
+                    <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#9A8B85]" />
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Search dishes, drinks..."
+                        className="h-12 w-full rounded-2xl border border-[#E5D8D2] bg-white pl-12 pr-4 text-sm font-medium shadow-sm outline-none transition focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10 sm:h-14 sm:text-base"
+                    />
+                </div>
 
-                <Search
-                    size={28}
-                    className="cursor-text absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <button aria-label="Notifications" className="hidden h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#E5D8D2] bg-white text-[#655650] transition hover:border-[#7F1D1D] hover:text-[#7F1D1D] sm:grid">
+                    <Bell size={21} />
+                </button>
 
-                <input
-                    type="text"
-                    placeholder="Search for menu items..."
-                    className="cursor-context-menu
-                    w-full
-                    bg-white/90
-                    backdrop-blur-md
-                    border
-                    border-gray-200
-                    rounded-3xl
-                    py-4
-                    pl-14
-                    pr-5
-                    text-lg
-                    shadow-sm
-                    outline-none
-                    transition-all
-                    duration-300
-                    focus:border-[#7F1D1D]
-                    focus:shadow-lg
-                    focus:scale-[1.01]
-                    placeholder:text-gray-400"
-                />
+                <div className="hidden items-center gap-3 border-l border-[#DCCFC9] pl-5 xl:flex">
+                    <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D] font-bold text-white">FA</div>
+                    <div>
+                        <p className="text-sm font-bold">Fayez Ahmad</p>
+                        <p className="text-xs text-[#8C7D77]">Cashier · Shift A</p>
+                    </div>
+                </div>
 
+                <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#F7C948] text-[#372B13] lg:hidden">
+                    <ShoppingBag size={21} />
+                    {cartCount > 0 && (
+                        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#7F1D1D] px-1 text-[10px] font-bold text-white">
+                            {cartCount}
+                        </span>
+                    )}
+                </div>
             </div>
-
-            {/* Search Button */}
-            <button
-                className="cursor-pointer
-                bg-[#7F1D1D]
-                hover:bg-[#6E1414]
-                text-white
-                px-8
-                py-4
-                rounded-3xl
-                font-semibold
-                shadow-md
-                transition"
-            >
-                Search
-            </button>
-
-        </div>
+        </header>
     );
 }
 

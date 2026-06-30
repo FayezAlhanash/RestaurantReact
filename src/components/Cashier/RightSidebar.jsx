@@ -1,55 +1,58 @@
-import {
-  House,
-  BookOpen,
-  ReceiptText,
-  Settings,
-  LogOut,
-  Headset,
-  Globe,
-} from "lucide-react";
+import { BookOpen, Headset, House, LogOut, ReceiptText, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { clearSession } from "../../utils/auth";
+
+const navigation = [
+    { label: "Menu", icon: House, active: true },
+    { label: "Catalog", icon: BookOpen },
+    { label: "Orders", icon: ReceiptText },
+    { label: "Settings", icon: Settings },
+];
+
 function RightSidebar() {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        clearSession();
+        navigate("/", { replace: true });
+    };
+
     return (
-        <div className="w-[90px] bg-white border-l min-h-screen flex flex-col items-center justify-between py-6 font-['raleway']">
-
-            {/* Top Icons */}
-            <div className="flex flex-col gap-6">
-
-               <div className="bg-[#7F1D1D] text-white p-5 rounded-2xl cursor-pointer">
-                    <House size={32} />
-                </div>
-
-                <div className="text-gray-600 p-4 hover:text-[#7F1D1D] cursor-pointer transition">
-                    <BookOpen size={32} />
-                </div>
-
-                <div className="text-gray-600 p-4 hover:text-[#7F1D1D] cursor-pointer transition">
-                    <ReceiptText size={32} />
-                </div>
-
-                <div className="text-gray-600 p-4 hover:text-[#7F1D1D] cursor-pointer transition">
-                    <Settings size={32} />
-                </div>
-
-            </div>
-             <div className="flex flex-col items-center gap-4">
-
-                <div className="bg-white border border-gray-300 p-3 rounded-2xl cursor-pointer hover:border-[#7F1D1D] transition">
-                    <Headset size={32} className="text-[#7F1D1D]" />
-                </div>
-
-                <div className="bg-white border border-gray-300 p-3 rounded-2xl cursor-pointer hover:border-[#7F1D1D] transition">
-                    <Globe size={32} className="text-[#7F1D1D]" />
-                </div>
-
-            </div>
-            {/* Bottom */}
-            <div className="text-red-700 cursor-pointer hover:scale-110 transition">
-                <LogOut size={32} />
+        <div className="flex h-dvh w-[92px] flex-col items-center border-r border-[#E9DED8] bg-white px-3 py-5">
+            <div className="grid h-14 w-14 place-items-center rounded-[20px] bg-[#7F1D1D] text-lg font-black text-white shadow-[0_10px_24px_rgba(127,29,29,0.2)]">
+                B4
             </div>
 
+            <nav className="mt-10 flex w-full flex-1 flex-col gap-3">
+                {navigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <button
+                            key={item.label}
+                            title={item.label}
+                            className={`group flex w-full flex-col items-center gap-1 rounded-2xl py-3 text-[10px] font-bold transition ${
+                                item.active
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#9A8982] hover:bg-[#F8F4F1] hover:text-[#7F1D1D]"
+                            }`}
+                        >
+                            <Icon size={22} strokeWidth={item.active ? 2.5 : 2} />
+                            {item.label}
+                        </button>
+                    );
+                })}
+            </nav>
 
+            <div className="flex w-full flex-col gap-2 border-t border-[#EEE5E1] pt-4">
+                <button title="Support" className="grid h-11 w-full place-items-center rounded-2xl text-[#8F7E77] transition hover:bg-[#F8F4F1] hover:text-[#7F1D1D]">
+                    <Headset size={22} />
+                </button>
+                <button onClick={handleLogout} title="Logout" className="grid h-11 w-full place-items-center rounded-2xl text-[#7F1D1D] transition hover:bg-[#F9ECEC]">
+                    <LogOut size={22} />
+                </button>
+            </div>
         </div>
-    )
+    );
 }
 
-export default RightSidebar
+export default RightSidebar;

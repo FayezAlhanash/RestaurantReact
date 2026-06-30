@@ -1,74 +1,159 @@
 import {
-    LayoutDashboard,
-    TriangleAlert,
-    CircleOff,
-    MessageSquare,
+    BarChart3,
     CirclePlus,
+    ClipboardList,
     LogOut,
+    MessageSquare,
+    PackageCheck,
+    TriangleAlert,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { clearSession } from "../../utils/auth";
+import { NavLink } from "react-router-dom";
 
-function WarehouseSideBar({ onAdd }) {
+
+function WarehouseSideBar({ onAdd, stats }) {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        clearSession();
+        navigate("/", { replace: true });
+    };
+
     return (
-        <div className="w-full bg-white border-b px-3 py-3 lg:w-[260px] lg:h-screen lg:border-b-0 lg:border-r lg:px-0 lg:py-6 flex flex-col justify-between">
+        <aside className="border-b border-[#E8D9D3] bg-white lg:flex lg:h-dvh lg:w-[290px] lg:shrink-0 lg:flex-col lg:justify-between lg:border-b-0 lg:border-r">
+            <div className="p-4 lg:p-6">
+                <div className="flex items-center justify-between gap-4 lg:block">
+                    <div>
+                        <h1 className="text-3xl font-black text-[#7F1D1D] lg:text-4xl">
+                            Big-4
+                        </h1>
+                        <p className="text-sm font-medium text-[#94847D]">
+                            Warehouse System
+                        </p>
+                    </div>
 
-            {/* Top */}
-            <div>
+                    {onAdd && (
+                        <button
+                            onClick={onAdd}
+                            className="flex shrink-0 items-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition hover:bg-[#681718] lg:hidden"
+                        >
+                            <CirclePlus size={18} />
+                            Add
+                        </button>
+                    )}
+                </div>
 
-                {/* Logo */}
-                <div className="px-3 mb-3 lg:px-6 lg:mb-10">
-                    <h1 className="text-2xl lg:text-4xl font-bold text-[#7F1D1D]">
-                        Big-4
-                    </h1>
+                <div className="mt-5 rounded-[24px] bg-gradient-to-br from-[#7F1D1D] to-[#4E1515] p-5 text-white shadow-[0_16px_40px_rgba(127,29,29,0.18)]">
+                    <div className="mb-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">
+                                Stock health
+                            </p>
+                            <h2 className="mt-1 text-2xl font-black">
+                                {stats?.healthy || 0}/{stats?.total || 0}
+                            </h2>
+                        </div>
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/12">
+                            <PackageCheck size={24} />
+                        </div>
+                    </div>
 
-                    <p className="text-gray-500 text-sm">
-                        Food Court Systems
+                    <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                        <div
+                            className="h-full rounded-full bg-[#F7C948]"
+                            style={{
+                                width: `${stats?.total ? (stats.healthy / stats.total) * 100 : 0}%`,
+                            }}
+                        />
+                    </div>
+
+                    <p className="mt-3 text-xs font-medium text-white/70">
+                        {stats?.lowStock || 0} ingredients need attention.
                     </p>
                 </div>
 
-                {/* Menu */}
-                <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-3 lg:px-4">
+                <nav className="mt-5 flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-2 lg:overflow-visible lg:pb-0">
 
-                    <button className="shrink-0 flex items-center gap-2 lg:gap-3 bg-yellow-400 text-black rounded-xl px-3 py-3 lg:px-4 lg:py-4 font-semibold">
-                        <LayoutDashboard size={22} />
+                    <NavLink
+                        to="/warehouse/dashboard"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                            }`
+                        }
+                    >
+                        <BarChart3 size={20} />
                         Dashboard
-                    </button>
+                    </NavLink>
 
-                    <button className="shrink-0 flex items-center gap-2 lg:gap-3 text-gray-700 hover:bg-gray-100 rounded-xl px-3 py-3 lg:px-4 lg:py-4 transition">
-                        <TriangleAlert size={22} />
+                    <NavLink
+                        to="/warehouse/low-stock"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                            }`
+                        }
+                    >
+                        <TriangleAlert size={20} />
                         Low Stock
-                    </button>
+                    </NavLink>
 
-                    <button className="shrink-0 flex items-center gap-2 lg:gap-3 text-gray-700 hover:bg-gray-100 rounded-xl px-3 py-3 lg:px-4 lg:py-4 transition">
-                        <CircleOff size={22} />
-                        Out Of Stock
-                    </button>
+                    <NavLink
+                        to="/warehouse/actions"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                            }`
+                        }
+                    >
+                        <ClipboardList size={20} />
+                        Stock Actions
+                    </NavLink>
 
-                    <button className="shrink-0 flex items-center gap-2 lg:gap-3 text-gray-700 hover:bg-gray-100 rounded-xl px-3 py-3 lg:px-4 lg:py-4 transition">
-                        <MessageSquare size={22} />
+                    <NavLink
+                        to="/warehouse/chat"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                            }`
+                        }
+                    >
+                        <MessageSquare size={20} />
                         Manager Chat
-                    </button>
+                    </NavLink>
 
-                </div>
+                </nav>
 
-                {/* Add Inventory */}
-                <div className="px-0 mt-3 lg:px-4 lg:mt-10">
+                {onAdd && (
                     <button
                         onClick={onAdd}
-                        className="w-full bg-[#7F1D1D] hover:bg-[#661616] text-white rounded-xl py-4 flex items-center justify-center gap-2 font-semibold transition"
-                    >            <CirclePlus size={22} />
+                        className="mt-6 hidden w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-4 font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition hover:bg-[#681718] lg:flex"
+                    >
+                        <CirclePlus size={20} />
                         Add Inventory
                     </button>
-                </div>
-
+                )}
             </div>
 
-            {/* Logout */}
-            <button className="hidden lg:flex items-center gap-3 text-[#7F1D1D] px-6 hover:translate-x-1 transition">
-                <LogOut size={22} />
-                Logout
-            </button>
-
-        </div>
+            <div className="hidden border-t border-[#EFE5E1] p-5 lg:block">
+                <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-bold text-[#7F1D1D] transition hover:bg-[#F9ECEC]"
+                >
+                    <LogOut size={21} />
+                    Logout
+                </button>
+            </div>
+        </aside>
     );
 }
 
