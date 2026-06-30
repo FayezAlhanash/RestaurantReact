@@ -17,7 +17,7 @@ export function getHomePath(roleId) {
         case ROLE_IDS.CASHIER:
             return "/cashier";
         case ROLE_IDS.WAREHOUSE_MANAGER:
-            return "/warehouse";
+            return "/warehouse/dashboard";
         default:
             return null;
     }

@@ -31,15 +31,11 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAREHOUSE_MANAGER]} />}>
           <Route element={<WarehouseLayout />}>
 
-            <Route
-              index
-              element={<Navigate to="/warehouse/dashboard" replace />}
-            />
-
-            <Route path="warehouse/dashboard" element={<Warehouse />} />
-            <Route path="warehouse/low-stock" element={<LowStock />} />
-            <Route path="warehouse/actions" element={<StockActions />} />
-            <Route path="warehouse/chat" element={<Chat />} />
+            <Route path="/warehouse" element={<Navigate to="/warehouse/dashboard" replace />} />
+            <Route path="/warehouse/dashboard" element={<Warehouse />} />
+            <Route path="/warehouse/low-stock" element={<LowStock />} />
+            <Route path="/warehouse/actions" element={<StockActions />} />
+            <Route path="/warehouse/chat" element={<Chat />} />
 
           </Route>
         </Route>
