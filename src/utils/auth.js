@@ -1,5 +1,6 @@
 export const ROLE_IDS = {
     ADMIN: 1,
+    MANAGER: 3,
     CASHIER: 4,
     WAREHOUSE_MANAGER: 7,
 };
@@ -14,10 +15,16 @@ export function getHomePath(roleId) {
     switch (Number(roleId)) {
         case ROLE_IDS.ADMIN:
             return "/dashboard";
+
+        case ROLE_IDS.MANAGER:
+            return "/manager/dashboard";
+
         case ROLE_IDS.CASHIER:
             return "/cashier";
+
         case ROLE_IDS.WAREHOUSE_MANAGER:
             return "/warehouse/dashboard";
+
         default:
             return null;
     }
