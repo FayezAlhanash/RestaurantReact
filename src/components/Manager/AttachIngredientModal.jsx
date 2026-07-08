@@ -16,6 +16,7 @@ export default function AttachIngredientModal({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRows([
         {
           ingredient_id: "",

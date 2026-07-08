@@ -11,6 +11,11 @@ import {
 } from "lucide-react";
 import CategoryModal from "./CategoryModal";
 import api from "../../API/axios";
+import {
+  filterCategoriesByRestaurant,
+  getManagerRestaurantId,
+  getResponseList,
+} from "./managerHelpers";
 
 const tabs = [
   {
@@ -49,8 +54,13 @@ export default function AddMenu() {
 
   const fetchCategories = async () => {
     try {
-      const res = await api.get("/categories");
-      setCategories(res.data.categories ?? res.data);
+      const restaurantId = getManagerRestaurantId();
+      const res = await api.get("/categories", {
+        params: restaurantId ? { restaurant_id: restaurantId } : undefined,
+      });
+      const categoryList = getResponseList(res.data, ["categories"]);
+
+      setCategories(filterCategoriesByRestaurant(categoryList, restaurantId));
     } catch (err) {
       console.error(err.response?.data || err);
     }
@@ -58,10 +68,10 @@ export default function AddMenu() {
 
   const handleSaveCategory = async (data) => {
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
+      const restaurantId = getManagerRestaurantId();
       const formData = new FormData();
 
-      formData.append("restaurant_id", user.restaurant_id);
+      formData.append("restaurant_id", restaurantId);
       formData.append("name", data.name);
       formData.append("is_active", data.is_active);
 
@@ -74,6 +84,7 @@ export default function AddMenu() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCategories();
   }, []);
 

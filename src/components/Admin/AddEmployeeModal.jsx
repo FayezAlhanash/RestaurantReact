@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import api from "../../API/axios";
+import { RESTAURANT_ROLE_IDS } from "../../utils/permissionScopes";
 import "react-datepicker/dist/react-datepicker.css";
 function AddEmployeeModal({ isOpen, onClose }) {
     const [role, setRole] = useState("");
@@ -16,7 +17,15 @@ function AddEmployeeModal({ isOpen, onClose }) {
     const [phoneNumber, setPhoneNumber] = useState("");
     const [gender, setGender] = useState("");
     const [nationalNumber, setNationalNumber] = useState("");
-const needsRestaurant = ["manager", "chef", "warehouse"].includes(role);
+    const roleMap = {
+        manager: 3,
+        cashier: 4,
+        delivery: 5,
+        chef: 6,
+        warehouse: 7,
+        waiter: 8,
+    };
+    const needsRestaurant = RESTAURANT_ROLE_IDS.includes(roleMap[role]);
     useEffect(() => {
         const fetchRestaurants = async () => {
             try {
@@ -45,17 +54,6 @@ const needsRestaurant = ["manager", "chef", "warehouse"].includes(role);
     };
     console.log(restaurants);
     if (!isOpen) return null;
-    const roleMap = {
-        manager: 3,
-        cashier: 4,
-        delivery: 5,
-        chef: 6,
-        warehouse: 7,
-        waiter: 8,
-    };
-
-
-
     const handleAddEmployee = async () => {
         try {
             const roleId = roleMap[role];
@@ -77,8 +75,8 @@ const needsRestaurant = ["manager", "chef", "warehouse"].includes(role);
                 dateOfBirth?.toISOString().split("T")[0]
             );
             if (needsRestaurant) {
-    formData.append("restaurant_id", restaurantId);
-}
+                formData.append("restaurant_id", restaurantId);
+            }
 
             await api.post(
                 "/admin/staff-users",
@@ -291,7 +289,7 @@ const needsRestaurant = ["manager", "chef", "warehouse"].includes(role);
                                 <option value="waiter">Waiter</option>
                                 <option value="chef">Chef</option>
                             </select>
-                            {role === "manager" && (
+                            {needsRestaurant && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium mb-1">
@@ -317,65 +315,7 @@ const needsRestaurant = ["manager", "chef", "warehouse"].includes(role);
                                     </div>
 
 
-                                    <h4 className="text-red-950">* NOTICE : Adding Manager to your system is going to Make Changes in the Restaurant System</h4>
-                                </>
-                            )}
-                            {role === "chef" && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            Restaurant
-                                        </label>
-
-                                        <select
-                                            value={restaurantId}
-                                            onChange={(e) => setRestaurantId(e.target.value)}
-                                            className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white"
-                                        >
-                                            <option value="">Select Restaurant</option>
-
-                                            {restaurants.map((restaurant) => (
-                                                <option
-                                                    key={restaurant.id}
-                                                    value={restaurant.id}
-                                                >
-                                                    {restaurant.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-
-                                    <h4 className="text-red-950">* NOTICE : Adding Manager to your system is going to Make Changes in the Restaurant System</h4>
-                                </>
-                            )}
-                              {role === "warehouse" && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            Restaurant
-                                        </label>
-
-                                        <select
-                                            value={restaurantId}
-                                            onChange={(e) => setRestaurantId(e.target.value)}
-                                            className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white"
-                                        >
-                                            <option value="">Select Restaurant</option>
-
-                                            {restaurants.map((restaurant) => (
-                                                <option
-                                                    key={restaurant.id}
-                                                    value={restaurant.id}
-                                                >
-                                                    {restaurant.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-
-                                    <h4 className="text-red-950">* NOTICE : Adding Manager to your system is going to Make Changes in the Restaurant System</h4>
+                                    <h4 className="text-red-950">* NOTICE : This role is linked to a restaurant</h4>
                                 </>
                             )}
                         </div>

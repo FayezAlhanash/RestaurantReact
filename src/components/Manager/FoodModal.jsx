@@ -19,6 +19,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         category_id: food?.category_id ?? food?.category?.id ?? "",
         name: food?.name ?? "",

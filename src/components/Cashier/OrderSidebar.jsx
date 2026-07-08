@@ -1,6 +1,12 @@
 import { Minus, Plus, Receipt, ShoppingBag, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { createCashierOrder } from "../../utils/kitchenOrders";
 
 function OrderSidebar({ cartItems, setCartItems }) {
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const removeItem = (indexToRemove) => {
         setCartItems((items) => items.filter((_, index) => index !== indexToRemove));
     };
@@ -21,6 +27,33 @@ function OrderSidebar({ cartItems, setCartItems }) {
     const tax = subtotal * 0.05;
     const total = subtotal + tax;
     const itemCount = cartItems.reduce((totalCount, item) => totalCount + item.quantity, 0);
+
+    const placeOrder = async () => {
+        if (!cartItems.length) return;
+
+        setIsSubmitting(true);
+        setSuccessMessage("");
+        setErrorMessage("");
+
+        try {
+            const order = await createCashierOrder(cartItems, "dine_in");
+            setCartItems([]);
+            setSuccessMessage(
+                `Order #${order?.order?.id || order?.id || ""} sent to kitchen`
+            );
+
+            window.setTimeout(() => {
+                setSuccessMessage("");
+            }, 3500);
+        } catch (error) {
+            setErrorMessage(
+                error.response?.data?.message ||
+                    "Order was not sent. Check the cashier order API."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <div className="flex h-full min-h-[520px] flex-col bg-white">
@@ -86,8 +119,18 @@ function OrderSidebar({ cartItems, setCartItems }) {
                     <span className="font-extrabold">Total</span>
                     <span className="text-2xl font-black text-[#7F1D1D]">${total.toFixed(2)}</span>
                 </div>
-                <button disabled={!cartItems.length} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
-                    Place order · ${total.toFixed(2)}
+                {successMessage && (
+                    <p className="mb-3 rounded-2xl bg-green-50 px-4 py-3 text-center text-sm font-extrabold text-green-700">
+                        {successMessage}
+                    </p>
+                )}
+                {errorMessage && (
+                    <p className="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-center text-xs font-extrabold text-red-700">
+                        {errorMessage}
+                    </p>
+                )}
+                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
+                    {isSubmitting ? "Sending..." : `Place order · $${total.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
                     <button onClick={() => setCartItems([])} className="mt-2.5 w-full py-2 text-xs font-bold text-[#9A8982] transition hover:text-[#7F1D1D]">Clear order</button>

@@ -1,19 +1,32 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { getHomePath, getRoleId, getStoredUser } from "../../utils/auth";
+import { getHomePath, getStoredUser } from "../../utils/auth";
+import { canAny } from "../../utils/permissions";
 
-function ProtectedRoute({ allowedRoles }) {
-    const token = localStorage.getItem("token");
-    const roleId = getRoleId(getStoredUser());
+export default function ProtectedRoute({
+  allowedRoles = [],
+  allowedPermissions = [],
+}) {
+  const token = localStorage.getItem("token");
+  const user = getStoredUser();
 
-    if (!token || !roleId) {
-        return <Navigate to="/" replace />;
-    }
+  if (!token || !user) {
+    return <Navigate to="/" replace />;
+  }
 
-    if (!allowedRoles.includes(roleId)) {
-        return <Navigate to={getHomePath(roleId) || "/"} replace />;
-    }
+  const roleId = Number(user?.role_id ?? user?.role?.id);
 
-    return <Outlet />;
+  // 1) ROLE check
+  const roleAllowed =
+    !allowedRoles.length || allowedRoles.includes(roleId);
+
+  // 2) PERMISSION check
+  const permissionAllowed =
+    !allowedPermissions.length || canAny(allowedPermissions);
+
+  // 3) FINAL decision
+  if (!roleAllowed || !permissionAllowed) {
+    return <Navigate to={getHomePath(roleId) || "/"} replace />;
+  }
+
+  return <Outlet />;
 }
-
-export default ProtectedRoute;

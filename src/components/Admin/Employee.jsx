@@ -2,6 +2,7 @@ import { Info, Pencil, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from "../../API/axios";
 import AddEmployeeModal from "./AddEmployeeModal";
+import { RESTAURANT_ROLE_IDS } from "../../utils/permissionScopes";
 function Employee() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [restaurants, setRestaurants] = useState([]);
@@ -14,6 +15,7 @@ function Employee() {
     const [editRestaurantId, setEditRestaurantId] = useState("");
     const openEditModal = (employee) => {
         setSelectedEmployee(employee);
+        setEditRestaurantId(employee.restaurant_id || "");
         setIsEditOpen(true);
     };
     const handleDeleteEmployee = async () => {
@@ -83,9 +85,7 @@ function Employee() {
     getEmployees();
 }, []);
     const needsRestaurant =
-        selectedEmployee?.role_id == 3 ||
-        selectedEmployee?.role_id == 6 ||
-        selectedEmployee?.role_id == 7;
+        RESTAURANT_ROLE_IDS.includes(Number(selectedEmployee?.role_id));
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#ffffff] to-[#c0b29f]">
 
@@ -357,9 +357,7 @@ function Employee() {
 
                 {/* 👇 هون الصح */}
                 {(
-                    selectedEmployee.role_id == 3 ||
-                    selectedEmployee.role_id == 6 ||
-                    selectedEmployee.role_id == 7
+                    RESTAURANT_ROLE_IDS.includes(Number(selectedEmployee.role_id))
                 ) && (
                     <div className="mt-4">
                         <label className="block mb-2 font-medium">

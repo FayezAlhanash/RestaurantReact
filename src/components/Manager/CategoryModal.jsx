@@ -7,6 +7,7 @@ function CategoryModal({ isOpen, onClose, onSave }) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName("");
       setIsActive(true);
     }

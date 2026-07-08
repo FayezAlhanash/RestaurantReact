@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
+import KitchenLayout from "./components/Kitchen/KitchenLayout";
+import KitchenDashboard from "./components/Kitchen/KitchenDashboard";
 import Login from "./pages/Login";
 import Employee from "./components/Admin/Employee";
 import AdminLayout from "./components/Admin/AdminLayout";
@@ -7,6 +8,7 @@ import MainContent from "./components/Admin/MainContent";
 import RestaurantsManagements from "./components/Admin/RestaurantsManagements";
 import EmployeesManagements from "./components/Admin/EmployeesManagements";
 import RolesPermission from "./components/Admin/Roles&Permission";
+import UserPermission from "./components/Admin/UserPermission";
 import TablesManagements from "./components/Admin/TablesManagements";
 import Cashier from "./components/Cashier/Cashier";
 import Warehouse from "./components/Warehouse/Warehouse";
@@ -50,14 +52,51 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/dashboard" element={<MainContent />} />
-            <Route path="/restaurants" element={<RestaurantsManagements />} />
-            <Route path="/employees" element={<EmployeesManagements />} />
-            <Route path="/roles" element={<RolesPermission />} />
-            <Route path="/employee" element={<Employee />} />
-            <Route path="/tables" element={<TablesManagements />} />
+            <Route element={<ProtectedRoute allowedPermissions={["manage_restaurants"]} />}>
+              <Route path="/restaurants" element={<RestaurantsManagements />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_users"]} />}>
+              <Route path="/employees" element={<EmployeesManagements />} />
+              <Route path="/employee" element={<Employee />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_users", "manage_permissions"]} />}>
+              <Route path="/user-permissions" element={<UserPermission />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_roles", "manage_permissions"]} />}>
+              <Route path="/roles" element={<RolesPermission />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_tables"]} />}>
+              <Route path="/tables" element={<TablesManagements />} />
+            </Route>
           </Route>
         </Route>
+{/* Kitchen */}
+<Route
+    element={
+        <ProtectedRoute
+            allowedRoles={[ROLE_IDS.KITCHEN]}
+        />
+    }
+>
+    <Route element={<KitchenLayout />}>
 
+        <Route
+            path="/kitchen"
+            element={
+                <Navigate
+                    to="/kitchen/dashboard"
+                    replace
+                />
+            }
+        />
+
+        <Route
+            path="/kitchen/dashboard"
+            element={<KitchenDashboard />}
+        />
+
+    </Route>
+</Route>
         {/* Manager */}
         <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.MANAGER]} />}>
           <Route element={<ManagerLayout />}>

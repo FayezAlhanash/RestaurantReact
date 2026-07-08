@@ -30,3 +30,27 @@ body {
 img, svg {
     max-width: 100%;
 }
+
+.kitchen-screen {
+    font-family: "IBM Plex Sans Arabic", "Raleway", sans-serif;
+}
+
+.kitchen-order-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #9d8d74 #eadfce;
+    scrollbar-gutter: stable;
+}
+
+.kitchen-order-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.kitchen-order-scroll::-webkit-scrollbar-track {
+    background: #eadfce;
+    border-radius: 999px;
+}
+
+.kitchen-order-scroll::-webkit-scrollbar-thumb {
+    background: #9d8d74;
+    border-radius: 999px;
+}

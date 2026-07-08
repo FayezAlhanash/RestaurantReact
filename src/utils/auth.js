@@ -2,6 +2,7 @@ export const ROLE_IDS = {
     ADMIN: 1,
     MANAGER: 3,
     CASHIER: 4,
+    KITCHEN: 6,
     WAREHOUSE_MANAGER: 7,
 };
 
@@ -22,6 +23,9 @@ export function getHomePath(roleId) {
         case ROLE_IDS.CASHIER:
             return "/cashier";
 
+        case ROLE_IDS.KITCHEN:
+            return "/kitchen/dashboard";
+
         case ROLE_IDS.WAREHOUSE_MANAGER:
             return "/warehouse/dashboard";
 
@@ -36,6 +40,24 @@ export function getStoredUser() {
     } catch {
         return null;
     }
+}
+
+export function storeUser(user, profile = {}) {
+    const profileData = profile.data ?? profile;
+
+    localStorage.setItem(
+        "user",
+        JSON.stringify({
+            ...user,
+            role: profileData.role ?? user?.role ?? null,
+            user_permissions:
+                profileData.user_permissions ??
+                profileData.permissions ??
+                user?.user_permissions ??
+                user?.permissions ??
+                [],
+        })
+    );
 }
 
 export function clearSession() {

@@ -15,6 +15,11 @@ import {
 import FoodModal from "./FoodModal";
 import api from "../../API/axios";
 import AttachIngredientModal from "./AttachIngredientModal";
+import {
+  filterCategoriesByRestaurant,
+  getManagerRestaurantId,
+  getResponseList,
+} from "./managerHelpers";
 
 const getFoodImageUrl = (image) => {
   if (!image) return "";
@@ -46,8 +51,13 @@ export default function AddFood() {
 
   const fetchCategories = async () => {
     try {
-      const res = await api.get("/categories");
-      setCategories(res.data.categories ?? res.data);
+      const restaurantId = getManagerRestaurantId();
+      const res = await api.get("/categories", {
+        params: restaurantId ? { restaurant_id: restaurantId } : undefined,
+      });
+      const categoryList = getResponseList(res.data, ["categories"]);
+
+      setCategories(filterCategoriesByRestaurant(categoryList, restaurantId));
     } catch (err) {
       console.error(err);
     }
@@ -64,11 +74,10 @@ export default function AddFood() {
 
   const fetchIngredients = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const restaurantId = user?.restaurant_id ?? user?.restaurant?.id ?? 1;
+      const restaurantId = getManagerRestaurantId() ?? 1;
       const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
 
-      setIngredients(res.data.data ?? res.data.ingredients ?? res.data);
+      setIngredients(getResponseList(res.data, ["ingredients"]));
     } catch (err) {
       console.error(err);
     }
@@ -154,6 +163,7 @@ export default function AddFood() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCategories();
     fetchFoods();
     fetchIngredients();
