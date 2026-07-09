@@ -6,6 +6,7 @@ import {
   Layers3,
   Link,
   ListTree,
+  Loader2,
   Plus,
   Tags,
   Trash2,
@@ -66,6 +67,16 @@ const getOptionGroupName = (option, groups) => {
   return option?.modifier_group?.name ?? option?.group?.name ?? group?.name ?? "-";
 };
 
+const getOptionsForGroup = (groupId, options) =>
+  options.filter((option) => String(getOptionGroupId(option)) === String(groupId));
+
+const getAttachSettings = (settings, groupId, optionCount = 1) =>
+  settings[groupId] ?? {
+    max_select: String(Math.min(1, Math.max(optionCount, 1))),
+    required: true,
+    prices: {},
+  };
+
 export default function AddMenu() {
   const { search = "" } = useOutletContext() ?? {};
   const [activeTab, setActiveTab] = useState("categories");
@@ -79,6 +90,11 @@ export default function AddMenu() {
   const [modifierOptions, setModifierOptions] = useState([]);
   const [foods, setFoods] = useState([]);
   const [foodSelections, setFoodSelections] = useState({});
+  const [attachSettings, setAttachSettings] = useState({});
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [savingGroup, setSavingGroup] = useState(false);
+  const [savingOption, setSavingOption] = useState(false);
+  const [attachingGroupId, setAttachingGroupId] = useState(null);
 
   const fetchCategories = async () => {
     try {
@@ -148,7 +164,10 @@ export default function AddMenu() {
   };
 
   const handleSaveCategory = async (data) => {
+    if (savingCategory) return;
+
     try {
+      setSavingCategory(true);
       const restaurantId = await ensureManagerRestaurantId();
       const formData = new FormData();
 
@@ -161,11 +180,16 @@ export default function AddMenu() {
       setOpenCategoryModal(false);
     } catch (err) {
       console.error(err.response?.data || err);
+    } finally {
+      setSavingCategory(false);
     }
   };
 
   const handleSaveGroup = async (data) => {
+    if (savingGroup) return;
+
     try {
+      setSavingGroup(true);
       const restaurantId = await ensureManagerRestaurantId();
       const formData = new FormData();
 
@@ -183,6 +207,8 @@ export default function AddMenu() {
       setOpenGroupModal(false);
     } catch (err) {
       console.error(err.response?.data || err);
+    } finally {
+      setSavingGroup(false);
     }
   };
 
@@ -199,18 +225,33 @@ export default function AddMenu() {
 
   const handleAttachGroupToFood = async (group) => {
     const foodId = foodSelections[group.id];
+    const groupOptions = getOptionsForGroup(group.id, modifierOptions);
+    const settings = getAttachSettings(attachSettings, group.id, groupOptions.length);
 
-    if (!foodId) return;
+    if (!foodId || !groupOptions.length || attachingGroupId) return;
 
     try {
+      setAttachingGroupId(group.id);
       const formData = new FormData();
       formData.append("food_id", foodId);
+      formData.append("max_select", settings.max_select || 1);
+      formData.append("required", settings.required ? 1 : 0);
+
+      groupOptions.forEach((option, index) => {
+        formData.append(`options[${index}][modifier_option_id]`, option.id);
+        formData.append(
+          `options[${index}][price]`,
+          settings.prices?.[option.id] ?? 0
+        );
+      });
 
       await api.post(`/modifier-groups/${group.id}/foods`, formData);
       setFoodSelections((prev) => ({ ...prev, [group.id]: "" }));
       await fetchModifierGroups();
     } catch (err) {
       console.error(err.response?.data || err);
+    } finally {
+      setAttachingGroupId(null);
     }
   };
 
@@ -234,7 +275,10 @@ export default function AddMenu() {
   };
 
   const handleSaveOption = async (data) => {
+    if (savingOption) return;
+
     try {
+      setSavingOption(true);
       const formData = new FormData();
 
       formData.append("modifier_group_id", data.modifier_group_id);
@@ -251,6 +295,8 @@ export default function AddMenu() {
       setOpenOptionModal(false);
     } catch (err) {
       console.error(err.response?.data || err);
+    } finally {
+      setSavingOption(false);
     }
   };
 
@@ -548,6 +594,12 @@ export default function AddMenu() {
                 ) : (
                   filteredGroups.map((group) => {
                     const linkedFoods = getGroupFoods(group);
+                    const groupOptions = getOptionsForGroup(group.id, modifierOptions);
+                    const groupAttachSettings = getAttachSettings(
+                      attachSettings,
+                      group.id,
+                      groupOptions.length
+                    );
                     const linkedFoodIds = new Set(
                       linkedFoods.map((food) => String(food.id ?? food.food_id))
                     );
@@ -604,36 +656,130 @@ export default function AddMenu() {
                         </td>
 
                         <td className="px-5 py-5">
-                          <div className="flex max-w-sm gap-2">
-                            <select
-                              value={foodSelections[group.id] ?? ""}
-                              onChange={(e) =>
-                                setFoodSelections((prev) => ({
-                                  ...prev,
-                                  [group.id]: e.target.value,
-                                }))
-                              }
-                              className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white p-3 text-base font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
-                            >
-                              <option value="">
-                                {availableFoods.length ? "Choose food" : "All foods linked"}
-                              </option>
-                              {availableFoods.map((food) => (
-                                <option key={food.id} value={food.id}>
-                                  {food.name}
+                          <div className="max-w-md space-y-3">
+                            <div className="flex gap-2">
+                              <select
+                                value={foodSelections[group.id] ?? ""}
+                                onChange={(e) =>
+                                  setFoodSelections((prev) => ({
+                                    ...prev,
+                                    [group.id]: e.target.value,
+                                  }))
+                                }
+                                className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white p-3 text-base font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                              >
+                                <option value="">
+                                  {availableFoods.length ? "Choose food" : "All foods linked"}
                                 </option>
-                              ))}
-                            </select>
+                                {availableFoods.map((food) => (
+                                  <option key={food.id} value={food.id}>
+                                    {food.name}
+                                  </option>
+                                ))}
+                              </select>
 
-                            <button
-                              type="button"
-                              onClick={() => handleAttachGroupToFood(group)}
-                              disabled={!foodSelections[group.id]}
-                              className="grid h-11 w-11 place-items-center rounded-lg bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:scale-110 hover:bg-[#651717] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-                              title="Attach to food"
-                            >
-                              <Link size={17} />
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAttachGroupToFood(group)}
+                                disabled={
+                                  !foodSelections[group.id] ||
+                                  !groupOptions.length ||
+                                  Boolean(attachingGroupId)
+                                }
+                                className="grid h-11 w-11 place-items-center rounded-lg bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:scale-110 hover:bg-[#651717] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                                title={attachingGroupId === group.id ? "Please wait..." : "Attach to food"}
+                              >
+                                {attachingGroupId === group.id ? (
+                                  <Loader2 size={17} className="animate-spin" />
+                                ) : (
+                                  <Link size={17} />
+                                )}
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-[1fr_120px] gap-2">
+                              <label className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-black text-stone-700">
+                                <input
+                                  type="checkbox"
+                                  checked={groupAttachSettings.required}
+                                  onChange={(e) =>
+                                    setAttachSettings((prev) => ({
+                                      ...prev,
+                                      [group.id]: {
+                                        ...getAttachSettings(prev, group.id, groupOptions.length),
+                                        required: e.target.checked,
+                                      },
+                                    }))
+                                  }
+                                  className="h-4 w-4 accent-[#7F1D1D]"
+                                />
+                                Required
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max={Math.max(groupOptions.length, 1)}
+                                value={groupAttachSettings.max_select}
+                                onChange={(e) =>
+                                  setAttachSettings((prev) => ({
+                                    ...prev,
+                                    [group.id]: {
+                                      ...getAttachSettings(prev, group.id, groupOptions.length),
+                                      max_select: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                                title="Max select"
+                              />
+                            </div>
+
+                            {groupOptions.length ? (
+                              <div className="space-y-2 rounded-lg border border-amber-100 bg-amber-50/60 p-2">
+                                {groupOptions.map((option) => (
+                                  <div
+                                    key={option.id}
+                                    className="grid grid-cols-[1fr_90px] items-center gap-2"
+                                  >
+                                    <span className="truncate text-sm font-black text-amber-950">
+                                      {option.name}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      placeholder="Price"
+                                      value={groupAttachSettings.prices?.[option.id] ?? ""}
+                                      onChange={(e) =>
+                                        setAttachSettings((prev) => {
+                                          const current = getAttachSettings(
+                                            prev,
+                                            group.id,
+                                            groupOptions.length
+                                          );
+
+                                          return {
+                                            ...prev,
+                                            [group.id]: {
+                                              ...current,
+                                              prices: {
+                                                ...current.prices,
+                                                [option.id]: e.target.value,
+                                              },
+                                            },
+                                          };
+                                        })
+                                      }
+                                      className="rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm font-bold outline-none focus:border-[#7F1D1D] focus:ring-2 focus:ring-[#7F1D1D]/10"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
+                                Add options to this group first.
+                              </p>
+                            )}
                           </div>
                         </td>
 
@@ -754,12 +900,14 @@ export default function AddMenu() {
         isOpen={openCategoryModal}
         onClose={() => setOpenCategoryModal(false)}
         onSave={handleSaveCategory}
+        isSaving={savingCategory}
       />
       <ModifierGroupModal
         isOpen={openGroupModal}
         onClose={handleCloseGroupModal}
         onSave={handleSaveGroup}
         group={editingGroup}
+        isSaving={savingGroup}
       />
       <ModifierOptionModal
         isOpen={openOptionModal}
@@ -767,6 +915,7 @@ export default function AddMenu() {
         onSave={handleSaveOption}
         option={editingOption}
         groups={modifierGroups}
+        isSaving={savingOption}
       />
     </div>
   );

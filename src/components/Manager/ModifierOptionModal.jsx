@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ListTree, Save, X } from "lucide-react";
 
-function ModifierOptionModal({ isOpen, onClose, onSave, option, groups }) {
+function ModifierOptionModal({ isOpen, onClose, onSave, option, groups, isSaving = false }) {
   const [form, setForm] = useState({
     modifier_group_id: "",
     name: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const saving = isSaving || isSubmitting;
 
   useEffect(() => {
     if (isOpen) {
@@ -20,9 +22,18 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups }) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(form);
+
+    if (saving) return;
+
+    setIsSubmitting(true);
+
+    try {
+      await onSave(form);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const fieldClass =
@@ -48,8 +59,9 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups }) {
 
           <button
             type="button"
-            onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-lg text-stone-500 transition duration-200 hover:scale-110 hover:bg-white hover:text-stone-950 hover:shadow-sm active:scale-95"
+            onClick={saving ? undefined : onClose}
+            disabled={saving}
+            className="grid h-9 w-9 place-items-center rounded-lg text-stone-500 transition duration-200 hover:scale-110 hover:bg-white hover:text-stone-950 hover:shadow-sm active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           >
             <X size={19} />
           </button>
@@ -70,6 +82,7 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups }) {
               }
               className={fieldClass}
               required
+              disabled={saving}
             >
               <option value="">
                 {groups.length ? "Choose group" : "No groups available"}
@@ -95,23 +108,26 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups }) {
               placeholder="Brown bread, extra cheese, large..."
               className={fieldClass}
               required
+              disabled={saving}
             />
           </div>
 
           <div className="flex justify-end gap-3 border-t border-stone-100 pt-5">
             <button
               type="button"
-              onClick={onClose}
-              className="rounded-lg border border-stone-200 px-5 py-3 text-sm font-black text-stone-600 transition duration-200 hover:-translate-y-0.5 hover:bg-stone-50 hover:text-stone-950 hover:shadow-sm active:translate-y-0"
+              onClick={saving ? undefined : onClose}
+              disabled={saving}
+              className="rounded-lg border border-stone-200 px-5 py-3 text-sm font-black text-stone-600 transition duration-200 hover:-translate-y-0.5 hover:bg-stone-50 hover:text-stone-950 hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="group inline-flex items-center gap-2 rounded-lg bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:-translate-y-0.5 hover:scale-105 hover:bg-[#651717] hover:shadow-xl active:translate-y-0 active:scale-100"
+              disabled={saving}
+              className="group inline-flex items-center gap-2 rounded-lg bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:-translate-y-0.5 hover:scale-105 hover:bg-[#651717] hover:shadow-xl active:translate-y-0 active:scale-100 disabled:cursor-wait disabled:bg-[#CBB9B1] disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:scale-100"
             >
               <Save size={17} className="transition duration-200 group-hover:-rotate-6" />
-              {option ? "Update" : "Save"}
+              {saving ? "Please wait..." : option ? "Update" : "Save"}
             </button>
           </div>
         </form>
