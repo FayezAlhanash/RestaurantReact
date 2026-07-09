@@ -20,11 +20,16 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
 
     if (!isOpen) return null;
 
+    const imageUrl =
+        item?.image ||
+        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=85";
+    const basePrice = Number(item?.price ?? 0);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211715]/55 p-3 backdrop-blur-sm sm:p-6">
             <div className="grid max-h-[calc(100dvh-1.5rem)] w-full max-w-[760px] overflow-y-auto rounded-[30px] bg-white shadow-2xl md:grid-cols-[0.9fr_1.1fr]">
                 <div className="relative min-h-56 overflow-hidden bg-[#EDE5DF] md:min-h-[560px]">
-                    <img src={`${item?.image}?auto=format&fit=crop&w=900&q=85`} alt={item?.title} className="absolute inset-0 h-full w-full object-cover" />
+                    <img src={imageUrl} alt={item?.title} className="absolute inset-0 h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
                     <span className="absolute bottom-5 left-5 rounded-full bg-[#F7C948] px-3 py-1.5 text-xs font-extrabold text-[#382B10]">Freshly prepared</span>
                 </div>
@@ -75,7 +80,7 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                         onClick={() => {
                             addToCart({
                                 ...item,
-                                price: item.price + (selectedSize === "large" ? 2 : 0),
+                                price: basePrice + (selectedSize === "large" ? 2 : 0),
                                 quantity,
                                 size: selectedSize,
                                 notes,
@@ -85,7 +90,7 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                         className="mt-5 flex w-full items-center justify-between rounded-2xl bg-[#7F1D1D] px-5 py-4 font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.2)] transition hover:bg-[#681718] active:scale-[0.99]"
                     >
                         <span className="flex items-center gap-2"><ShoppingBag size={19} /> Add to order</span>
-                        <span>${((item?.price + (selectedSize === "large" ? 2 : 0)) * quantity).toFixed(2)}</span>
+                        <span>${((basePrice + (selectedSize === "large" ? 2 : 0)) * quantity).toFixed(2)}</span>
                     </button>
                 </div>
             </div>

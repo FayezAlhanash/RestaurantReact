@@ -55,8 +55,22 @@ export function storeToken(token) {
 
 export function storeUser(user, profile = {}) {
     const profileData = profile.data ?? profile;
+    const restaurant =
+        profileData.restaurant ??
+        profileData.user?.restaurant ??
+        user?.restaurant ??
+        null;
+    const restaurantId =
+        profileData.restaurant_id ??
+        profileData.user?.restaurant_id ??
+        restaurant?.id ??
+        user?.restaurant_id ??
+        user?.restaurant?.id ??
+        null;
     const sessionUser = JSON.stringify({
         ...user,
+        restaurant,
+        restaurant_id: restaurantId,
         role: profileData.role ?? user?.role ?? null,
         user_permissions:
             profileData.user_permissions ??

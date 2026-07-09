@@ -1,7 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Menu, Search, Settings2 } from "lucide-react";
 import ManagerSidebar from "./ManagerSidebar";
+import api from "../../API/axios";
+import { getStoredUser, storeUser } from "../../utils/auth";
 
 const mobileLinks = [
   { to: "/manager/dashboard", label: "Dashboard" },
@@ -12,6 +14,23 @@ const mobileLinks = [
 export default function ManagerLayout() {
   const [search, setSearch] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const refreshProfile = async () => {
+      const user = getStoredUser();
+
+      if (!user) return;
+
+      try {
+        const res = await api.get("/profile/permissions");
+        storeUser(user, res.data);
+      } catch (error) {
+        console.log(error.response?.data || error);
+      }
+    };
+
+    refreshProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f5f2ec] font-raleway text-stone-950">

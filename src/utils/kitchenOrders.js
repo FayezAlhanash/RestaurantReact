@@ -1,5 +1,5 @@
 import api from "../API/axios";
-import { getStoredUser } from "./auth";
+import { getStoredUser, storeUser } from "./auth";
 
 function getList(data) {
     if (Array.isArray(data)) return data;
@@ -59,6 +59,30 @@ function normalizeKitchenItem(item, index) {
     };
 }
 
+function getUserRestaurantId(user) {
+    return (
+        user?.restaurant_id ??
+        user?.restaurant?.id ??
+        user?.employee?.restaurant_id ??
+        user?.employee?.restaurant?.id ??
+        user?.pivot?.restaurant_id ??
+        null
+    );
+}
+
+async function ensureKitchenRestaurantId() {
+    const user = getStoredUser();
+    const restaurantId = getUserRestaurantId(user);
+
+    if (restaurantId) return restaurantId;
+    if (!user) return null;
+
+    const response = await api.get("/profile/permissions");
+    storeUser(user, response.data);
+
+    return getUserRestaurantId(getStoredUser());
+}
+
 export function normalizeKitchenOrder(order) {
     const items =
         order.items ||
@@ -80,7 +104,11 @@ export function normalizeKitchenOrder(order) {
 }
 
 export async function fetchKitchenQueue() {
-    const response = await api.get("/kitchen/queue");
+    const restaurantId = await ensureKitchenRestaurantId();
+    const response = await api.get("/kitchen/queue", {
+        params: restaurantId ? { restaurant_id: restaurantId } : undefined,
+    });
+
     return getList(response.data).map(normalizeKitchenOrder);
 }
 
@@ -98,7 +126,10 @@ export async function markKitchenOrderReady(orderId) {
 
 export function createCashierOrderPayload(cartItems, type = "dine_in") {
     const user = getStoredUser();
-    const restaurantId = user?.restaurant_id || user?.restaurant?.id;
+    const restaurantId =
+        cartItems.find((item) => item.restaurant_id)?.restaurant_id ||
+        user?.restaurant_id ||
+        user?.restaurant?.id;
 
     return {
         type,
@@ -106,11 +137,23 @@ export function createCashierOrderPayload(cartItems, type = "dine_in") {
         restaurant_id: restaurantId,
         items: cartItems.map((item) => ({
             food_id: item.food_id || item.id,
-            menu_item_id: item.id,
+            menu_item_id: item.food_id || item.id,
             quantity: item.quantity,
             notes: [item.size, item.notes].filter(Boolean).join(" · "),
         })),
     };
+}
+
+function groupCartItemsByRestaurant(cartItems) {
+    return cartItems.reduce((groups, item) => {
+        const restaurantId = item.restaurant_id || "unassigned";
+        const group = groups.get(restaurantId) || [];
+
+        group.push(item);
+        groups.set(restaurantId, group);
+
+        return groups;
+    }, new Map());
 }
 
 function isOrderTypeValidationError(error) {
@@ -124,6 +167,18 @@ function isOrderTypeValidationError(error) {
 }
 
 export async function createCashierOrder(cartItems, type = "dine_in") {
+    const itemGroups = Array.from(groupCartItemsByRestaurant(cartItems).values());
+
+    if (itemGroups.length > 1) {
+        const orders = [];
+
+        for (const items of itemGroups) {
+            orders.push(await createCashierOrder(items, type));
+        }
+
+        return { orders };
+    }
+
     const typeVariants =
         type === "takeaway"
             ? ["takeaway", "take-away", "take_away", "take away", "TAKEAWAY"]
@@ -149,7 +204,75 @@ export async function createCashierOrder(cartItems, type = "dine_in") {
     throw lastError;
 }
 
+function collectInvoiceIds(value, ids = []) {
+    if (!value || typeof value !== "object") return ids;
+
+    const invoiceId =
+        value.invoice_id ??
+        value.invoice?.id ??
+        value.order?.invoice_id ??
+        value.order?.invoice?.id ??
+        value.data?.invoice_id ??
+        value.data?.invoice?.id ??
+        value.data?.order?.invoice_id ??
+        value.data?.order?.invoice?.id;
+
+    if (invoiceId && !ids.some((id) => String(id) === String(invoiceId))) {
+        ids.push(invoiceId);
+    }
+
+    if (Array.isArray(value.orders)) {
+        value.orders.forEach((order) => collectInvoiceIds(order, ids));
+    }
+
+    if (Array.isArray(value.data)) {
+        value.data.forEach((item) => collectInvoiceIds(item, ids));
+    }
+
+    return ids;
+}
+
+export function getCreatedInvoiceIds(data) {
+    return collectInvoiceIds(data);
+}
+
+export async function payCashierInvoice(invoiceId, paymentMethod = "cash") {
+    const formData = new FormData();
+    formData.append("invoice_id", invoiceId);
+
+    const endpoint =
+        paymentMethod === "stripe"
+            ? "/cashier/payments/stripe/create-intent"
+            : "/cashier/payments/cash";
+    const response = await api.post(endpoint, formData);
+
+    return response.data;
+}
+
+export async function payCashierOrderInvoices(orderResponse, paymentMethod = "cash") {
+    const invoiceIds = getCreatedInvoiceIds(orderResponse);
+
+    if (!invoiceIds.length) {
+        throw new Error("No invoice was returned for this order.");
+    }
+
+    const payments = [];
+
+    for (const invoiceId of invoiceIds) {
+        payments.push(await payCashierInvoice(invoiceId, paymentMethod));
+    }
+
+    return payments;
+}
+
 export function getCreatedOrderId(data) {
+    const orderIds = data?.orders
+        ?.map((order) => getCreatedOrderId(order))
+        .filter(Boolean)
+        .join(", ");
+
+    if (orderIds) return orderIds;
+
     return (
         data?.order?.id ??
         data?.data?.order?.id ??

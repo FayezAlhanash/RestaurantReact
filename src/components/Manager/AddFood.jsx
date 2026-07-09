@@ -16,8 +16,8 @@ import FoodModal from "./FoodModal";
 import api from "../../API/axios";
 import AttachIngredientModal from "./AttachIngredientModal";
 import {
+  ensureManagerRestaurantId,
   filterCategoriesByRestaurant,
-  getManagerRestaurantId,
   getResponseList,
 } from "./managerHelpers";
 
@@ -51,7 +51,7 @@ export default function AddFood() {
 
   const fetchCategories = async () => {
     try {
-      const restaurantId = getManagerRestaurantId();
+      const restaurantId = await ensureManagerRestaurantId();
       const res = await api.get("/categories", {
         params: restaurantId ? { restaurant_id: restaurantId } : undefined,
       });
@@ -65,7 +65,10 @@ export default function AddFood() {
 
   const fetchFoods = async () => {
     try {
-      const res = await api.get("/food");
+      const restaurantId = await ensureManagerRestaurantId();
+      const res = await api.get("/food", {
+        params: { restaurant_id: restaurantId },
+      });
       setFoods(res.data.food ?? []);
     } catch (err) {
       console.error(err.response?.data || err);
@@ -74,7 +77,7 @@ export default function AddFood() {
 
   const fetchIngredients = async () => {
     try {
-      const restaurantId = getManagerRestaurantId() ?? 1;
+      const restaurantId = (await ensureManagerRestaurantId()) ?? 1;
       const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
 
       setIngredients(getResponseList(res.data, ["ingredients"]));
@@ -110,6 +113,9 @@ export default function AddFood() {
       formData.append("fats", food.fats);
       formData.append("is_diet", food.is_diet ? 1 : 0);
       formData.append("is_available", food.is_available ? 1 : 0);
+
+      const restaurantId = await ensureManagerRestaurantId();
+      formData.append("restaurant_id", restaurantId);
 
       if (food.image) {
         formData.append("image", food.image);

@@ -4,12 +4,14 @@ import {
     createCashierOrder,
     fetchKitchenQueue,
     getCreatedOrderId,
+    payCashierOrderInvoices,
 } from "../../utils/kitchenOrders";
 
 function OrderSidebar({ cartItems, setCartItems }) {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState("cash");
 
     const removeItem = (indexToRemove) => {
         setCartItems((items) => items.filter((_, index) => index !== indexToRemove));
@@ -41,31 +43,44 @@ function OrderSidebar({ cartItems, setCartItems }) {
 
         try {
             const response = await createCashierOrder(cartItems, "takeaway");
-            const orderId = getCreatedOrderId(response);
+            await payCashierOrderInvoices(response, paymentMethod);
+            const orderIds = String(getCreatedOrderId(response) || "")
+                .split(",")
+                .map((id) => id.trim())
+                .filter(Boolean);
             let isInKitchenQueue = false;
 
             try {
                 const kitchenQueue = await fetchKitchenQueue();
-                isInKitchenQueue = kitchenQueue.some(
-                    (order) => String(order.id) === String(orderId)
-                );
+                isInKitchenQueue =
+                    orderIds.length === 0 ||
+                    orderIds.every((orderId) =>
+                        kitchenQueue.some((order) => String(order.id) === String(orderId))
+                    );
             } catch {
                 isInKitchenQueue = true;
             }
 
             setCartItems([]);
             setSuccessMessage(
-                isInKitchenQueue || !orderId
-                    ? `Order #${orderId || ""} sent to kitchen`
-                    : `Order #${orderId} created, but not in kitchen queue`
+                isInKitchenQueue
+                    ? `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")} paid and sent to kitchen`
+                    : `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")} paid, but not in kitchen queue`
             );
 
             window.setTimeout(() => {
                 setSuccessMessage("");
             }, 3500);
         } catch (error) {
+            const validationErrors = error.response?.data?.errors;
+            const firstValidationError = validationErrors
+                ? Object.values(validationErrors).flat().find(Boolean)
+                : "";
+
             setErrorMessage(
+                firstValidationError ||
                 error.response?.data?.message ||
+                error.message ||
                     "Order was not sent. Check the cashier order API."
             );
         } finally {
@@ -137,6 +152,30 @@ function OrderSidebar({ cartItems, setCartItems }) {
                     <span className="font-extrabold">Total</span>
                     <span className="text-2xl font-black text-[#7F1D1D]">${total.toFixed(2)}</span>
                 </div>
+                <div className="mb-4">
+                    <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[#9A8982]">
+                        Payment
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#E5D8D2] bg-[#FCFAF8] p-1">
+                        {[
+                            { id: "cash", label: "Cash" },
+                            { id: "stripe", label: "Stripe" },
+                        ].map((method) => (
+                            <button
+                                key={method.id}
+                                type="button"
+                                onClick={() => setPaymentMethod(method.id)}
+                                className={`rounded-xl px-3 py-2.5 text-sm font-extrabold transition ${
+                                    paymentMethod === method.id
+                                        ? "bg-[#7F1D1D] text-white shadow-sm"
+                                        : "text-[#8A7972] hover:bg-white"
+                                }`}
+                            >
+                                {method.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 {successMessage && (
                     <p className="mb-3 rounded-2xl bg-green-50 px-4 py-3 text-center text-sm font-extrabold text-green-700">
                         {successMessage}
@@ -148,7 +187,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
                     </p>
                 )}
                 <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
-                    {isSubmitting ? "Sending..." : `Place order · $${total.toFixed(2)}`}
+                    {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${total.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
                     <button onClick={() => setCartItems([])} className="mt-2.5 w-full py-2 text-xs font-bold text-[#9A8982] transition hover:text-[#7F1D1D]">Clear order</button>

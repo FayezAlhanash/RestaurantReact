@@ -1,11 +1,15 @@
 import { Plus, Star } from "lucide-react";
 
 function MenuItemCard({ item, onOpen }) {
+    const imageUrl =
+        item.image ||
+        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
+
     return (
         <article className="group flex min-h-[330px] flex-col overflow-hidden rounded-[26px] border border-[#E7DCD6] bg-white shadow-[0_8px_30px_rgba(83,53,42,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(83,53,42,0.12)]">
             <div className="relative m-2.5 overflow-hidden rounded-[20px] bg-[#EDE5DF]">
                 <img
-                    src={`${item.image}?auto=format&fit=crop&w=800&q=80`}
+                    src={imageUrl}
                     alt={item.title}
                     className="h-44 w-full object-cover transition duration-500 group-hover:scale-105 sm:h-48"
                 />
@@ -23,7 +27,7 @@ function MenuItemCard({ item, onOpen }) {
                         <h2 className="truncate text-lg font-extrabold text-[#2E2522]">{item.title}</h2>
                         <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#8A7972]">{item.description}</p>
                     </div>
-                    <p className="shrink-0 text-xl font-extrabold text-[#7F1D1D]">${item.price.toFixed(2)}</p>
+                    <p className="shrink-0 text-xl font-extrabold text-[#7F1D1D]">${Number(item.price ?? 0).toFixed(2)}</p>
                 </div>
 
                 <button
