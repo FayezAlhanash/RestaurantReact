@@ -8,6 +8,7 @@ import {
     clearSession,
     getHomePath,
     getRoleId,
+    storeToken,
     storeUser,
 } from "../utils/auth";
 
@@ -39,7 +40,7 @@ function Login() {
             const user = response.data.user;
 
             // حفظ التوكن أولاً
-            localStorage.setItem("token", token);
+            storeToken(token);
 
             // جلب صلاحيات المستخدم
             const profileResponse = await axios.get(

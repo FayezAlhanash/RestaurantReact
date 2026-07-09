@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getStoredUser } from "../utils/auth";
+import { getStoredToken, getStoredUser } from "../utils/auth";
 
 const api = axios.create({
     baseURL: "https://big4.me/api",
@@ -7,7 +7,7 @@ const api = axios.create({
 
 // 🔐 REQUEST INTERCEPTOR
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;

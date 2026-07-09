@@ -1,12 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { getHomePath, getStoredUser } from "../../utils/auth";
+import { getHomePath, getStoredToken, getStoredUser } from "../../utils/auth";
 import { canAny } from "../../utils/permissions";
 
 export default function ProtectedRoute({
   allowedRoles = [],
   allowedPermissions = [],
 }) {
-  const token = localStorage.getItem("token");
+  const token = getStoredToken();
   const user = getStoredUser();
 
   if (!token || !user) {

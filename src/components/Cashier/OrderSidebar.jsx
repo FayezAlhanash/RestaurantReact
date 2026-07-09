@@ -1,6 +1,10 @@
 import { Minus, Plus, Receipt, ShoppingBag, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { createCashierOrder } from "../../utils/kitchenOrders";
+import {
+    createCashierOrder,
+    fetchKitchenQueue,
+    getCreatedOrderId,
+} from "../../utils/kitchenOrders";
 
 function OrderSidebar({ cartItems, setCartItems }) {
     const [successMessage, setSuccessMessage] = useState("");
@@ -36,10 +40,24 @@ function OrderSidebar({ cartItems, setCartItems }) {
         setErrorMessage("");
 
         try {
-            const order = await createCashierOrder(cartItems, "takeaway");
+            const response = await createCashierOrder(cartItems, "takeaway");
+            const orderId = getCreatedOrderId(response);
+            let isInKitchenQueue = false;
+
+            try {
+                const kitchenQueue = await fetchKitchenQueue();
+                isInKitchenQueue = kitchenQueue.some(
+                    (order) => String(order.id) === String(orderId)
+                );
+            } catch {
+                isInKitchenQueue = true;
+            }
+
             setCartItems([]);
             setSuccessMessage(
-                `Order #${order?.order?.id || order?.id || ""} sent to kitchen`
+                isInKitchenQueue || !orderId
+                    ? `Order #${orderId || ""} sent to kitchen`
+                    : `Order #${orderId} created, but not in kitchen queue`
             );
 
             window.setTimeout(() => {

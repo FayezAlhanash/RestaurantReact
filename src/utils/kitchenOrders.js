@@ -148,3 +148,13 @@ export async function createCashierOrder(cartItems, type = "dine_in") {
 
     throw lastError;
 }
+
+export function getCreatedOrderId(data) {
+    return (
+        data?.order?.id ??
+        data?.data?.order?.id ??
+        data?.data?.id ??
+        data?.id ??
+        null
+    );
+}
