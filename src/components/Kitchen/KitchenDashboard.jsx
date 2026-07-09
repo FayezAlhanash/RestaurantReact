@@ -59,6 +59,22 @@ export default function KitchenDashboard() {
     }, []);
 
     const handleStartPreparing = async (orderId) => {
+        const order = orders.find(
+            (currentOrder) => String(currentOrder.id) === String(orderId)
+        );
+        const status = String(order?.status || "pending")
+            .toLowerCase()
+            .replaceAll("-", "_")
+            .replaceAll(" ", "_");
+
+        if (
+            ["preparing", "in_progress", "in_preparation", "started", "ready"].includes(
+                status
+            )
+        ) {
+            return;
+        }
+
         try {
             await startKitchenOrder(orderId);
             await loadQueue();
@@ -70,6 +86,22 @@ export default function KitchenDashboard() {
     };
 
     const handleReady = async (orderId) => {
+        const order = orders.find(
+            (currentOrder) => String(currentOrder.id) === String(orderId)
+        );
+        const status = String(order?.status || "")
+            .toLowerCase()
+            .replaceAll("-", "_")
+            .replaceAll(" ", "_");
+
+        if (
+            !["preparing", "in_progress", "in_preparation", "started"].includes(
+                status
+            )
+        ) {
+            return;
+        }
+
         try {
             await markKitchenOrderReady(orderId);
             await loadQueue();

@@ -27,10 +27,41 @@ const orderTypeConfig = {
     },
 };
 
-function isPreparingStatus(status) {
-    return ["preparing", "in_progress", "in_preparation", "started"].includes(
-        String(status || "").toLowerCase()
-    );
+function normalizeStatus(status) {
+    const value = String(status || "pending")
+        .toLowerCase()
+        .replaceAll("-", "_")
+        .replaceAll(" ", "_");
+
+    if (["preparing", "in_progress", "in_preparation", "started"].includes(value)) {
+        return "preparing";
+    }
+
+    if (["ready", "completed", "done"].includes(value)) {
+        return "ready";
+    }
+
+    return "pending";
+}
+
+const statusLabels = {
+    pending: "بانتظار التحضير",
+    preparing: "قيد التحضير",
+    ready: "جاهز",
+};
+
+const statusClasses = {
+    pending: "bg-[#fff2cf] text-[#76550a]",
+    preparing: "bg-[#dff1ff] text-[#174d77]",
+    ready: "bg-[#dff7e7] text-[#176636]",
+};
+
+function canStartPreparing(status) {
+    return normalizeStatus(status) === "pending";
+}
+
+function canMarkReady(status) {
+    return normalizeStatus(status) === "preparing";
 }
 
 export default function OrderCard({
@@ -41,7 +72,7 @@ export default function OrderCard({
 }) {
     const type = orderTypeConfig[order.type] || orderTypeConfig.dine_in;
     const TypeIcon = type.icon;
-    const isPreparing = isPreparingStatus(order.status);
+    const normalizedStatus = normalizeStatus(order.status);
 
     return (
         <article
@@ -86,7 +117,13 @@ export default function OrderCard({
                     </span>
                 </div>
 
-                <div className="kitchen-order-scroll mt-5 min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto pl-2 pr-1">
+                <div className="mt-4 flex justify-end">
+                    <span className={`rounded-full px-4 py-2 text-sm font-black ${statusClasses[normalizedStatus]}`}>
+                        {statusLabels[normalizedStatus]}
+                    </span>
+                </div>
+
+                <div className="kitchen-order-scroll mt-4 min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto pl-2 pr-1">
                     {order.items.map((item) => (
                         <div
                             key={item.id}
@@ -117,26 +154,27 @@ export default function OrderCard({
             </div>
 
             <footer className="border-t border-[#ddd0be] bg-[#e8ddca] px-5 pb-5 pt-4">
-                <div className={onStartPreparing ? "grid grid-cols-2 gap-3" : "grid"}>
-                    {onStartPreparing && (
+                <div className="grid">
+                    {canStartPreparing(order.status) && onStartPreparing && (
                         <button
                             type="button"
                             onClick={() => onStartPreparing(order.id)}
-                            disabled={isPreparing}
-                            className="flex h-16 items-center justify-center rounded-xl border border-[#cbbba5] bg-[#f7efdf] text-base font-black text-[#5f4d34] shadow-sm transition hover:bg-[#fff6e8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
+                            className="flex h-16 items-center justify-center rounded-xl border border-[#cbbba5] bg-[#f7efdf] text-base font-black text-[#5f4d34] shadow-sm transition hover:bg-[#fff6e8] active:scale-[0.99]"
                         >
-                            {isPreparing ? "قيد التحضير" : "بدء التحضير"}
+                            بدء التحضير
                         </button>
                     )}
 
-                    <button
-                        type="button"
-                        onClick={() => onReady?.(order.id)}
-                        className="flex h-16 items-center justify-center gap-2 rounded-xl bg-[#770812] text-base font-black uppercase tracking-normal text-white shadow-[0_10px_18px_rgba(119,8,18,0.28)] transition hover:bg-[#65070f] active:scale-[0.99]"
-                    >
-                        <CheckCircle2 size={22} strokeWidth={2.5} />
-                        READY
-                    </button>
+                    {canMarkReady(order.status) && (
+                        <button
+                            type="button"
+                            onClick={() => onReady?.(order.id)}
+                            className="flex h-16 items-center justify-center gap-2 rounded-xl bg-[#770812] text-base font-black uppercase tracking-normal text-white shadow-[0_10px_18px_rgba(119,8,18,0.28)] transition hover:bg-[#65070f] active:scale-[0.99]"
+                        >
+                            <CheckCircle2 size={22} strokeWidth={2.5} />
+                            READY <span className="text-white/45">•</span> جاهز
+                        </button>
+                    )}
                 </div>
             </footer>
         </article>
