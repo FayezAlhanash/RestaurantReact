@@ -124,38 +124,24 @@ function isOrderTypeValidationError(error) {
 }
 
 export async function createCashierOrder(cartItems, type = "dine_in") {
-    const endpoints = [
-        "/cashier/orders",
-        "/cashier/order",
-        "/order",
-        "/orders",
-        "/orders/store",
-        "/orders/create",
-        "/restaurant/orders",
-    ];
     const typeVariants =
         type === "takeaway"
             ? ["takeaway", "take-away", "take_away", "take away", "TAKEAWAY"]
             : [type, "dine-in", "dine_in", "dine in", "dinein", "DINE-IN"];
     let lastError;
 
-    for (const endpoint of endpoints) {
-        for (const orderType of typeVariants) {
-            try {
-                const response = await api.post(
-                    endpoint,
-                    createCashierOrderPayload(cartItems, orderType)
-                );
-                return response.data;
-            } catch (error) {
-                lastError = error;
+    for (const orderType of typeVariants) {
+        try {
+            const response = await api.post(
+                "/cashier/orders",
+                createCashierOrderPayload(cartItems, orderType)
+            );
+            return response.data;
+        } catch (error) {
+            lastError = error;
 
-                if (
-                    ![403, 404, 405].includes(error.response?.status) &&
-                    !isOrderTypeValidationError(error)
-                ) {
-                    throw error;
-                }
+            if (!isOrderTypeValidationError(error)) {
+                throw error;
             }
         }
     }
