@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BellRing, Flame, LogOut, Utensils } from "lucide-react";
 
@@ -14,6 +14,7 @@ export default function KitchenDashboard() {
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const shouldPollRef = useRef(true);
     const navigate = useNavigate();
     const user = getStoredUser();
 
@@ -27,9 +28,16 @@ export default function KitchenDashboard() {
             const queue = await fetchKitchenQueue();
             setOrders(queue);
             setErrorMessage("");
+            shouldPollRef.current = true;
         } catch (error) {
+            if (error.response?.status === 403) {
+                shouldPollRef.current = false;
+            }
+
             setErrorMessage(
-                error.response?.data?.message || "تعذر جلب قائمة المطبخ"
+                error.response?.status === 403
+                    ? "Unauthorized. سجّل دخول بحساب المطبخ أو تأكد أن الحساب لديه صلاحية قائمة المطبخ."
+                    : error.response?.data?.message || "تعذر جلب قائمة المطبخ"
             );
         } finally {
             setIsLoading(false);
@@ -38,9 +46,16 @@ export default function KitchenDashboard() {
 
     useEffect(() => {
         loadQueue();
-        const intervalId = window.setInterval(loadQueue, 5000);
+        const intervalId = window.setInterval(() => {
+            if (shouldPollRef.current) {
+                loadQueue();
+            }
+        }, 5000);
 
-        return () => window.clearInterval(intervalId);
+        return () => {
+            shouldPollRef.current = false;
+            window.clearInterval(intervalId);
+        };
     }, []);
 
     const handleStartPreparing = async (orderId) => {

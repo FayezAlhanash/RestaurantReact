@@ -113,25 +113,49 @@ export function createCashierOrderPayload(cartItems, type = "dine_in") {
     };
 }
 
+function isOrderTypeValidationError(error) {
+    const message = JSON.stringify(error.response?.data || {}).toLowerCase();
+
+    return (
+        error.response?.status === 422 &&
+        message.includes("order type") &&
+        message.includes("invalid")
+    );
+}
+
 export async function createCashierOrder(cartItems, type = "dine_in") {
-    const payload = createCashierOrderPayload(cartItems, type);
     const endpoints = [
         "/cashier/orders",
+        "/cashier/order",
         "/order",
         "/orders",
+        "/orders/store",
+        "/orders/create",
         "/restaurant/orders",
     ];
+    const typeVariants =
+        type === "takeaway"
+            ? ["takeaway", "take-away", "take_away", "take away", "TAKEAWAY"]
+            : [type, "dine-in", "dine_in", "dine in", "dinein", "DINE-IN"];
     let lastError;
 
     for (const endpoint of endpoints) {
-        try {
-            const response = await api.post(endpoint, payload);
-            return response.data;
-        } catch (error) {
-            lastError = error;
+        for (const orderType of typeVariants) {
+            try {
+                const response = await api.post(
+                    endpoint,
+                    createCashierOrderPayload(cartItems, orderType)
+                );
+                return response.data;
+            } catch (error) {
+                lastError = error;
 
-            if (error.response?.status !== 404) {
-                throw error;
+                if (
+                    ![403, 404, 405].includes(error.response?.status) &&
+                    !isOrderTypeValidationError(error)
+                ) {
+                    throw error;
+                }
             }
         }
     }

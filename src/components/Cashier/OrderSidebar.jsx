@@ -36,7 +36,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
         setErrorMessage("");
 
         try {
-            const order = await createCashierOrder(cartItems, "dine_in");
+            const order = await createCashierOrder(cartItems, "takeaway");
             setCartItems([]);
             setSuccessMessage(
                 `Order #${order?.order?.id || order?.id || ""} sent to kitchen`
@@ -63,7 +63,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
                         <ShoppingBag size={20} className="text-[#7F1D1D]" />
                         <h2 className="text-xl font-extrabold">Current order</h2>
                     </div>
-                    <p className="mt-1 text-xs font-medium text-[#94837D]">Dine in · Order #1029</p>
+                    <p className="mt-1 text-xs font-medium text-[#94837D]">Takeaway · Order #1029</p>
                 </div>
                 <span className="rounded-full bg-[#F9ECEC] px-3 py-1.5 text-xs font-bold text-[#7F1D1D]">{itemCount} items</span>
             </div>
