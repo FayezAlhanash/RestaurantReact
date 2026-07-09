@@ -1,6 +1,5 @@
 import logo from "../assets/Group.svg";
-import { User, Lock } from "lucide-react";
-import Button from "@mui/material/Button";
+import { Loader2, Lock, User } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -20,7 +19,8 @@ function Login() {
 
     const navigate = useNavigate();
 
-    const handleLogin = async () => {
+    const handleLogin = async (event) => {
+        event?.preventDefault();
         setIsLoading(true);
         setErrorMessage("");
 
@@ -87,102 +87,80 @@ function Login() {
     };
 
     return (
-        <div className="min-h-dvh px-3 py-6 sm:px-4 bg-gradient-to-br from-[#F5F1EB] to-[#DDD6CE] flex items-center justify-center font-[raleway]">
-            <div className="w-full max-w-[550px] bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
-
-                {/* Top Section */}
-                <div className="bg-gradient-to-b from-[#8B1E1E] to-[#6E1414] min-h-48 sm:h-64 px-5 py-8 flex flex-col items-center justify-center text-center text-white">
-
-                    <img
-                        src={logo}
-                        alt="logo"
-                        className="w-24 mb-4"
-                    />
-
-                    <h1 className="text-2xl sm:text-4xl font-bold mb-2">
-                        Welcome back sir
+        <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(127,29,29,0.13),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(247,201,72,0.18),transparent_30%),linear-gradient(135deg,#f8f5ef_0%,#ebe3d8_100%)] px-4 py-8 font-raleway text-stone-950">
+            <section className="w-full max-w-[540px] overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_24px_70px_rgba(69,48,35,0.16)]">
+                <div className="bg-[#7F1D1D] px-8 py-9 text-center text-white">
+                    <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-3xl bg-white/12 shadow-lg shadow-stone-950/15 ring-1 ring-white/18">
+                        <img src={logo} alt="Big-4" className="h-12 w-12" />
+                    </div>
+                    <h1 className="text-3xl font-black tracking-normal">
+                        Welcome back
                     </h1>
-
-                    <p className="text-gray-200">
-                        Sign in to manage your restaurant
+                    <p className="mt-2 text-sm font-bold text-white/72">
+                        Sign in to manage today&apos;s service.
                     </p>
-
                 </div>
 
-                {/* Bottom Section */}
-                <div className="p-5 sm:p-10 flex flex-col items-stretch">
-
-                    <div className="mb-6">
-                        <label className="block text-xl mb-2 text-gray-700">
-                            USERNAME
-                        </label>
-
-                        <div className="w-full px-5 py-4 text-base border border-gray-300 rounded-xl flex items-center gap-3 focus-within:border-[#7F1D1D]">
-                            <User
-                                size={18}
-                                className="text-gray-500"
-                            />
-
-                            <input
-                                type="email"
-                                placeholder="Enter your email"
-                                value={login}
-                                onChange={(e) =>
-                                    setLogin(e.target.value)
-                                }
-                                className="outline-none w-full text-sm sm:text-base"
-                            />
+                <div className="px-6 py-7 sm:px-9 sm:py-9">
+                    <form onSubmit={handleLogin} className="space-y-5">
+                        <div>
+                            <label className="mb-2 block text-sm font-black text-stone-700">
+                                Email or username
+                            </label>
+                            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-[#fbfaf8] px-4 py-3.5 shadow-sm transition duration-200 focus-within:border-[#7F1D1D] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#7F1D1D]/10">
+                                <User size={19} className="shrink-0 text-stone-400" />
+                                <input
+                                    type="text"
+                                    placeholder="name@big4.me"
+                                    value={login}
+                                    onChange={(e) => setLogin(e.target.value)}
+                                    className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-stone-400"
+                                    autoComplete="username"
+                                    required
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="mb-6">
-                        <label className="block mb-2 text-gray-700 text-xl">
-                            PASSWORD
-                        </label>
-
-                        <div className="w-full px-5 py-4 text-base border border-gray-300 rounded-xl flex items-center gap-3 focus-within:border-[#7F1D1D]">
-                            <Lock
-                                size={18}
-                                className="text-gray-500"
-                            />
-
-                            <input
-                                type="password"
-                                placeholder="Enter your password"
-                                value={password}
-                                onChange={(e) =>
-                                    setPassword(e.target.value)
-                                }
-                                className="outline-none w-full text-sm sm:text-base"
-                            />
+                        <div>
+                            <label className="mb-2 block text-sm font-black text-stone-700">
+                                Password
+                            </label>
+                            <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-[#fbfaf8] px-4 py-3.5 shadow-sm transition duration-200 focus-within:border-[#7F1D1D] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#7F1D1D]/10">
+                                <Lock size={19} className="shrink-0 text-stone-400" />
+                                <input
+                                    type="password"
+                                    placeholder="Enter your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-stone-400"
+                                    autoComplete="current-password"
+                                    required
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <Button
-                        onClick={handleLogin}
-                        disabled={isLoading}
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                            backgroundColor: "#7F1D1D",
-                            padding: "14px",
-                            borderRadius: "14px",
-                            fontSize: "18px",
-                            textTransform: "none",
-                            marginTop: "10px",
-                        }}
-                    >
-                        {isLoading ? "Signing in..." : "Sign in"}
-                    </Button>
+                        {errorMessage && (
+                            <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                                {errorMessage}
+                            </p>
+                        )}
 
-                    {errorMessage && (
-                        <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700">
-                            {errorMessage}
-                        </p>
-                    )}
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-xl shadow-[#7F1D1D]/18 transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:shadow-none"
+                        >
+                            {isLoading && <Loader2 size={18} className="animate-spin" />}
+                            {isLoading ? "Signing in..." : "Sign in"}
+                        </button>
+                    </form>
+
+                    <p className="mt-6 text-center text-xs font-bold text-stone-400">
+                        Your workspace opens automatically after login.
+                    </p>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
     );
 }
 

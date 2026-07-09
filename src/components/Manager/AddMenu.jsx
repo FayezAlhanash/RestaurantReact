@@ -443,7 +443,7 @@ export default function AddMenu() {
         {activeTab === "categories" && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px]">
-              <thead className="bg-stone-50 text-xs font-black uppercase tracking-wide text-stone-500">
+              <thead className="bg-stone-50 text-sm font-black uppercase tracking-wide text-stone-500">
                 <tr>
                   <th className="px-5 py-4 text-left">Name</th>
                   <th className="px-5 py-4 text-left">Status</th>
@@ -471,18 +471,18 @@ export default function AddMenu() {
                 ) : (
                   filteredCategories.map((category) => (
                     <tr key={category.id} className="transition duration-200 hover:bg-stone-50">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#f4e7dc] text-[#7F1D1D]">
-                            <Tags size={18} />
+                      <td className="px-5 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="grid h-12 w-12 place-items-center rounded-lg bg-[#f4e7dc] text-[#7F1D1D]">
+                            <Tags size={21} />
                           </div>
-                          <span className="font-black text-stone-900">{category.name}</span>
+                          <span className="text-lg font-black text-stone-900">{category.name}</span>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-5">
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                          className={`inline-flex rounded-full px-4 py-1.5 text-sm font-black ${
                             category.is_active
                               ? "border border-emerald-200 bg-emerald-100 text-emerald-800"
                               : "border border-rose-200 bg-rose-100 text-rose-800"
@@ -492,7 +492,7 @@ export default function AddMenu() {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-5">
                         <div className="flex justify-end gap-2">
                           <button className="group relative grid h-9 w-9 place-items-center rounded-lg border border-stone-200 bg-white text-stone-500 shadow-sm transition duration-200 hover:scale-110 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 hover:shadow-md active:scale-95">
                             <Edit3 size={16} className="transition duration-200 group-hover:-rotate-6" />
@@ -519,7 +519,7 @@ export default function AddMenu() {
         {activeTab === "groups" && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
-              <thead className="bg-amber-50 text-xs font-black uppercase tracking-wide text-amber-700">
+              <thead className="bg-amber-50 text-sm font-black uppercase tracking-wide text-amber-700">
                 <tr>
                   <th className="px-5 py-4 text-left">Group</th>
                   <th className="px-5 py-4 text-left">Linked foods</th>
@@ -557,27 +557,27 @@ export default function AddMenu() {
 
                     return (
                       <tr key={group.id} className="align-top transition duration-200 hover:bg-stone-50">
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="grid h-10 w-10 place-items-center rounded-lg bg-amber-100 text-amber-700">
-                              <Layers3 size={18} />
+                        <td className="px-5 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="grid h-12 w-12 place-items-center rounded-lg bg-amber-100 text-amber-700">
+                              <Layers3 size={21} />
                             </div>
                             <div>
-                              <p className="font-black text-stone-900">{group.name}</p>
-                              <p className="text-xs font-bold text-stone-400">
+                              <p className="text-lg font-black text-stone-900">{group.name}</p>
+                              <p className="text-sm font-bold text-stone-400">
                                 ID #{group.id}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-5">
                           {linkedFoods.length ? (
                             <div className="flex max-w-sm flex-wrap gap-2">
                               {linkedFoods.map((food) => (
                                 <span
                                   key={food.id ?? food.food_id}
-                                  className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-800"
+                                  className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-sm font-black text-sky-800"
                                 >
                                   {food.name ?? `Food #${food.food_id}`}
                                   <button
@@ -597,13 +597,13 @@ export default function AddMenu() {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-sm font-semibold text-stone-400">
+                            <span className="text-base font-semibold text-stone-400">
                               Not attached yet
                             </span>
                           )}
                         </td>
 
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-5">
                           <div className="flex max-w-sm gap-2">
                             <select
                               value={foodSelections[group.id] ?? ""}
@@ -613,7 +613,7 @@ export default function AddMenu() {
                                   [group.id]: e.target.value,
                                 }))
                               }
-                              className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white p-3 text-sm font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                              className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white p-3 text-base font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
                             >
                               <option value="">
                                 {availableFoods.length ? "Choose food" : "All foods linked"}
@@ -637,7 +637,7 @@ export default function AddMenu() {
                           </div>
                         </td>
 
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-5">
                           <div className="flex justify-end gap-2">
                             <button
                               type="button"
@@ -669,7 +669,7 @@ export default function AddMenu() {
         {activeTab === "options" && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px]">
-              <thead className="bg-fuchsia-50 text-xs font-black uppercase tracking-wide text-fuchsia-700">
+              <thead className="bg-fuchsia-50 text-sm font-black uppercase tracking-wide text-fuchsia-700">
                 <tr>
                   <th className="px-5 py-4 text-left">Option</th>
                   <th className="px-5 py-4 text-left">Group</th>
@@ -698,30 +698,30 @@ export default function AddMenu() {
                 ) : (
                   filteredOptions.map((option) => (
                     <tr key={option.id} className="transition duration-200 hover:bg-stone-50">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-10 w-10 place-items-center rounded-lg bg-fuchsia-100 text-fuchsia-700">
-                            <ListTree size={18} />
+                      <td className="px-5 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="grid h-12 w-12 place-items-center rounded-lg bg-fuchsia-100 text-fuchsia-700">
+                            <ListTree size={21} />
                           </div>
-                          <span className="font-black text-stone-900">
+                          <span className="text-lg font-black text-stone-900">
                             {option.name}
                           </span>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+                      <td className="px-5 py-5">
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-black text-amber-800">
                           {getOptionGroupName(option, modifierGroups)}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-bold text-stone-400">
+                      <td className="px-5 py-5">
+                        <span className="text-base font-bold text-stone-400">
                           #{option.id}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-5">
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"

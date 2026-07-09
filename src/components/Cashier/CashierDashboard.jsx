@@ -10,6 +10,12 @@ import api from "../../API/axios";
 const getList = (data) => {
     if (Array.isArray(data?.food)) return data.food;
     if (Array.isArray(data?.foods)) return data.foods;
+    if (Array.isArray(data?.modifier_groups)) return data.modifier_groups;
+    if (Array.isArray(data?.modifierGroups)) return data.modifierGroups;
+    if (Array.isArray(data?.groups)) return data.groups;
+    if (Array.isArray(data?.modifier_options)) return data.modifier_options;
+    if (Array.isArray(data?.modifierOptions)) return data.modifierOptions;
+    if (Array.isArray(data?.options)) return data.options;
     if (Array.isArray(data?.restaurants)) return data.restaurants;
     if (Array.isArray(data?.data)) return data.data;
     if (Array.isArray(data)) return data;
@@ -52,25 +58,35 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     image: getFoodImageUrl(food.image),
     category: String(food.category_id ?? food.category?.id ?? "uncategorized"),
     categoryName: food.category?.name ?? "Uncategorized",
+    modifierGroups: food.modifier_groups ?? food.modifierGroups ?? [],
 });
 
-const fetchAllRestaurantFoods = async () => {
-    const restaurantsResponse = await api.get("/restaurants");
-    const restaurants = getList(restaurantsResponse.data);
-    const foodResponses = await Promise.allSettled(
-        restaurants.map(async (restaurant) => {
-            const response = await api.get("/food", {
-                params: { restaurant_id: restaurant.id },
-            });
+const fetchFoodDetails = async (food) => {
+    try {
+        const response = await api.get(`/food/${food.food_id}`);
+        const [details] = getList(response.data);
+        const foodDetails = details || response.data?.food || response.data?.data || response.data;
+        const modifierGroups =
+            foodDetails?.modifier_groups ??
+            foodDetails?.modifierGroups ??
+            foodDetails?.groups ??
+            [];
 
-            return getList(response.data).map((food) =>
-                normalizeFoodItem(food, restaurant)
-            );
-        })
+        return modifierGroups.length ? { ...food, modifierGroups } : food;
+    } catch {
+        return food;
+    }
+};
+
+const fetchRestaurantMenu = async (restaurant) => {
+    const foodsResponse = await api.get("/food", { params: { restaurant_id: restaurant.id } });
+    const foods = getList(foodsResponse.data).map((food) =>
+        normalizeFoodItem(food, restaurant)
     );
+    const detailResponses = await Promise.allSettled(foods.map(fetchFoodDetails));
 
-    return foodResponses.flatMap((result) =>
-        result.status === "fulfilled" ? result.value : []
+    return detailResponses.map((result, index) =>
+        result.status === "fulfilled" ? result.value : foods[index]
     );
 };
 
@@ -95,7 +111,17 @@ function CashierDashboard() {
             } catch (error) {
                 if (needsRestaurantId(error)) {
                     try {
-                        setMenuItems(await fetchAllRestaurantFoods());
+                        const restaurantsResponse = await api.get("/restaurants");
+                        const restaurants = getList(restaurantsResponse.data);
+                        const menuResponses = await Promise.allSettled(
+                            restaurants.map(fetchRestaurantMenu)
+                        );
+
+                        setMenuItems(
+                            menuResponses.flatMap((result) =>
+                                result.status === "fulfilled" ? result.value : []
+                            )
+                        );
                     } catch (fallbackError) {
                         setMenuError(
                             fallbackError.response?.data?.message ||

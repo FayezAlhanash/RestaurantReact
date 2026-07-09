@@ -3,17 +3,22 @@ import { useEffect, useState } from "react";
 
 function ProductModal({ isOpen, onClose, item, addToCart }) {
     const [selectedSize, setSelectedSize] = useState("small");
+    const [selectedModifiers, setSelectedModifiers] = useState({});
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState("");
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setQuantity(1);
+        setSelectedSize("small");
+        setSelectedModifiers({});
+        setNotes("");
     }, [item]);
 
     const closeModal = () => {
         setQuantity(1);
         setSelectedSize("small");
+        setSelectedModifiers({});
         setNotes("");
         onClose();
     };
@@ -24,6 +29,29 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
         item?.image ||
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=85";
     const basePrice = Number(item?.price ?? 0);
+    const modifierGroups = (item?.modifierGroups ?? [])
+        .map((group) => ({
+            ...group,
+            options: group.options ?? group.modifier_options ?? group.modifierOptions ?? [],
+        }))
+        .filter((group) => group.options.length);
+    const hasModifiers = modifierGroups.length > 0;
+    const allRequiredModifiersSelected =
+        !hasModifiers ||
+        modifierGroups.every((group) => selectedModifiers[group.id]);
+    const modifierNotes = modifierGroups
+        .map((group) => {
+            const optionId = selectedModifiers[group.id];
+            const option = group.options?.find(
+                (currentOption) => String(currentOption.id) === String(optionId)
+            );
+
+            return option ? `${group.name}: ${option.name}` : "";
+        })
+        .filter(Boolean);
+    const orderNotes = [hasModifiers ? "" : selectedSize, ...modifierNotes, notes]
+        .filter(Boolean)
+        .join(" · ");
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211715]/55 p-3 backdrop-blur-sm sm:p-6">
@@ -43,24 +71,66 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                     <h2 className="mt-2 pr-12 text-2xl font-black text-[#2D2421] sm:text-3xl">{item?.title}</h2>
                     <p className="mt-2 text-sm leading-6 text-[#887770]">{item?.description}</p>
 
-                    <div className="mt-6">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h3 className="text-sm font-extrabold">Choose size</h3>
-                            <span className="text-xs text-[#A08D85]">Required</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            {["small", "large"].map((size) => (
-                                <button
-                                    key={size}
-                                    onClick={() => setSelectedSize(size)}
-                                    className={`rounded-2xl border px-4 py-3.5 text-left transition ${selectedSize === size ? "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]" : "border-[#E7DCD6] text-[#77665F] hover:border-[#CBB9B1]"}`}
-                                >
-                                    <span className="block text-sm font-extrabold capitalize">{size}</span>
-                                    <span className="mt-0.5 block text-xs opacity-70">{size === "small" ? "Regular serving" : "+ $2.00"}</span>
-                                </button>
+                    {hasModifiers ? (
+                        <div className="mt-6 space-y-5">
+                            {modifierGroups.map((group) => (
+                                <div key={group.id}>
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <h3 className="text-sm font-extrabold">{group.name}</h3>
+                                        <span className="text-xs text-[#A08D85]">Required</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {group.options.map((option) => {
+                                            const isSelected =
+                                                String(selectedModifiers[group.id]) === String(option.id);
+
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSelectedModifiers((current) => ({
+                                                            ...current,
+                                                            [group.id]: option.id,
+                                                        }))
+                                                    }
+                                                    className={`rounded-2xl border px-4 py-3.5 text-left transition ${
+                                                        isSelected
+                                                            ? "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]"
+                                                            : "border-[#E7DCD6] text-[#77665F] hover:border-[#CBB9B1]"
+                                                    }`}
+                                                >
+                                                    <span className="block text-sm font-extrabold">
+                                                        {option.name}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             ))}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="mt-6">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h3 className="text-sm font-extrabold">Choose size</h3>
+                                <span className="text-xs text-[#A08D85]">Required</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {["small", "large"].map((size) => (
+                                    <button
+                                        key={size}
+                                        type="button"
+                                        onClick={() => setSelectedSize(size)}
+                                        className={`rounded-2xl border px-4 py-3.5 text-left transition ${selectedSize === size ? "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]" : "border-[#E7DCD6] text-[#77665F] hover:border-[#CBB9B1]"}`}
+                                    >
+                                        <span className="block text-sm font-extrabold capitalize">{size}</span>
+                                        <span className="mt-0.5 block text-xs opacity-70">{size === "small" ? "Regular serving" : "+ $2.00"}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-6 flex items-center justify-between rounded-2xl bg-[#F8F4F1] p-3">
                         <div>
@@ -77,20 +147,24 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                     <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Special instructions (optional)" rows={3} className="mt-4 w-full resize-none rounded-2xl border border-[#E7DCD6] bg-white p-4 text-sm outline-none transition placeholder:text-[#AA9A94] focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10" />
 
                     <button
+                        disabled={!allRequiredModifiersSelected}
                         onClick={() => {
+                            if (!allRequiredModifiersSelected) return;
+
                             addToCart({
                                 ...item,
-                                price: basePrice + (selectedSize === "large" ? 2 : 0),
+                                price: basePrice + (!hasModifiers && selectedSize === "large" ? 2 : 0),
                                 quantity,
-                                size: selectedSize,
-                                notes,
+                                size: hasModifiers ? "" : selectedSize,
+                                notes: orderNotes,
+                                selectedModifiers,
                             });
                             closeModal();
                         }}
-                        className="mt-5 flex w-full items-center justify-between rounded-2xl bg-[#7F1D1D] px-5 py-4 font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.2)] transition hover:bg-[#681718] active:scale-[0.99]"
+                        className="mt-5 flex w-full items-center justify-between rounded-2xl bg-[#7F1D1D] px-5 py-4 font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.2)] transition hover:bg-[#681718] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#CBB9B1] disabled:shadow-none"
                     >
                         <span className="flex items-center gap-2"><ShoppingBag size={19} /> Add to order</span>
-                        <span>${((basePrice + (selectedSize === "large" ? 2 : 0)) * quantity).toFixed(2)}</span>
+                        <span>${((basePrice + (!hasModifiers && selectedSize === "large" ? 2 : 0)) * quantity).toFixed(2)}</span>
                     </button>
                 </div>
             </div>

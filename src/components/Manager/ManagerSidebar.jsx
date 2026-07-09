@@ -64,25 +64,25 @@ function ManagerSidebar({ isOpen = false, onClose }) {
 
           <div>
             <h1 className="text-2xl font-black leading-none">Big-4</h1>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/70">
+            <p className="mt-1 text-sm font-bold uppercase tracking-wide text-white/70">
               Manager Workspace
             </p>
           </div>
         </div>
 
         <div className="mt-5 rounded-lg border border-white/15 bg-white/15 p-3 backdrop-blur">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-100">
+          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-emerald-100">
             <Circle size={8} fill="currentColor" />
             Live menu ops
           </div>
-          <p className="mt-2 text-sm leading-5 text-white/75">
+          <p className="mt-2 text-base leading-6 text-white/75">
             Build, polish, and keep the menu ready for service.
           </p>
         </div>
       </div>
 
       <div className="mt-6">
-        <p className="px-3 text-xs font-black uppercase tracking-wide text-stone-400">
+        <p className="px-3 text-sm font-black uppercase tracking-wide text-stone-400">
           Navigation
         </p>
 
@@ -121,11 +121,11 @@ function ManagerSidebar({ isOpen = false, onClose }) {
                     </span>
 
                     <span className="min-w-0">
-                      <span className="block text-sm font-black">
+                      <span className="block text-base font-black">
                         {item.label}
                       </span>
                       <span
-                        className={`block truncate text-xs font-semibold ${
+                        className={`block truncate text-sm font-semibold ${
                           isActive ? "text-stone-500" : "text-stone-400"
                         }`}
                       >
@@ -142,11 +142,11 @@ function ManagerSidebar({ isOpen = false, onClose }) {
 
       <div className="mt-auto space-y-3">
         <div className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <div className="mb-3 flex items-center gap-2 text-sm font-black">
-            <Sparkles size={17} className="text-amber-600" />
+          <div className="mb-3 flex items-center gap-2 text-base font-black">
+            <Sparkles size={18} className="text-amber-600" />
             Next up
           </div>
-          <p className="text-sm leading-6 text-amber-800">
+          <p className="text-base leading-7 text-amber-800">
             Modifier groups are visually prepared and ready for backend wiring.
           </p>
         </div>
@@ -160,8 +160,8 @@ function ManagerSidebar({ isOpen = false, onClose }) {
             <LogOut size={19} />
           </span>
           <span>
-            <span className="block text-sm font-black">Logout</span>
-            <span className="text-xs font-semibold text-rose-400">
+            <span className="block text-base font-black">Logout</span>
+            <span className="text-sm font-semibold text-rose-400">
               End manager session
             </span>
           </span>
