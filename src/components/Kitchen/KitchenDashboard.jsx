@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BellRing, Flame, LogOut, Utensils } from "lucide-react";
+import { BellRing, CheckCircle2, Flame, LogOut, Utensils } from "lucide-react";
 
 import OrderCard from "../../components/Kitchen/OrderCard";
 import { clearSession, getStoredUser } from "../../utils/auth";
@@ -10,8 +10,19 @@ import {
     startKitchenOrder,
 } from "../../utils/kitchenOrders";
 
+const normalizeStatus = (status) =>
+    String(status || "pending")
+        .toLowerCase()
+        .replaceAll("-", "_")
+        .replaceAll(" ", "_");
+
+const isCompletedOrder = (order) =>
+    ["ready", "completed", "done"].includes(normalizeStatus(order?.status));
+
 export default function KitchenDashboard() {
     const [orders, setOrders] = useState([]);
+    const [completedOrders, setCompletedOrders] = useState([]);
+    const [showCompleted, setShowCompleted] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const shouldPollRef = useRef(true);
@@ -23,10 +34,24 @@ export default function KitchenDashboard() {
         [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
         "أحمد خالد";
 
-    const loadQueue = async () => {
+    const loadQueue = useCallback(async () => {
         try {
             const queue = await fetchKitchenQueue();
-            setOrders(queue);
+            const activeQueue = queue.filter((order) => !isCompletedOrder(order));
+            const readyQueue = queue.filter(isCompletedOrder);
+
+            setOrders(activeQueue);
+            setCompletedOrders((current) => {
+                const readyOrders = new Map(
+                    current.map((order) => [String(order.id), order])
+                );
+
+                readyQueue.forEach((order) => {
+                    readyOrders.set(String(order.id), order);
+                });
+
+                return Array.from(readyOrders.values());
+            });
             setErrorMessage("");
             shouldPollRef.current = true;
         } catch (error) {
@@ -42,10 +67,10 @@ export default function KitchenDashboard() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        loadQueue();
+        const initialLoadId = window.setTimeout(loadQueue, 0);
         const intervalId = window.setInterval(() => {
             if (shouldPollRef.current) {
                 loadQueue();
@@ -54,9 +79,10 @@ export default function KitchenDashboard() {
 
         return () => {
             shouldPollRef.current = false;
+            window.clearTimeout(initialLoadId);
             window.clearInterval(intervalId);
         };
-    }, []);
+    }, [loadQueue]);
 
     const handleStartPreparing = async (orderId) => {
         const order = orders.find(
@@ -104,6 +130,21 @@ export default function KitchenDashboard() {
 
         try {
             await markKitchenOrderReady(orderId);
+            if (order) {
+                setCompletedOrders((current) => {
+                    const next = current.filter(
+                        (currentOrder) => String(currentOrder.id) !== String(orderId)
+                    );
+
+                    return [{ ...order, status: "ready" }, ...next];
+                });
+                setOrders((current) =>
+                    current.filter(
+                        (currentOrder) => String(currentOrder.id) !== String(orderId)
+                    )
+                );
+                setShowCompleted(false);
+            }
             await loadQueue();
         } catch (error) {
             setErrorMessage(
@@ -120,14 +161,32 @@ export default function KitchenDashboard() {
     return (
         <main className="kitchen-screen min-h-screen bg-[#1f2326] text-[#f5f1eb]">
             <header className="flex min-h-[76px] items-center justify-between border-b border-white/10 bg-[#292e33] px-5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] lg:px-8">
-                <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex h-11 min-w-40 items-center justify-center gap-3 rounded-xl border border-white/10 bg-[#363c42] px-5 text-sm font-extrabold text-[#f8ded8] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#414850]"
-                >
-                    تسجيل الخروج
-                    <LogOut size={18} strokeWidth={2.5} />
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex h-11 min-w-40 items-center justify-center gap-3 rounded-xl border border-white/10 bg-[#363c42] px-5 text-sm font-extrabold text-[#f8ded8] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#414850]"
+                    >
+                        تسجيل الخروج
+                        <LogOut size={18} strokeWidth={2.5} />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowCompleted((current) => !current)}
+                        className={`flex h-11 min-w-44 items-center justify-center gap-3 rounded-xl border px-5 text-sm font-extrabold shadow-sm transition hover:-translate-y-0.5 ${
+                            showCompleted
+                                ? "border-emerald-300/30 bg-emerald-500/16 text-emerald-100"
+                                : "border-white/10 bg-[#363c42] text-[#dff7e7] hover:bg-[#414850]"
+                        }`}
+                    >
+                        الطلبات الخالصة
+                        <span className="rounded-full bg-white/12 px-2 py-0.5 text-xs">
+                            {completedOrders.length}
+                        </span>
+                        <CheckCircle2 size={18} strokeWidth={2.5} />
+                    </button>
+                </div>
 
                 <div className="text-right">
                     <p className="text-lg font-black text-white">
@@ -164,10 +223,12 @@ export default function KitchenDashboard() {
                         </div>
                         <div className="text-right">
                             <p className="text-sm font-black text-white">
-                                قائمة التحضير
+                                {showCompleted ? "الطلبات الخالصة" : "قائمة التحضير"}
                             </p>
                             <p className="text-xs font-extrabold text-[#bbb4aa]">
-                                متصل بقائمة المطبخ الحقيقية
+                                {showCompleted
+                                    ? "الطلبات التي تم تعليمها كجاهزة"
+                                    : "متصل بقائمة المطبخ الحقيقية"}
                             </p>
                         </div>
                     </div>
@@ -192,6 +253,22 @@ export default function KitchenDashboard() {
                     <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
                         جاري تحميل طلبات المطبخ...
                     </div>
+                ) : showCompleted ? (
+                    completedOrders.length ? (
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                            {completedOrders.map((order) => (
+                                <OrderCard
+                                    key={order.id}
+                                    order={order}
+                                    className="opacity-90"
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
+                            لا يوجد طلبات خالصة حالياً
+                        </div>
+                    )
                 ) : orders.length ? (
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
                         {orders.map((order) => (

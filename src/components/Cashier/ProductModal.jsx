@@ -25,6 +25,33 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
 
     if (!isOpen) return null;
 
+    const getModifierOptionPrice = (option) =>
+        Number(
+            option?.price ??
+                option?.pivot?.price ??
+                option?.additional_price ??
+                option?.extra_price ??
+                0
+        );
+    const getSelectedModifierOptions = () =>
+        modifierGroups
+            .map((group) => {
+                const optionId = selectedModifiers[group.id];
+                const option = group.options?.find(
+                    (currentOption) => String(currentOption.id) === String(optionId)
+                );
+
+                return option
+                    ? {
+                          groupId: group.id,
+                          groupName: group.name,
+                          id: option.id,
+                          name: option.name,
+                          price: getModifierOptionPrice(option),
+                      }
+                    : null;
+            })
+            .filter(Boolean);
     const imageUrl =
         item?.image ||
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=85";
@@ -36,6 +63,13 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
         }))
         .filter((group) => group.options.length);
     const hasModifiers = modifierGroups.length > 0;
+    const selectedModifierOptions = getSelectedModifierOptions();
+    const modifierPrice = selectedModifierOptions.reduce(
+        (total, option) => total + option.price,
+        0
+    );
+    const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
+    const unitPrice = basePrice + modifierPrice + sizePrice;
     const allRequiredModifiersSelected =
         !hasModifiers ||
         modifierGroups.every((group) => selectedModifiers[group.id]);
@@ -83,6 +117,7 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                                         {group.options.map((option) => {
                                             const isSelected =
                                                 String(selectedModifiers[group.id]) === String(option.id);
+                                            const optionPrice = getModifierOptionPrice(option);
 
                                             return (
                                                 <button
@@ -103,6 +138,11 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                                                     <span className="block text-sm font-extrabold">
                                                         {option.name}
                                                     </span>
+                                                    {optionPrice > 0 && (
+                                                        <span className="mt-0.5 block text-xs opacity-70">
+                                                            + ${optionPrice.toFixed(2)}
+                                                        </span>
+                                                    )}
                                                 </button>
                                             );
                                         })}
@@ -153,18 +193,19 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
 
                             addToCart({
                                 ...item,
-                                price: basePrice + (!hasModifiers && selectedSize === "large" ? 2 : 0),
+                                price: unitPrice,
                                 quantity,
                                 size: hasModifiers ? "" : selectedSize,
                                 notes: orderNotes,
                                 selectedModifiers,
+                                selectedModifierOptions,
                             });
                             closeModal();
                         }}
                         className="mt-5 flex w-full items-center justify-between rounded-2xl bg-[#7F1D1D] px-5 py-4 font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.2)] transition hover:bg-[#681718] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#CBB9B1] disabled:shadow-none"
                     >
                         <span className="flex items-center gap-2"><ShoppingBag size={19} /> Add to order</span>
-                        <span>${((basePrice + (!hasModifiers && selectedSize === "large" ? 2 : 0)) * quantity).toFixed(2)}</span>
+                        <span>${(unitPrice * quantity).toFixed(2)}</span>
                     </button>
                 </div>
             </div>

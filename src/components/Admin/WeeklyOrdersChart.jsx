@@ -18,31 +18,73 @@ ChartJS.register(
   Legend
 );
 
-function WeeklyOrdersChart() {
+function formatDateLabel(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function WeeklyOrdersChart({
+  items = [],
+  valueKey = "revenue",
+  label = "Revenue",
+  valuePrefix = "$",
+  valueSuffix = "",
+  color = "#7f1d1d",
+}) {
+  const chartItems = items.length
+    ? items
+    : [
+        { date: "No data", [valueKey]: 0 },
+      ];
   const data = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    labels: chartItems.map((item) => formatDateLabel(item.date)),
     datasets: [
       {
-        label: "Total Orders",
-        data: [120, 150, 180, 90, 200, 250, 300],
-        backgroundColor: "#7f1d1d",
-        borderRadius: 10,
+        label,
+        data: chartItems.map((item) => item[valueKey]),
+        backgroundColor: color,
+        borderRadius: 8,
+        maxBarThickness: 42,
       },
     ],
   };
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       title: {
-        display: true,
-        text: "Weekly Total Orders",
-        font: { size: 20 },
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) =>
+            `${valuePrefix}${Number(context.raw ?? 0).toFixed(
+              valuePrefix ? 2 : 0
+            )}${valueSuffix}`,
+        },
       },
     },
     scales: {
-      y: { beginAtZero: true },
+      x: {
+        grid: { display: false },
+        ticks: {
+          color: "#78716c",
+          font: { weight: "bold" },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: "#eee7df" },
+        ticks: { color: "#78716c" },
+      },
     },
   };
 

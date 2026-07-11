@@ -135,12 +135,29 @@ export function createCashierOrderPayload(cartItems, type = "dine_in") {
         type,
         order_type: type,
         restaurant_id: restaurantId,
-        items: cartItems.map((item) => ({
-            food_id: item.food_id || item.id,
-            menu_item_id: item.food_id || item.id,
-            quantity: item.quantity,
-            notes: [item.size, item.notes].filter(Boolean).join(" · "),
-        })),
+        items: cartItems.map((item) => {
+            const modifierOptions = item.selectedModifierOptions ?? [];
+            const modifierOptionPayload = modifierOptions.map((option) => ({
+                modifier_option_id: option.id,
+                option_id: option.id,
+                price: option.price ?? 0,
+            }));
+            const unitPrice = Number(item.price ?? 0);
+            const quantity = Number(item.quantity ?? 1);
+
+            return {
+                food_id: item.food_id || item.id,
+                menu_item_id: item.food_id || item.id,
+                quantity,
+                unit_price: unitPrice,
+                price: unitPrice,
+                total_price: unitPrice * quantity,
+                notes: [item.size, item.notes].filter(Boolean).join(" · "),
+                modifier_options: modifierOptionPayload,
+                selected_modifier_options: modifierOptionPayload,
+                options: modifierOptionPayload,
+            };
+        }),
     };
 }
 

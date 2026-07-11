@@ -13,20 +13,29 @@ ChartJS.register(
 import { Pie } from "react-chartjs-2";
 
 
-function PieChart() {
+function PieChart({ items = [] }) {
+  const chartItems = items.length
+    ? items
+    : [
+        { restaurant: "No revenue", revenueValue: 1 },
+      ];
   const data = {
-    labels: ["Shawarma House", "Pizza King", "Burger Zone", "Chicken Town"],
+    labels: chartItems.map((item) => item.restaurant),
     datasets: [
       {
-        label: "Orders Share",
-        data: [35, 25, 20, 20],
+        label: "Revenue",
+        data: chartItems.map((item) => Math.max(Number(item.revenueValue), 0.01)),
         backgroundColor: [
           "#7f1d1d",
-          "#a83838",
-          "#d65c5c",
-          "#f0a1a1",
+          "#0f766e",
+          "#d97706",
+          "#2563eb",
+          "#be123c",
+          "#57534e",
         ],
-        borderWidth: 1,
+        borderColor: "#ffffff",
+        borderWidth: 3,
+        hoverOffset: 8,
       },
     ],
   };
@@ -41,14 +50,13 @@ function PieChart() {
         },
 
         title: {
-            display: true,
-            text: "Orders Distribution",
+            display: false,
         },
     },
 };
 
   return (
-    <div className="h-[300px] flex items-center justify-center">
+    <div className="flex h-full items-center justify-center">
         <Pie
             data={data}
             options={options}

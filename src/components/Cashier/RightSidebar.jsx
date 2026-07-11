@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { clearSession } from "../../utils/auth";
 
 const navigation = [
-    { label: "Menu", icon: House, active: true },
-    { label: "Catalog", icon: BookOpen },
-    { label: "Orders", icon: ReceiptText },
-    { label: "Settings", icon: Settings },
+    { id: "menu", label: "Menu", icon: House },
+    { id: "catalog", label: "Catalog", icon: BookOpen },
+    { id: "orders", label: "Orders", icon: ReceiptText },
+    { id: "settings", label: "Settings", icon: Settings },
 ];
 
-function RightSidebar() {
+function RightSidebar({ activeView = "menu", onViewChange }) {
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -30,13 +30,14 @@ function RightSidebar() {
                         <button
                             key={item.label}
                             title={item.label}
+                            onClick={() => onViewChange?.(item.id)}
                             className={`group flex w-full flex-col items-center gap-1 rounded-2xl py-3 text-[10px] font-bold transition ${
-                                item.active
+                                activeView === item.id
                                     ? "bg-[#F9ECEC] text-[#7F1D1D]"
                                     : "text-[#9A8982] hover:bg-[#F8F4F1] hover:text-[#7F1D1D]"
                             }`}
                         >
-                            <Icon size={22} strokeWidth={item.active ? 2.5 : 2} />
+                            <Icon size={22} strokeWidth={activeView === item.id ? 2.5 : 2} />
                             {item.label}
                         </button>
                     );
