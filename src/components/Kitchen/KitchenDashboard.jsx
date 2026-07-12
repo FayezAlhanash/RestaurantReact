@@ -102,7 +102,9 @@ export default function KitchenDashboard() {
         }
 
         try {
-            await startKitchenOrder(orderId);
+            const backendIds = order?.backendIds?.length ? order.backendIds : [orderId];
+
+            await Promise.all(backendIds.map(startKitchenOrder));
             await loadQueue();
         } catch (error) {
             setErrorMessage(
@@ -129,7 +131,9 @@ export default function KitchenDashboard() {
         }
 
         try {
-            await markKitchenOrderReady(orderId);
+            const backendIds = order?.backendIds?.length ? order.backendIds : [orderId];
+
+            await Promise.all(backendIds.map(markKitchenOrderReady));
             if (order) {
                 setCompletedOrders((current) => {
                     const next = current.filter(

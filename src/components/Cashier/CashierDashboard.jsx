@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import CategoryTabs from "./CategoryTabs";
+import CatalogOrders from "./CatalogOrders";
 import MenuItemCard from "./MenuItem";
 import OrderSidebar from "./OrderSidebar";
 import PickupOrders from "./PickupOrders";
@@ -109,7 +110,16 @@ function CashierDashboard() {
 
             try {
                 const res = await api.get("/food");
-                setMenuItems(getList(res.data).map(normalizeFoodItem));
+                const foods = getList(res.data).map(normalizeFoodItem);
+                const detailResponses = await Promise.allSettled(
+                    foods.map(fetchFoodDetails)
+                );
+
+                setMenuItems(
+                    detailResponses.map((result, index) =>
+                        result.status === "fulfilled" ? result.value : foods[index]
+                    )
+                );
             } catch (error) {
                 if (needsRestaurantId(error)) {
                     try {
@@ -192,7 +202,9 @@ function CashierDashboard() {
             <main className="min-w-0 flex-1 lg:overflow-y-auto">
                 <TopBar search={search} setSearch={setSearch} cartCount={cartItems.length} />
 
-                {activeView === "orders" ? (
+                {activeView === "catalog" ? (
+                    <CatalogOrders />
+                ) : activeView === "orders" ? (
                     <PickupOrders />
                 ) : (
                     <section className="px-4 pb-10 sm:px-6 xl:px-8">

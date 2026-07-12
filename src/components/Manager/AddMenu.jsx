@@ -57,6 +57,8 @@ const getGroupFoods = (group) => {
   return [];
 };
 
+const getFoodId = (food) => food?.food_id ?? food?.pivot?.food_id ?? food?.id;
+
 const getOptionGroupId = (option) =>
   option?.modifier_group_id ?? option?.modifier_group?.id ?? option?.group?.id;
 
@@ -70,12 +72,120 @@ const getOptionGroupName = (option, groups) => {
 const getOptionsForGroup = (groupId, options) =>
   options.filter((option) => String(getOptionGroupId(option)) === String(groupId));
 
+const getGroupOptions = (group) =>
+  group?.options ?? group?.modifier_options ?? group?.modifierOptions ?? [];
+
+const getOptionId = (option) => option?.id ?? option?.modifier_option_id;
+
+const getRelationValue = (item, key) =>
+  item?.pivot?.[key] ??
+  item?.food_pivot?.[key] ??
+  item?.modifier_group_food?.[key] ??
+  item?.modifierGroupFood?.[key] ??
+  item?.[key];
+
+const getRelationPrice = (option) =>
+  option?.pivot?.price ??
+  option?.pivot?.additional_price ??
+  option?.pivot?.extra_price ??
+  option?.pivot?.option_price ??
+  option?.pivot?.modifier_price ??
+  option?.food_pivot?.price ??
+  option?.food_pivot?.additional_price ??
+  option?.food_pivot?.extra_price ??
+  option?.food_pivot?.option_price ??
+  option?.modifier_option_food?.price ??
+  option?.modifier_option_food?.additional_price ??
+  option?.modifier_option_food?.extra_price ??
+  option?.modifier_option_food?.option_price ??
+  option?.modifierOptionFood?.price ??
+  option?.modifierOptionFood?.additionalPrice ??
+  option?.modifierOptionFood?.extraPrice ??
+  option?.modifierOptionFood?.optionPrice ??
+  option?.food_modifier_option?.price ??
+  option?.food_modifier_option?.additional_price ??
+  option?.food_modifier_option?.extra_price ??
+  option?.food_modifier_option?.option_price ??
+  option?.foodModifierOption?.price ??
+  option?.foodModifierOption?.additionalPrice ??
+  option?.foodModifierOption?.extraPrice ??
+  option?.foodModifierOption?.optionPrice ??
+  option?.additional_price ??
+  option?.extra_price ??
+  option?.modifier_price ??
+  option?.option_price ??
+  option?.price;
+
 const getAttachSettings = (settings, groupId, optionCount = 1) =>
   settings[groupId] ?? {
     max_select: String(Math.min(1, Math.max(optionCount, 1))),
     required: true,
     prices: {},
   };
+
+const buildAttachSettingsFromGroup = (group, fallbackSettings) => {
+  const prices = { ...fallbackSettings.prices };
+
+  getGroupOptions(group).forEach((option) => {
+    const optionId = getOptionId(option);
+    const price = getRelationPrice(option);
+
+    if (optionId !== undefined && price !== undefined && price !== null) {
+      prices[optionId] = String(price);
+    }
+  });
+
+  const required = getRelationValue(group, "required");
+
+  return {
+    max_select: String(getRelationValue(group, "max_select") ?? fallbackSettings.max_select),
+    required:
+      required === undefined || required === null
+        ? fallbackSettings.required
+        : Boolean(Number(required)),
+    prices,
+  };
+};
+
+const findModifierGroupInFood = (food, groupId) => {
+  const groups = food?.modifier_groups ?? food?.modifierGroups ?? food?.groups ?? [];
+
+  return groups.find(
+    (group) => String(group.id ?? group.modifier_group_id) === String(groupId)
+  );
+};
+
+const ATTACH_SETTINGS_STORAGE_KEY = "manager_menu_attach_settings";
+const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
+
+const loadAttachSettingsDraft = () => {
+  try {
+    const savedSettings = window.localStorage.getItem(ATTACH_SETTINGS_STORAGE_KEY);
+
+    return savedSettings ? JSON.parse(savedSettings) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveModifierPriceDraft = (foodId, groupId, settings) => {
+  try {
+    const savedPrices = JSON.parse(
+      window.localStorage.getItem(SAVED_MODIFIER_PRICES_STORAGE_KEY) || "{}"
+    );
+
+    Object.entries(settings.prices ?? {}).forEach(([optionId, price]) => {
+      savedPrices[`${foodId}:${groupId}:${optionId}`] = price;
+    });
+
+    window.localStorage.setItem(
+      SAVED_MODIFIER_PRICES_STORAGE_KEY,
+      JSON.stringify(savedPrices)
+    );
+  } catch {
+    // Local draft storage is only a frontend fallback.
+  }
+};
 
 export default function AddMenu() {
   const { search = "" } = useOutletContext() ?? {};
@@ -90,7 +200,7 @@ export default function AddMenu() {
   const [modifierOptions, setModifierOptions] = useState([]);
   const [foods, setFoods] = useState([]);
   const [foodSelections, setFoodSelections] = useState({});
-  const [attachSettings, setAttachSettings] = useState({});
+  const [attachSettings, setAttachSettings] = useState(loadAttachSettingsDraft);
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingGroup, setSavingGroup] = useState(false);
   const [savingOption, setSavingOption] = useState(false);
@@ -227,6 +337,9 @@ export default function AddMenu() {
     const foodId = foodSelections[group.id];
     const groupOptions = getOptionsForGroup(group.id, modifierOptions);
     const settings = getAttachSettings(attachSettings, group.id, groupOptions.length);
+    const isLinkedFood = getGroupFoods(group).some(
+      (food) => String(getFoodId(food)) === String(foodId)
+    );
 
     if (!foodId || !groupOptions.length || attachingGroupId) return;
 
@@ -238,15 +351,29 @@ export default function AddMenu() {
       formData.append("required", settings.required ? 1 : 0);
 
       groupOptions.forEach((option, index) => {
-        formData.append(`options[${index}][modifier_option_id]`, option.id);
+        const optionId = getOptionId(option);
+
+        formData.append(`options[${index}][modifier_option_id]`, optionId);
         formData.append(
           `options[${index}][price]`,
-          settings.prices?.[option.id] ?? 0
+          settings.prices?.[optionId] ?? 0
         );
       });
 
-      await api.post(`/modifier-groups/${group.id}/foods`, formData);
+      if (isLinkedFood) {
+        await api.post(`/modifier-groups/${group.id}/foods/${foodId}`, formData);
+      } else {
+        await api.post(`/modifier-groups/${group.id}/foods`, formData);
+      }
+
+      saveModifierPriceDraft(foodId, group.id, settings);
       setFoodSelections((prev) => ({ ...prev, [group.id]: "" }));
+      setAttachSettings((prev) => {
+        const nextSettings = { ...prev };
+        delete nextSettings[group.id];
+
+        return nextSettings;
+      });
       await fetchModifierGroups();
     } catch (err) {
       console.error(err.response?.data || err);
@@ -259,6 +386,61 @@ export default function AddMenu() {
     try {
       await api.delete(`/modifier-groups/${groupId}/foods/${foodId}`);
       await fetchModifierGroups();
+    } catch (err) {
+      console.error(err.response?.data || err);
+    }
+  };
+
+  const handleFoodSelectionChange = async (group, foodId) => {
+    const groupOptions = getOptionsForGroup(group.id, modifierOptions);
+
+    setFoodSelections((prev) => ({
+      ...prev,
+      [group.id]: foodId,
+    }));
+
+    if (!foodId) return;
+
+    const fallbackSettings = getAttachSettings(
+      attachSettings,
+      group.id,
+      groupOptions.length
+    );
+    const linkedFood = getGroupFoods(group).find(
+      (food) => String(getFoodId(food)) === String(foodId)
+    );
+
+    if (linkedFood) {
+      setAttachSettings((prev) => ({
+        ...prev,
+        [group.id]: buildAttachSettingsFromGroup(
+          {
+            ...group,
+            ...linkedFood,
+            options: getGroupOptions(linkedFood).length
+              ? getGroupOptions(linkedFood)
+              : getGroupOptions(group),
+          },
+          fallbackSettings
+        ),
+      }));
+    }
+
+    try {
+      const response = await api.get(`/food/${foodId}`);
+      const [detailsFromList] = getResponseList(response.data, ["food", "foods"]);
+      const foodDetails = detailsFromList || response.data?.food || response.data?.data || response.data;
+      const detailGroup = findModifierGroupInFood(foodDetails, group.id);
+
+      if (detailGroup) {
+        setAttachSettings((prev) => ({
+          ...prev,
+          [group.id]: buildAttachSettingsFromGroup(
+            detailGroup,
+            getAttachSettings(prev, group.id, groupOptions.length)
+          ),
+        }));
+      }
     } catch (err) {
       console.error(err.response?.data || err);
     }
@@ -328,6 +510,25 @@ export default function AddMenu() {
     fetchModifierOptions();
     fetchFoods();
   }, []);
+
+  useEffect(() => {
+    modifierGroups.forEach((group) => {
+      const linkedFoods = getGroupFoods(group);
+      const linkedFoodId = linkedFoods.length === 1 ? getFoodId(linkedFoods[0]) : null;
+
+      if (linkedFoodId && !foodSelections[group.id]) {
+        handleFoodSelectionChange(group, String(linkedFoodId));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modifierGroups, modifierOptions]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ATTACH_SETTINGS_STORAGE_KEY,
+      JSON.stringify(attachSettings)
+    );
+  }, [attachSettings]);
 
   const activeTabData = tabs.find((tab) => tab.id === activeTab);
   const normalizedSearch = search.trim().toLowerCase();
@@ -601,10 +802,7 @@ export default function AddMenu() {
                       groupOptions.length
                     );
                     const linkedFoodIds = new Set(
-                      linkedFoods.map((food) => String(food.id ?? food.food_id))
-                    );
-                    const availableFoods = foods.filter(
-                      (food) => !linkedFoodIds.has(String(food.id))
+                      linkedFoods.map((food) => String(getFoodId(food)))
                     );
 
                     return (
@@ -628,17 +826,29 @@ export default function AddMenu() {
                             <div className="flex max-w-sm flex-wrap gap-2">
                               {linkedFoods.map((food) => (
                                 <span
-                                  key={food.id ?? food.food_id}
+                                  key={getFoodId(food)}
                                   className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-1.5 text-sm font-black text-sky-800"
                                 >
-                                  {food.name ?? `Food #${food.food_id}`}
+                                  <button
+                                    type="button"
+                                    title="Load linked food prices"
+                                    onClick={() =>
+                                      handleFoodSelectionChange(
+                                        group,
+                                        String(getFoodId(food))
+                                      )
+                                    }
+                                    className="transition hover:text-sky-950"
+                                  >
+                                    {food.name ?? `Food #${getFoodId(food)}`}
+                                  </button>
                                   <button
                                     type="button"
                                     title="Remove from food"
                                     onClick={() =>
                                       handleRemoveGroupFromFood(
                                         group.id,
-                                        food.id ?? food.food_id
+                                        getFoodId(food)
                                       )
                                     }
                                     className="text-sky-500 transition hover:scale-125 hover:text-rose-600"
@@ -661,21 +871,22 @@ export default function AddMenu() {
                               <select
                                 value={foodSelections[group.id] ?? ""}
                                 onChange={(e) =>
-                                  setFoodSelections((prev) => ({
-                                    ...prev,
-                                    [group.id]: e.target.value,
-                                  }))
+                                  handleFoodSelectionChange(group, e.target.value)
                                 }
                                 className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white p-3 text-base font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
                               >
                                 <option value="">
-                                  {availableFoods.length ? "Choose food" : "All foods linked"}
+                                  {foods.length ? "Choose food" : "No foods yet"}
                                 </option>
-                                {availableFoods.map((food) => (
-                                  <option key={food.id} value={food.id}>
-                                    {food.name}
+                                {foods.map((food) => {
+                                  const isLinked = linkedFoodIds.has(String(getFoodId(food)));
+
+                                  return (
+                                  <option key={getFoodId(food)} value={getFoodId(food)}>
+                                    {food.name}{isLinked ? " (linked)" : ""}
                                   </option>
-                                ))}
+                                  );
+                                })}
                               </select>
 
                               <button

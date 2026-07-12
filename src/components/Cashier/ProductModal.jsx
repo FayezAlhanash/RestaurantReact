@@ -1,6 +1,8 @@
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
+
 function ProductModal({ isOpen, onClose, item, addToCart }) {
     const [selectedSize, setSelectedSize] = useState("small");
     const [selectedModifiers, setSelectedModifiers] = useState({});
@@ -25,33 +27,189 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
 
     if (!isOpen) return null;
 
-    const getModifierOptionPrice = (option) =>
-        Number(
-            option?.price ??
-                option?.pivot?.price ??
-                option?.additional_price ??
-                option?.extra_price ??
-                0
+    const getOptionId = (option) => option?.id ?? option?.modifier_option_id ?? option?.modifierOptionId ?? option?.option_id ?? option?.optionId;
+    const getModifierGroupId = (group) => group?.id ?? group?.modifier_group_id ?? group?.modifierGroupId ?? group?.group_id ?? group?.groupId;
+    const getGroupMaxSelect = (group) => Math.max(1, Number(group?.pivot?.max_select ?? group?.max_select ?? group?.maxSelect ?? 1));
+    const isGroupRequired = (group) => {
+        const required = group?.pivot?.required ?? group?.required;
+
+        return required === undefined || required === null ? true : Boolean(Number(required));
+    };
+    const getFoodId = () => item?.food_id ?? item?.id;
+    const getSavedModifierPrice = (groupId, optionId) => {
+        try {
+            const savedPrices = JSON.parse(
+                window.localStorage.getItem(SAVED_MODIFIER_PRICES_STORAGE_KEY) || "{}"
+            );
+            const savedPrice =
+                savedPrices[`${getFoodId()}:${groupId}:${optionId}`] ??
+                Object.entries(savedPrices).find(
+                    ([key]) =>
+                        key.endsWith(`:${groupId}:${optionId}`) ||
+                        key.endsWith(`:${optionId}`)
+                )?.[1];
+
+            return savedPrice === undefined || savedPrice === "" ? undefined : savedPrice;
+        } catch {
+            return undefined;
+        }
+    };
+    const hasOwnPrice = (value) =>
+        value?.price !== undefined ||
+        value?.additional_price !== undefined ||
+        value?.extra_price !== undefined ||
+        value?.option_price !== undefined ||
+        value?.additionalPrice !== undefined ||
+        value?.extraPrice !== undefined ||
+        value?.optionPrice !== undefined;
+    const hasReferencedOptionId = (value) =>
+        value?.modifier_option_id !== undefined ||
+        value?.modifierOptionId !== undefined ||
+        value?.option_id !== undefined ||
+        value?.optionId !== undefined;
+    const normalizePriceList = (value) => {
+        if (Array.isArray(value)) return value;
+
+        if (value && typeof value === "object") {
+            if (hasReferencedOptionId(value) || hasOwnPrice(value)) return [value];
+
+            return Object.entries(value).map(([optionId, optionPrice]) =>
+                optionPrice && typeof optionPrice === "object"
+                    ? { option_id: optionId, ...optionPrice }
+                    : { option_id: optionId, price: optionPrice }
+            );
+        }
+
+        return [];
+    };
+    const getGroupOptionPrices = (group) =>
+        [
+            group?.pivot?.options,
+            group?.pivot?.modifier_options,
+            group?.pivot?.modifierOptions,
+            group?.option_prices,
+            group?.optionPrices,
+            group?.modifier_option_prices,
+            group?.modifierOptionPrices,
+        ]
+            .flatMap(normalizePriceList);
+    const getRelationPrice = (option) =>
+        option?.pivot?.price ??
+        option?.pivot?.additional_price ??
+        option?.pivot?.extra_price ??
+        option?.pivot?.option_price ??
+        option?.pivot?.modifier_price ??
+        option?.pivot?.additionalPrice ??
+        option?.pivot?.extraPrice ??
+        option?.pivot?.optionPrice ??
+        option?.pivot?.modifierPrice ??
+        option?.food_pivot?.price ??
+        option?.food_pivot?.additional_price ??
+        option?.food_pivot?.extra_price ??
+        option?.food_pivot?.option_price ??
+        option?.modifier_option_food?.price ??
+        option?.modifier_option_food?.additional_price ??
+        option?.modifier_option_food?.extra_price ??
+        option?.modifier_option_food?.option_price ??
+        option?.modifierOptionFood?.price ??
+        option?.modifierOptionFood?.additionalPrice ??
+        option?.modifierOptionFood?.extraPrice ??
+        option?.modifierOptionFood?.optionPrice ??
+        option?.food_modifier_option?.price ??
+        option?.food_modifier_option?.additional_price ??
+        option?.food_modifier_option?.extra_price ??
+        option?.food_modifier_option?.option_price ??
+        option?.foodModifierOption?.price ??
+        option?.foodModifierOption?.additionalPrice ??
+        option?.foodModifierOption?.extraPrice ??
+        option?.foodModifierOption?.optionPrice ??
+        option?.additional_price ??
+        option?.extra_price ??
+        option?.modifier_price ??
+        option?.additionalPrice ??
+        option?.extraPrice ??
+        option?.modifierPrice ??
+        option?.option_price ??
+        option?.optionPrice ??
+        option?.price;
+    const getReferencedOptionId = (value) =>
+        value?.modifier_option_id ??
+        value?.modifierOptionId ??
+        value?.option_id ??
+        value?.optionId ??
+        value?.id;
+    const findNestedOptionPrice = (value, optionId, seen = new Set()) => {
+        if (!value || typeof value !== "object" || seen.has(value)) return undefined;
+
+        seen.add(value);
+
+        if (String(getReferencedOptionId(value)) === String(optionId)) {
+            const relationPrice = getRelationPrice(value);
+
+            if (relationPrice !== undefined && relationPrice !== null) {
+                return relationPrice;
+            }
+        }
+
+        for (const child of Object.values(value)) {
+            const price = findNestedOptionPrice(child, optionId, seen);
+
+            if (price !== undefined && price !== null) {
+                return price;
+            }
+        }
+
+        return undefined;
+    };
+    const getModifierOptionPrice = (option, group) => {
+        const groupId = getModifierGroupId(group);
+        const optionId = getOptionId(option);
+        const savedPrice = getSavedModifierPrice(groupId, optionId);
+        const groupPrice = getGroupOptionPrices(group).find(
+            (priceItem) =>
+                String(
+                    priceItem?.modifier_option_id ??
+                        priceItem?.modifierOptionId ??
+                        priceItem?.option_id ??
+                        priceItem?.optionId ??
+                        priceItem?.id
+                ) === String(optionId)
         );
+        const relationPrice =
+            savedPrice ??
+            getRelationPrice(groupPrice) ??
+            findNestedOptionPrice(group, optionId) ??
+            getRelationPrice(option);
+        return Number(relationPrice ?? option?.price ?? 0);
+    };
     const getSelectedModifierOptions = () =>
         modifierGroups
-            .map((group) => {
-                const optionId = selectedModifiers[group.id];
-                const option = group.options?.find(
-                    (currentOption) => String(currentOption.id) === String(optionId)
-                );
+            .flatMap((group) => {
+                const groupId = getModifierGroupId(group);
+                const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
+                    ? selectedModifiers[groupId]
+                    : [selectedModifiers[groupId]].filter(Boolean);
 
-                return option
-                    ? {
-                          groupId: group.id,
-                          groupName: group.name,
-                          id: option.id,
-                          name: option.name,
-                          price: getModifierOptionPrice(option),
-                      }
-                    : null;
-            })
-            .filter(Boolean);
+                return selectedOptionIds
+                    .map((optionId) => {
+                        const option = group.options?.find(
+                            (currentOption) => String(getOptionId(currentOption)) === String(optionId)
+                        );
+
+                        return option
+                              ? {
+                                  groupId,
+                                  modifier_group_id: groupId,
+                                  groupName: group.name,
+                                  id: getOptionId(option),
+                                  modifier_option_id: getOptionId(option),
+                                  name: option.name,
+                                  price: getModifierOptionPrice(option, group),
+                              }
+                            : null;
+                    })
+                    .filter(Boolean);
+            });
     const imageUrl =
         item?.image ||
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=85";
@@ -72,15 +230,31 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
     const unitPrice = basePrice + modifierPrice + sizePrice;
     const allRequiredModifiersSelected =
         !hasModifiers ||
-        modifierGroups.every((group) => selectedModifiers[group.id]);
-    const modifierNotes = modifierGroups
-        .map((group) => {
-            const optionId = selectedModifiers[group.id];
-            const option = group.options?.find(
-                (currentOption) => String(currentOption.id) === String(optionId)
-            );
+        modifierGroups.every((group) => {
+            if (!isGroupRequired(group)) return true;
 
-            return option ? `${group.name}: ${option.name}` : "";
+            const selectedOptionIds = selectedModifiers[getModifierGroupId(group)];
+
+            return Array.isArray(selectedOptionIds)
+                ? selectedOptionIds.length > 0
+                : Boolean(selectedOptionIds);
+        });
+    const modifierNotes = modifierGroups
+        .flatMap((group) => {
+            const groupId = getModifierGroupId(group);
+            const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
+                ? selectedModifiers[groupId]
+                : [selectedModifiers[groupId]].filter(Boolean);
+
+            return selectedOptionIds
+                .map((optionId) => {
+                    const option = group.options?.find(
+                        (currentOption) => String(getOptionId(currentOption)) === String(optionId)
+                    );
+
+                    return option ? `${group.name}: ${option.name}` : "";
+                })
+                .filter(Boolean);
         })
         .filter(Boolean);
     const orderNotes = [hasModifiers ? "" : selectedSize, ...modifierNotes, notes]
@@ -108,27 +282,59 @@ function ProductModal({ isOpen, onClose, item, addToCart }) {
                     {hasModifiers ? (
                         <div className="mt-6 space-y-5">
                             {modifierGroups.map((group) => (
-                                <div key={group.id}>
+                                <div key={getModifierGroupId(group)}>
                                     <div className="mb-3 flex items-center justify-between">
                                         <h3 className="text-sm font-extrabold">{group.name}</h3>
-                                        <span className="text-xs text-[#A08D85]">Required</span>
+                                        <span className="text-xs text-[#A08D85]">
+                                            {isGroupRequired(group) ? "Required" : "Optional"}
+                                            {getGroupMaxSelect(group) > 1 ? ` · up to ${getGroupMaxSelect(group)}` : ""}
+                                        </span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         {group.options.map((option) => {
-                                            const isSelected =
-                                                String(selectedModifiers[group.id]) === String(option.id);
-                                            const optionPrice = getModifierOptionPrice(option);
+                                            const groupId = getModifierGroupId(group);
+                                            const optionId = getOptionId(option);
+                                            const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
+                                                ? selectedModifiers[groupId]
+                                                : [selectedModifiers[groupId]].filter(Boolean);
+                                            const isSelected = selectedOptionIds.some(
+                                                (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                            );
+                                            const optionPrice = getModifierOptionPrice(option, group);
 
                                             return (
                                                 <button
-                                                    key={option.id}
+                                                    key={optionId}
                                                     type="button"
-                                                    onClick={() =>
-                                                        setSelectedModifiers((current) => ({
-                                                            ...current,
-                                                            [group.id]: option.id,
-                                                        }))
-                                                    }
+                                                    onClick={() => {
+                                                        setSelectedModifiers((current) => {
+                                                            const maxSelect = getGroupMaxSelect(group);
+
+                                                            if (maxSelect <= 1) {
+                                                                return {
+                                                                    ...current,
+                                                                    [groupId]: optionId,
+                                                                };
+                                                            }
+
+                                                            const currentOptionIds = Array.isArray(current[groupId])
+                                                                ? current[groupId]
+                                                                : [current[groupId]].filter(Boolean);
+                                                            const alreadySelected = currentOptionIds.some(
+                                                                (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                            );
+                                                            const nextOptionIds = alreadySelected
+                                                                ? currentOptionIds.filter(
+                                                                      (selectedOptionId) => String(selectedOptionId) !== String(optionId)
+                                                                  )
+                                                                : [...currentOptionIds, optionId].slice(0, maxSelect);
+
+                                                            return {
+                                                                ...current,
+                                                                [groupId]: nextOptionIds,
+                                                            };
+                                                        });
+                                                    }}
                                                     className={`rounded-2xl border px-4 py-3.5 text-left transition ${
                                                         isSelected
                                                             ? "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]"
