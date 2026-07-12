@@ -184,7 +184,7 @@ export default function KitchenDashboard() {
                                 : "border-white/10 bg-[#363c42] text-[#dff7e7] hover:bg-[#414850]"
                         }`}
                     >
-                        الطلبات الخالصة
+                        الطلبات الجاهزة
                         <span className="rounded-full bg-white/12 px-2 py-0.5 text-xs">
                             {completedOrders.length}
                         </span>
@@ -227,12 +227,12 @@ export default function KitchenDashboard() {
                         </div>
                         <div className="text-right">
                             <p className="text-sm font-black text-white">
-                                {showCompleted ? "الطلبات الخالصة" : "قائمة التحضير"}
+                                {showCompleted ? "الطلبات الجاهزة" : "قائمة التحضير"}
                             </p>
                             <p className="text-xs font-extrabold text-[#bbb4aa]">
                                 {showCompleted
-                                    ? "الطلبات التي تم تعليمها كجاهزة"
-                                    : "متصل بقائمة المطبخ الحقيقية"}
+                                    ? "الطلبات التي أصبحت جاهزة للتسليم"
+                                    : "طلبات هذا المطبخ قيد المتابعة"}
                             </p>
                         </div>
                     </div>
@@ -270,7 +270,7 @@ export default function KitchenDashboard() {
                         </div>
                     ) : (
                         <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                            لا يوجد طلبات خالصة حالياً
+                            لا يوجد طلبات جاهزة لهذا المطبخ حالياً
                         </div>
                     )
                 ) : orders.length ? (
@@ -286,7 +286,7 @@ export default function KitchenDashboard() {
                     </div>
                 ) : (
                     <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                        لا يوجد طلبات في المطبخ حالياً
+                        لا يوجد طلبات لهذا المطبخ حالياً
                     </div>
                 )}
             </section>

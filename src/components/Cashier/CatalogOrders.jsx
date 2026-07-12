@@ -1,8 +1,6 @@
 import {
     Ban,
     Clock3,
-    Minus,
-    Plus,
     RefreshCw,
     ShoppingBag,
     Store,
@@ -224,12 +222,6 @@ const getOrderItemCount = (order) => {
     return groupedItemCount || order.items.length;
 };
 
-const createQuantityFormData = (quantity) => {
-    const formData = new FormData();
-    formData.append("quantity", quantity);
-    return formData;
-};
-
 function CatalogOrders() {
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -392,33 +384,6 @@ function CatalogOrders() {
         }
     };
 
-    const updateOrderItemQuantity = async (itemId, quantity) => {
-        const nextQuantity = Number(quantity);
-
-        if (!itemId || Number.isNaN(nextQuantity) || nextQuantity < 1) return;
-
-        const key = `item-quantity:${itemId}`;
-
-        setSubmittingKey(key);
-        setMessage("");
-        setErrorMessage("");
-
-        try {
-            await api.post(
-                `/cashier/order-items/${itemId}/quantity`,
-                createQuantityFormData(nextQuantity)
-            );
-            await loadOrders();
-            setMessage(`Item #${itemId} quantity updated.`);
-        } catch (error) {
-            setErrorMessage(
-                error.response?.data?.message || "Could not update item quantity."
-            );
-        } finally {
-            setSubmittingKey("");
-        }
-    };
-
     return (
         <section className="px-4 pb-10 sm:px-6 xl:px-8">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -548,46 +513,9 @@ function CatalogOrders() {
                                                         )}
                                                     </div>
                                                     <div className="flex shrink-0 items-center gap-2">
-                                                        <div className="flex items-center rounded-xl border border-[#F1DEDE] bg-[#FFF7F7] p-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    updateOrderItemQuantity(
-                                                                        item.id,
-                                                                        item.quantity - 1
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    item.quantity <= 1 ||
-                                                                    submittingKey ===
-                                                                        `item-quantity:${item.id}`
-                                                                }
-                                                                className="grid h-8 w-8 place-items-center rounded-lg text-[#7F1D1D] transition hover:bg-white disabled:cursor-not-allowed disabled:text-[#D4B8B8]"
-                                                                aria-label={`Decrease ${item.name} quantity`}
-                                                            >
-                                                                <Minus size={15} />
-                                                            </button>
-                                                            <span className="w-10 text-center text-sm font-black text-[#7F1D1D]">
-                                                                {item.quantity}x
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    updateOrderItemQuantity(
-                                                                        item.id,
-                                                                        item.quantity + 1
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    submittingKey ===
-                                                                    `item-quantity:${item.id}`
-                                                                }
-                                                                className="grid h-8 w-8 place-items-center rounded-lg text-[#7F1D1D] transition hover:bg-white disabled:cursor-not-allowed disabled:text-[#D4B8B8]"
-                                                                aria-label={`Increase ${item.name} quantity`}
-                                                            >
-                                                                <Plus size={15} />
-                                                            </button>
-                                                        </div>
+                                                        <span className="rounded-xl bg-[#F9ECEC] px-3 py-2 text-sm font-black text-[#7F1D1D]">
+                                                            {item.quantity}x
+                                                        </span>
                                                         <button
                                                             type="button"
                                                             onClick={() => deleteOrderItem(item.id)}

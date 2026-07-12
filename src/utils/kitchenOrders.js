@@ -1,5 +1,6 @@
 import api from "../API/axios";
 import { getStoredUser, storeUser } from "./auth";
+import { confirmStripePayment, findStripeClientSecret } from "./stripePayments";
 
 function getList(data) {
     if (Array.isArray(data)) return data;
@@ -390,7 +391,7 @@ export function getCreatedInvoiceIds(data) {
     return collectInvoiceIds(data);
 }
 
-export async function payCashierInvoice(invoiceId, paymentMethod = "cash") {
+export async function payCashierInvoice(invoiceId, paymentMethod = "cash", stripeCard = null) {
     const formData = new FormData();
     formData.append("invoice_id", invoiceId);
 
@@ -400,10 +401,24 @@ export async function payCashierInvoice(invoiceId, paymentMethod = "cash") {
             : "/cashier/payments/cash";
     const response = await api.post(endpoint, formData);
 
+    if (paymentMethod === "stripe") {
+        const clientSecret = findStripeClientSecret(response.data);
+        const paymentIntent = await confirmStripePayment(clientSecret, stripeCard);
+
+        return {
+            ...response.data,
+            paymentIntent,
+        };
+    }
+
     return response.data;
 }
 
-export async function payCashierOrderInvoices(orderResponse, paymentMethod = "cash") {
+export async function payCashierOrderInvoices(
+    orderResponse,
+    paymentMethod = "cash",
+    stripeCard = null
+) {
     const invoiceIds = getCreatedInvoiceIds(orderResponse);
 
     if (!invoiceIds.length) {
@@ -413,7 +428,7 @@ export async function payCashierOrderInvoices(orderResponse, paymentMethod = "ca
     const payments = [];
 
     for (const invoiceId of invoiceIds) {
-        payments.push(await payCashierInvoice(invoiceId, paymentMethod));
+        payments.push(await payCashierInvoice(invoiceId, paymentMethod, stripeCard));
     }
 
     return payments;

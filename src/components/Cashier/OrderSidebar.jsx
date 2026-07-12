@@ -1,17 +1,66 @@
 import { Minus, Plus, Receipt, ShoppingBag, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     createCashierOrder,
     fetchKitchenQueue,
     getCreatedOrderId,
     payCashierOrderInvoices,
 } from "../../utils/kitchenOrders";
+import { createStripeCardElement } from "../../utils/stripePayments";
 
 function OrderSidebar({ cartItems, setCartItems }) {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [isStripeReady, setIsStripeReady] = useState(false);
+    const [stripeCardMessage, setStripeCardMessage] = useState("");
+    const stripeCardContainerRef = useRef(null);
+    const stripeCardRef = useRef(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        const setStripeState = (ready, message = "") => {
+            window.setTimeout(() => {
+                if (!isMounted) return;
+
+                setIsStripeReady(ready);
+                setStripeCardMessage(message);
+            }, 0);
+        };
+
+        if (paymentMethod !== "stripe") {
+            stripeCardRef.current?.destroy();
+            stripeCardRef.current = null;
+            setStripeState(false);
+            return undefined;
+        }
+
+        setStripeState(false, "Loading Stripe...");
+
+        createStripeCardElement(stripeCardContainerRef.current)
+            .then((stripeCardSetup) => {
+                if (!isMounted || !stripeCardSetup) return;
+
+                stripeCardRef.current = stripeCardSetup.card;
+                setStripeState(true);
+
+                stripeCardSetup.card.on("change", (event) => {
+                    setStripeCardMessage(event.error?.message || "");
+                });
+            })
+            .catch((error) => {
+                if (!isMounted) return;
+
+                setStripeState(false, error.message || "Stripe could not be loaded.");
+            });
+
+        return () => {
+            isMounted = false;
+            stripeCardRef.current?.destroy();
+            stripeCardRef.current = null;
+        };
+    }, [paymentMethod]);
 
     const removeItem = (indexToRemove) => {
         setCartItems((items) => items.filter((_, index) => index !== indexToRemove));
@@ -42,8 +91,16 @@ function OrderSidebar({ cartItems, setCartItems }) {
         setErrorMessage("");
 
         try {
+            if (paymentMethod === "stripe" && !isStripeReady) {
+                throw new Error("Stripe is still loading. Try again in a moment.");
+            }
+
             const response = await createCashierOrder(cartItems, "takeaway");
-            await payCashierOrderInvoices(response, paymentMethod);
+            await payCashierOrderInvoices(
+                response,
+                paymentMethod,
+                stripeCardRef.current
+            );
             const orderIds = String(getCreatedOrderId(response) || "")
                 .split(",")
                 .map((id) => id.trim())
@@ -176,6 +233,22 @@ function OrderSidebar({ cartItems, setCartItems }) {
                         ))}
                     </div>
                 </div>
+                {paymentMethod === "stripe" && (
+                    <div className="mb-4 rounded-2xl border border-[#E5D8D2] bg-[#FCFAF8] p-3">
+                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[#9A8982]">
+                            Card
+                        </p>
+                        <div
+                            ref={stripeCardContainerRef}
+                            className="rounded-xl border border-[#E5D8D2] bg-white px-3 py-3"
+                        />
+                        {stripeCardMessage && (
+                            <p className="mt-2 text-xs font-bold text-red-700">
+                                {stripeCardMessage}
+                            </p>
+                        )}
+                    </div>
+                )}
                 {successMessage && (
                     <p className="mb-3 rounded-2xl bg-green-50 px-4 py-3 text-center text-sm font-extrabold text-green-700">
                         {successMessage}
@@ -186,7 +259,7 @@ function OrderSidebar({ cartItems, setCartItems }) {
                         {errorMessage}
                     </p>
                 )}
-                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
+                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
                     {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${total.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
