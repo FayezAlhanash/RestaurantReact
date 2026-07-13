@@ -431,9 +431,9 @@ function CatalogOrders() {
                     {visibleOrders.map((order) => (
                         <article
                             key={order.id}
-                            className="overflow-hidden rounded-[24px] border border-[#EEE5E1] bg-white shadow-sm"
+                            className="flex h-[620px] min-h-0 flex-col overflow-hidden rounded-[24px] border border-[#EEE5E1] bg-white shadow-sm"
                         >
-                            <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#EEE5E1] px-5 py-5">
+                            <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[#EEE5E1] px-5 py-5">
                                 <div>
                                     <p className="text-xs font-black uppercase tracking-wide text-[#9A7A70]">
                                         Order
@@ -454,7 +454,7 @@ function CatalogOrders() {
                                 </div>
                             </header>
 
-                            <div className="space-y-4 px-5 py-5">
+                            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
                                 {order.restaurantOrders.map((group, groupIndex) => (
                                     <div
                                         key={`${group.id || group.restaurantId || groupIndex}`}
@@ -536,7 +536,7 @@ function CatalogOrders() {
                                 ))}
                             </div>
 
-                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EEE5E1] bg-[#FFFCFA] px-5 py-4">
+                            <footer className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-[#EEE5E1] bg-[#FFFCFA] px-5 py-4">
                                 <div className="flex items-center gap-2 text-sm font-bold text-[#8A7972]">
                                     <ShoppingBag size={17} />
                                     <span>{getOrderItemCount(order)} items</span>

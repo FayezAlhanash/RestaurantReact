@@ -6,7 +6,7 @@ import {
     ShieldCheck,
     Table,
     LogOut,
-    X
+    X,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -25,36 +25,36 @@ function SideBar({ isOpen, onClose }) {
 
     const menu = [
         {
-            icon: <LayoutDashboard size={20} />,
+            icon: LayoutDashboard,
             title: "Dashboard",
             path: "/dashboard",
         },
         {
-            icon: <UtensilsCrossed size={20} />,
+            icon: UtensilsCrossed,
             title: "Restaurants",
             path: "/restaurants",
             permissions: ["manage_restaurants"],
         },
         {
-            icon: <Users size={20} />,
+            icon: Users,
             title: "Employees",
             path: "/employee",
             permissions: ["manage_users"],
         },
         {
-            icon: <UserCog size={20} />,
+            icon: UserCog,
             title: "User Permissions",
             path: "/user-permissions",
             permissions: ["manage_permissions", "manage_users"],
         },
         {
-            icon: <ShieldCheck size={20} />,
+            icon: ShieldCheck,
             title: "Roles",
             path: "/roles",
             permissions: ["manage_roles", "manage_permissions"],
         },
         {
-            icon: <Table size={20} />,
+            icon: Table,
             title: "Tables",
             path: "/tables",
             permissions: ["manage_tables"],
@@ -91,85 +91,102 @@ function SideBar({ isOpen, onClose }) {
 
     const canShow = (requiredPermissions = []) =>
         !requiredPermissions.length ||
-        requiredPermissions.some((permission) =>
-            permissions.includes(permission)
-        );
+        requiredPermissions.some((permission) => permissions.includes(permission));
 
     return (
         <>
-            {/* overlay */}
             {isOpen && (
                 <button
+                    type="button"
                     aria-label="Close menu"
                     onClick={onClose}
-                    className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+                    className="fixed inset-0 z-40 bg-[#241F1D]/35 backdrop-blur-[2px] lg:hidden"
                 />
             )}
 
             <aside
-                className={`
-                w-[280px] lg:w-[300px]
-                h-dvh
-                bg-white
-                border-r
-                flex flex-col
-                fixed lg:sticky
-                top-0 left-0 z-50
-                transition-transform duration-300
-                ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-            `}
+                className={`fixed left-0 top-0 z-50 flex h-dvh w-[278px] flex-col border-r border-[#E2D6CF] bg-[#FFFDFB] shadow-[18px_0_45px_rgba(70,45,30,0.08)] transition-transform duration-300 lg:sticky lg:w-[292px] lg:translate-x-0 lg:shadow-none ${
+                    isOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
             >
-                {/* close button */}
                 <button
+                    type="button"
                     aria-label="Close menu"
                     onClick={onClose}
-                    className="absolute right-4 top-4 rounded-lg p-2 hover:bg-gray-100 lg:hidden"
+                    className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-xl text-[#7A6A64] transition hover:bg-[#F6F1EA] hover:text-[#7F1D1D] lg:hidden"
                 >
-                    <X size={22} />
+                    <X size={20} />
                 </button>
 
-                {/* header */}
-                <div className="p-6 lg:p-8">
-                    <h1 className="text-3xl font-bold text-[#7f1d1d]">
-                        Big-4
-                    </h1>
-                    <p className="text-gray-500">
-                        Enterprise Admin
+                <div className="border-b border-[#EDE3DD] px-5 py-6">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-base font-black text-white shadow-[0_12px_24px_rgba(127,29,29,0.16)]">
+                            B4
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="truncate text-xl font-black tracking-normal text-[#241F1D]">
+                                Big-4 Admin
+                            </h1>
+                            <p className="truncate text-xs font-bold uppercase tracking-[0.16em] text-[#9A7A70]">
+                                Control center
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
+                    <p className="mb-3 px-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#B39D93]">
+                        Manage
                     </p>
-                </div>
 
-                {/* menu */}
-                <div className="flex flex-col gap-2 px-4">
+                    <div className="space-y-1.5">
+                        {menu
+                            .filter((item) => canShow(item.permissions))
+                            .map((item) => {
+                                const Icon = item.icon;
 
-                    {menu
-                        .filter(item => canShow(item.permissions))
-                        .map((item, index) => (
-                            <NavLink
-                                key={index}
-                                to={item.path}
-                                onClick={onClose}
-                                className={({ isActive }) =>
-                                    `
-                                    flex items-center gap-4 p-4 rounded-xl transition-all
-                                    ${isActive
-                                        ? "bg-red-900 text-white shadow-lg"
-                                        : "hover:bg-[#f5efef]"}
-                                `
-                                }
-                            >
-                                {item.icon}
-                                {item.title}
-                            </NavLink>
-                        ))}
-                </div>
+                                return (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        onClick={onClose}
+                                        className={({ isActive }) =>
+                                            `group flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-black transition ${
+                                                isActive
+                                                    ? "bg-[#F9ECEC] text-[#7F1D1D] shadow-sm ring-1 ring-[#EBCBCB]"
+                                                    : "text-[#675853] hover:bg-[#F8F3EF] hover:text-[#241F1D]"
+                                            }`
+                                        }
+                                    >
+                                        {({ isActive }) => (
+                                            <>
+                                                <span
+                                                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${
+                                                        isActive
+                                                            ? "bg-[#7F1D1D] text-white"
+                                                            : "bg-white text-[#8A7972] ring-1 ring-[#EFE5DF] group-hover:text-[#7F1D1D]"
+                                                    }`}
+                                                >
+                                                    <Icon size={18} />
+                                                </span>
+                                                <span className="min-w-0 truncate">
+                                                    {item.title}
+                                                </span>
+                                            </>
+                                        )}
+                                    </NavLink>
+                                );
+                            })}
+                    </div>
+                </nav>
 
-                {/* logout */}
-                <div className="p-4 border-t mt-auto">
+                <div className="border-t border-[#EDE3DD] p-4">
                     <button
+                        type="button"
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all"
+                        className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-red-100 bg-red-50 text-sm font-black text-red-700 transition hover:border-red-200 hover:bg-red-100"
                     >
-                        <LogOut size={20} />
+                        <LogOut size={18} />
                         <span>Logout</span>
                     </button>
                 </div>

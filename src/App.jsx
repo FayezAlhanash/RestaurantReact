@@ -23,6 +23,7 @@ import WarehouseLayout from "./components/Warehouse/WarehouseLayout";
 
 import ManagerLayout from "./components/Manager/ManagerLayout";
 import ManagerDashboard from "./components/Manager/ManagerDashboard";
+import DineInOrder from "./components/Customer/DineInOrder";
 
 function App() {
   return (
@@ -31,6 +32,11 @@ function App() {
       <Routes>
 
         <Route path="/" element={<Login />} />
+
+        {/* Customer QR ordering */}
+        <Route path="/table/:tableId" element={<DineInOrder />} />
+        <Route path="/tables/:tableId" element={<DineInOrder />} />
+        <Route path="/dine-in/:tableId" element={<DineInOrder />} />
 
         {/* Cashier */}
         <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.CASHIER]} />}>

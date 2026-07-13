@@ -463,9 +463,9 @@ function MainContent() {
     ];
 
     return (
-        <div className="min-h-full overflow-y-auto bg-[#F6F1EA] p-4 text-[#241F1D] sm:p-6 lg:p-8">
+        <div className="min-h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(127,29,29,0.12),transparent_34%),linear-gradient(135deg,#F7EFE6_0%,#E6D8C8_52%,#D8C7B6_100%)] p-4 text-[#241F1D] sm:p-6 lg:p-8">
             <div className="mx-auto max-w-[1500px]">
-                <section className="mb-6 rounded-xl border border-white/80 bg-white p-5 shadow-sm sm:p-6">
+                <section className="mb-6 rounded-xl border border-white/70 bg-white/95 p-5 shadow-[0_18px_50px_rgba(70,45,30,0.10)] sm:p-6">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
                             <p className="text-xs font-black uppercase text-[#8E6E62]">
@@ -590,7 +590,7 @@ function MainContent() {
                 </section>
 
                 <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-                    <div className="rounded-xl border border-white/80 bg-white p-5 shadow-sm">
+                    <div className="flex h-[520px] min-h-0 flex-col rounded-xl border border-white/80 bg-white p-5 shadow-sm">
                         <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                             <div>
                                 <h2 className="text-xl font-black">Restaurant Earnings</h2>
@@ -603,7 +603,7 @@ function MainContent() {
                             </p>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
                             {summaryLoading ? (
                                 <div className="rounded-lg border border-dashed border-stone-200 bg-[#FBFAF8] p-5 text-sm font-bold text-stone-500">
                                     Loading restaurant revenue...
@@ -654,15 +654,15 @@ function MainContent() {
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-white/80 bg-white p-5 shadow-sm">
-                        <div className="mb-5">
+                    <div className="flex h-[520px] min-h-0 flex-col rounded-xl border border-white/80 bg-white p-5 shadow-sm">
+                        <div className="mb-5 shrink-0">
                             <h2 className="text-xl font-black">Top Foods</h2>
                             <p className="text-sm font-medium text-stone-500">
                                 Most ordered items, limit 10
                             </p>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
                             {summaryLoading ? (
                                 <div className="rounded-lg border border-dashed border-stone-200 bg-[#FBFAF8] p-5 text-sm font-bold text-stone-500">
                                     Loading top foods...
