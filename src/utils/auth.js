@@ -4,6 +4,7 @@ export const ROLE_IDS = {
     CASHIER: 4,
     KITCHEN: 6,
     WAREHOUSE_MANAGER: 7,
+    WAITER: 8,
 };
 
 export function getRoleId(user) {
@@ -28,6 +29,9 @@ export function getHomePath(roleId) {
 
         case ROLE_IDS.WAREHOUSE_MANAGER:
             return "/warehouse/dashboard";
+
+        case ROLE_IDS.WAITER:
+            return "/waiter";
 
         default:
             return null;

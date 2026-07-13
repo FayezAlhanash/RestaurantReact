@@ -24,6 +24,7 @@ import WarehouseLayout from "./components/Warehouse/WarehouseLayout";
 import ManagerLayout from "./components/Manager/ManagerLayout";
 import ManagerDashboard from "./components/Manager/ManagerDashboard";
 import DineInOrder from "./components/Customer/DineInOrder";
+import WaiterDashboard from "./components/Waiter/WaiterDashboard";
 
 function App() {
   return (
@@ -41,6 +42,11 @@ function App() {
         {/* Cashier */}
         <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.CASHIER]} />}>
           <Route path="/cashier" element={<Cashier />} />
+        </Route>
+
+        {/* Waiter */}
+        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAITER]} />}>
+          <Route path="/waiter" element={<WaiterDashboard />} />
         </Route>
 
         {/* Warehouse */}

@@ -1,5 +1,7 @@
 import {
+    Banknote,
     CheckCircle2,
+    CreditCard,
     Minus,
     Plus,
     ReceiptText,
@@ -9,9 +11,14 @@ import {
     Utensils,
     X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../API/axios";
+import {
+    confirmStripePayment,
+    createStripeCardElement,
+    findStripeClientSecret,
+} from "../../utils/stripePayments";
 import CategoryTabs from "../Cashier/CategoryTabs";
 import MenuItemCard from "../Cashier/MenuItem";
 import ProductModal from "../Cashier/ProductModal";
@@ -84,6 +91,37 @@ const appendIfPresent = (formData, key, value) => {
     }
 };
 
+const getFirstRecord = (data) => getList(data)[0] || data?.table || data?.data || data;
+
+const getTableToken = (table) =>
+    table?.table_token ??
+    table?.tableToken ??
+    table?.table?.table_token ??
+    table?.table?.tableToken ??
+    table?.table?.token ??
+    table?.token ??
+    table?.qr_token ??
+    table?.qrToken ??
+    table?.dine_in_token ??
+    table?.dineInToken ??
+    "";
+
+const getTableNumber = (table, fallback) =>
+    table?.table_number ?? table?.tableNumber ?? table?.number ?? fallback;
+
+const getTableTokenHeaders = (tableToken, tableId) => ({
+    "Table-Token": tableToken || tableId,
+});
+
+const fetchTableDetails = async (tableId) => {
+    try {
+        const response = await api.get(`/tables/${tableId}`);
+        return getFirstRecord(response.data);
+    } catch {
+        return null;
+    }
+};
+
 const fetchFoodDetails = async (food) => {
     try {
         const response = await api.get(`/food/${food.food_id}`);
@@ -115,12 +153,16 @@ const fetchRestaurantMenu = async (restaurant) => {
     );
 };
 
-const buildOrderFormData = (cartItems, tableId, orderType) => {
+const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
     const formData = new FormData();
+    const restaurantId = cartItems.find((item) => item.restaurant_id)?.restaurant_id;
 
     appendIfPresent(formData, "order_type", orderType);
+    appendIfPresent(formData, "type", orderType);
+    appendIfPresent(formData, "restaurant_id", restaurantId);
     appendIfPresent(formData, "table_id", tableId);
     appendIfPresent(formData, "table_number", tableId);
+    appendIfPresent(formData, "table_token", tableToken || tableId);
 
     cartItems.forEach((item, index) => {
         const unitPrice = Number(item.price ?? 0);
@@ -130,6 +172,7 @@ const buildOrderFormData = (cartItems, tableId, orderType) => {
 
         appendIfPresent(formData, `items[${index}][food_id]`, item.food_id || item.id);
         appendIfPresent(formData, `items[${index}][menu_item_id]`, item.food_id || item.id);
+        appendIfPresent(formData, `items[${index}][restaurant_id]`, item.restaurant_id);
         appendIfPresent(formData, `items[${index}][quantity]`, quantity);
         appendIfPresent(formData, `items[${index}][unit_price]`, unitPrice);
         appendIfPresent(formData, `items[${index}][price]`, unitPrice);
@@ -155,18 +198,33 @@ const buildOrderFormData = (cartItems, tableId, orderType) => {
     return formData;
 };
 
-const buildAddItemFormData = (item) => {
+const buildAddItemFormData = (item, tableToken, tableId) => {
     const formData = new FormData();
     const modifierOptions = item.selectedModifierOptions ?? [];
 
     appendIfPresent(formData, "food_id", item.food_id || item.id);
+    appendIfPresent(formData, "menu_item_id", item.food_id || item.id);
+    appendIfPresent(formData, "restaurant_id", item.restaurant_id);
     appendIfPresent(formData, "quantity", Number(item.quantity ?? 1));
+    appendIfPresent(formData, "unit_price", Number(item.price ?? 0));
+    appendIfPresent(formData, "price", Number(item.price ?? 0));
+    appendIfPresent(
+        formData,
+        "total_price",
+        Number(item.price ?? 0) * Number(item.quantity ?? 1)
+    );
     appendIfPresent(formData, "notes", [item.size, item.notes].filter(Boolean).join(" · "));
+    appendIfPresent(formData, "table_token", tableToken || tableId);
 
     modifierOptions.forEach((option, optionIndex) => {
         appendIfPresent(
             formData,
             `modifiers[${optionIndex}]`,
+            option.modifier_option_id ?? option.id
+        );
+        appendIfPresent(
+            formData,
+            `modifier_options[${optionIndex}]`,
             option.modifier_option_id ?? option.id
         );
     });
@@ -190,7 +248,86 @@ const getCreatedOrderId = (data) => {
     );
 };
 
-async function createDineInOrder(cartItems, tableId) {
+const collectInvoiceIds = (value, ids = []) => {
+    if (!value || typeof value !== "object") return ids;
+
+    const invoiceId =
+        value.invoice_id ??
+        value.invoice?.id ??
+        value.order?.invoice_id ??
+        value.order?.invoice?.id ??
+        value.restaurant_invoice?.invoice_id ??
+        value.restaurantInvoice?.invoice_id ??
+        value.data?.invoice_id ??
+        value.data?.invoice?.id ??
+        value.data?.order?.invoice_id ??
+        value.data?.order?.invoice?.id ??
+        value.data?.restaurant_invoice?.invoice_id ??
+        value.data?.restaurantInvoice?.invoice_id;
+
+    if (invoiceId && !ids.some((id) => String(id) === String(invoiceId))) {
+        ids.push(invoiceId);
+    }
+
+    Object.values(value).forEach((child) => {
+        if (child && typeof child === "object") {
+            collectInvoiceIds(child, ids);
+        }
+    });
+
+    return ids;
+};
+
+const getCreatedInvoiceId = (data) => collectInvoiceIds(data)[0] ?? null;
+
+async function selectDineInPayment(invoiceId, orderId, tableToken, tableId, paymentMethod) {
+    const formData = new FormData();
+
+    appendIfPresent(formData, "invoice_id", invoiceId);
+    appendIfPresent(formData, "order_id", orderId);
+    appendIfPresent(formData, "table_token", tableToken || tableId);
+
+    const endpoint =
+        paymentMethod === "stripe"
+            ? "/customer-dine-in/payments/stripe/create-intent"
+            : "/customer-dine-in/payments/cash";
+
+    const response = await api.post(endpoint, formData, {
+        headers: getTableTokenHeaders(tableToken, tableId),
+    });
+    return response.data;
+}
+
+async function selectDineInPaymentForCurrentOrder(
+    invoiceId,
+    orderId,
+    tableToken,
+    tableId,
+    paymentMethod
+) {
+    try {
+        return await selectDineInPayment(
+            invoiceId || orderId,
+            orderId,
+            tableToken,
+            tableId,
+            paymentMethod
+        );
+    } catch (error) {
+        const message = JSON.stringify(error.response?.data || error.message || "");
+        const shouldRetryWithOrderId =
+            orderId &&
+            invoiceId &&
+            String(orderId) !== String(invoiceId) &&
+            message.includes("App\\\\Models\\\\Order");
+
+        if (!shouldRetryWithOrderId) throw error;
+
+        return selectDineInPayment(orderId, orderId, tableToken, tableId, paymentMethod);
+    }
+}
+
+async function createDineInOrder(cartItems, tableId, tableToken) {
     const typeVariants = ["dine-in", "dine_in", "dine in", "dinein", "DINE-IN"];
     let lastError;
 
@@ -198,7 +335,10 @@ async function createDineInOrder(cartItems, tableId) {
         try {
             const response = await api.post(
                 "/customer-dine-in/orders",
-                buildOrderFormData(cartItems, tableId, orderType)
+                buildOrderFormData(cartItems, tableId, orderType, tableToken),
+                {
+                    headers: getTableTokenHeaders(tableToken, tableId),
+                }
             );
             return response.data;
         } catch (error) {
@@ -216,13 +356,16 @@ async function createDineInOrder(cartItems, tableId) {
     throw lastError;
 }
 
-async function addItemsToDineInOrder(orderId, cartItems) {
+async function addItemsToDineInOrder(orderId, cartItems, tableToken, tableId) {
     const responses = [];
 
     for (const item of cartItems) {
         const response = await api.post(
             `/customer-dine-in/orders/${orderId}/items`,
-            buildAddItemFormData(item)
+            buildAddItemFormData(item, tableToken, tableId),
+            {
+                headers: getTableTokenHeaders(tableToken, tableId),
+            }
         );
 
         responses.push(response.data);
@@ -322,6 +465,11 @@ function OrderPanel({
     onRemoveItem,
     onSubmit,
     isSubmitting,
+    paymentMethod,
+    onPaymentMethodChange,
+    isStripeReady,
+    stripeCardMessage,
+    stripeCardContainerRef,
     layout = "desktop",
     onClose,
 }) {
@@ -430,6 +578,55 @@ function OrderPanel({
             </div>
 
             <div className={`shrink-0 border-t border-white/10 ${isMobile ? "p-3" : "p-5"}`}>
+            <div className="mb-4">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                    Payment method
+                </p>
+                <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
+                    {[
+                        { id: "cash", label: "Cash", icon: Banknote },
+                        { id: "stripe", label: "Stripe", icon: CreditCard },
+                    ].map((method) => {
+                        const Icon = method.icon;
+                        const isActive = paymentMethod === method.id;
+
+                        return (
+                            <button
+                                key={method.id}
+                                type="button"
+                                onClick={() => onPaymentMethodChange(method.id)}
+                                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-black transition ${
+                                    isActive
+                                        ? "bg-[#D8A23A] text-[#241707]"
+                                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                                }`}
+                            >
+                                <Icon size={16} />
+                                {method.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                {paymentMethod === "cash" && (
+                    <p className="mt-2 text-xs font-semibold text-white/55">
+                        The waiter will collect and confirm the cash payment.
+                    </p>
+                )}
+                {paymentMethod === "stripe" && (
+                    <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
+                        <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                            Card
+                        </p>
+                        <div
+                            ref={stripeCardContainerRef}
+                            className="rounded-lg border border-white/10 bg-white px-3 py-3"
+                        />
+                        <p className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}>
+                            {stripeCardMessage || (isStripeReady ? "Card ready." : "Loading Stripe...")}
+                        </p>
+                    </div>
+                )}
+            </div>
             <div className={`space-y-3 rounded-xl border border-white/10 bg-white/10 ${isMobile ? "p-3" : "p-4"} text-base`}>
                 <div className="flex items-center justify-between text-white/65">
                     <span>Subtotal</span>
@@ -450,7 +647,7 @@ function OrderPanel({
                 <button
                     type="button"
                     onClick={onSubmit}
-                    disabled={!itemCount || isSubmitting}
+                    disabled={!itemCount || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                     className="h-12 w-full rounded-xl bg-[#D8A23A] px-4 text-sm font-black text-[#241707] shadow-sm transition hover:bg-[#F0BD4E] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
                 >
                     {isSubmitting ? "Sending..." : "Send"}
@@ -469,6 +666,11 @@ function MobileOrderBar({
     onRemoveItem,
     onSubmit,
     isSubmitting,
+    paymentMethod,
+    onPaymentMethodChange,
+    isStripeReady,
+    stripeCardMessage,
+    stripeCardContainerRef,
     isOpen,
     onOpen,
     onClose,
@@ -488,6 +690,11 @@ function MobileOrderBar({
                             onRemoveItem={onRemoveItem}
                             onSubmit={onSubmit}
                             isSubmitting={isSubmitting}
+                            paymentMethod={paymentMethod}
+                            onPaymentMethodChange={onPaymentMethodChange}
+                            isStripeReady={isStripeReady}
+                            stripeCardMessage={stripeCardMessage}
+                            stripeCardContainerRef={stripeCardContainerRef}
                             layout="mobile"
                             onClose={onClose}
                         />
@@ -521,10 +728,10 @@ function MobileOrderBar({
                     <button
                         type="button"
                         onClick={onSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                         className="h-14 shrink-0 rounded-2xl bg-[#D8A23A] px-5 text-sm font-black text-[#241707] shadow-sm transition active:scale-95 disabled:opacity-60"
                     >
-                        {isSubmitting ? "Sending..." : "Send"}
+                        {isSubmitting ? "Sending..." : paymentMethod === "cash" ? "Cash" : "Stripe"}
                     </button>
                 </div>
             </div>
@@ -535,11 +742,20 @@ function MobileOrderBar({
 function DineInOrder() {
     const { tableId = "1" } = useParams();
     const orderStorageKey = `customer-dine-in-order:${tableId}`;
+    const invoiceStorageKey = `customer-dine-in-invoice:${tableId}`;
+    const tableTokenStorageKey = `customer-dine-in-table-token:${tableId}`;
     const [restaurants, setRestaurants] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
+    const [tableToken, setTableToken] = useState(() =>
+        sessionStorage.getItem(tableTokenStorageKey) || ""
+    );
+    const [tableNumber, setTableNumber] = useState(tableId);
     const [activeRestaurant, setActiveRestaurant] = useState("");
     const [activeCategory, setActiveCategory] = useState("all");
     const [search, setSearch] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [isStripeReady, setIsStripeReady] = useState(false);
+    const [stripeCardMessage, setStripeCardMessage] = useState("");
     const [cartItems, setCartItems] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
@@ -550,6 +766,11 @@ function DineInOrder() {
     const [activeOrderId, setActiveOrderId] = useState(() =>
         sessionStorage.getItem(orderStorageKey)
     );
+    const [activeInvoiceId, setActiveInvoiceId] = useState(() =>
+        sessionStorage.getItem(invoiceStorageKey)
+    );
+    const stripeCardContainerRef = useRef(null);
+    const stripeCardRef = useRef(null);
 
     useEffect(() => {
         const loadMenu = async () => {
@@ -557,6 +778,16 @@ function DineInOrder() {
             setErrorMessage("");
 
             try {
+                const tableDetails = await fetchTableDetails(tableId);
+                const nextTableToken = getTableToken(tableDetails);
+
+                if (nextTableToken) {
+                    sessionStorage.setItem(tableTokenStorageKey, String(nextTableToken));
+                    setTableToken(String(nextTableToken));
+                }
+
+                setTableNumber(getTableNumber(tableDetails, tableId));
+
                 const restaurantsResponse = await api.get("/restaurants");
                 const restaurantList = getList(restaurantsResponse.data);
                 const menuResponses = await Promise.allSettled(
@@ -594,12 +825,58 @@ function DineInOrder() {
         };
 
         loadMenu();
-    }, []);
+    }, [tableId, tableTokenStorageKey]);
 
     useEffect(() => {
         const storedOrderId = sessionStorage.getItem(orderStorageKey);
+        const storedInvoiceId = sessionStorage.getItem(invoiceStorageKey);
         setActiveOrderId(storedOrderId);
-    }, [orderStorageKey]);
+        setActiveInvoiceId(storedInvoiceId);
+    }, [invoiceStorageKey, orderStorageKey]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (paymentMethod !== "stripe") {
+            stripeCardRef.current?.destroy();
+            stripeCardRef.current = null;
+            setIsStripeReady(false);
+            setStripeCardMessage("");
+            return undefined;
+        }
+
+        setIsStripeReady(false);
+        setStripeCardMessage("Loading Stripe...");
+
+        window.setTimeout(() => {
+            if (!isMounted || !stripeCardContainerRef.current) return;
+
+            createStripeCardElement(stripeCardContainerRef.current)
+                .then((stripeCardSetup) => {
+                    if (!isMounted || !stripeCardSetup) return;
+
+                    stripeCardRef.current = stripeCardSetup.card;
+                    setIsStripeReady(true);
+                    setStripeCardMessage("");
+
+                    stripeCardSetup.card.on("change", (event) => {
+                        setStripeCardMessage(event.error?.message || "");
+                    });
+                })
+                .catch((error) => {
+                    if (!isMounted) return;
+
+                    setIsStripeReady(false);
+                    setStripeCardMessage(error.message || "Stripe could not be loaded.");
+                });
+        }, 0);
+
+        return () => {
+            isMounted = false;
+            stripeCardRef.current?.destroy();
+            stripeCardRef.current = null;
+        };
+    }, [paymentMethod, isMobileCartOpen]);
 
     const visibleItems = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -702,23 +979,43 @@ function DineInOrder() {
         setSuccessMessage("");
 
         try {
-            if (activeOrderId) {
-                await addItemsToDineInOrder(activeOrderId, cartItems);
-            } else {
-                const response = await createDineInOrder(cartItems, tableId);
-                const createdOrderId = getCreatedOrderId(response);
+            if (paymentMethod === "stripe" && !isStripeReady) {
+                throw new Error("Stripe is still loading. Try again in a moment.");
+            }
 
-                if (createdOrderId) {
-                    sessionStorage.setItem(orderStorageKey, String(createdOrderId));
-                    setActiveOrderId(String(createdOrderId));
-                }
+            const response = await createDineInOrder(cartItems, tableId, tableToken);
+            const createdOrderId = getCreatedOrderId(response);
+            const invoiceId = getCreatedInvoiceId(response);
+
+            if (createdOrderId) {
+                sessionStorage.removeItem(orderStorageKey);
+                sessionStorage.removeItem(invoiceStorageKey);
+                setActiveOrderId(null);
+                setActiveInvoiceId(null);
+            } else {
+                throw new Error("Order was created without an order id.");
+            }
+
+            const paymentResponse = await selectDineInPaymentForCurrentOrder(
+                invoiceId,
+                createdOrderId,
+                tableToken,
+                tableId,
+                paymentMethod
+            );
+
+            if (paymentMethod === "stripe") {
+                await confirmStripePayment(
+                    findStripeClientSecret(paymentResponse),
+                    stripeCardRef.current
+                );
             }
 
             setCartItems([]);
             setSuccessMessage(
-                activeOrderId
-                    ? "Items were added to your table order."
-                    : "Your order was sent to the kitchen."
+                paymentMethod === "cash"
+                    ? "Cash payment selected. The waiter will collect it."
+                    : "Stripe payment completed."
             );
         } catch (error) {
             const validationErrors = error.response?.data?.errors;
@@ -750,7 +1047,7 @@ function DineInOrder() {
                                 Big-4 Menu
                             </p>
                             <p className="text-xs font-bold text-white/60">
-                                Table {tableId}
+                                Table {tableNumber}
                             </p>
                         </div>
                     </div>
@@ -905,6 +1202,11 @@ function DineInOrder() {
                         }
                         onSubmit={submitOrder}
                         isSubmitting={isSubmitting}
+                        paymentMethod={paymentMethod}
+                        onPaymentMethodChange={setPaymentMethod}
+                        isStripeReady={isStripeReady}
+                        stripeCardMessage={stripeCardMessage}
+                        stripeCardContainerRef={stripeCardContainerRef}
                     />
                 </aside>
             </main>
@@ -921,6 +1223,11 @@ function DineInOrder() {
                 }
                 onSubmit={submitOrder}
                 isSubmitting={isSubmitting}
+                paymentMethod={paymentMethod}
+                onPaymentMethodChange={setPaymentMethod}
+                isStripeReady={isStripeReady}
+                stripeCardMessage={stripeCardMessage}
+                stripeCardContainerRef={stripeCardContainerRef}
                 isOpen={isMobileCartOpen}
                 onOpen={() => setIsMobileCartOpen(true)}
                 onClose={() => setIsMobileCartOpen(false)}
