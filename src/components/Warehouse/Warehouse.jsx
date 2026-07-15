@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import api from "../../API/axios";
+import { getUserPermissions } from "../../utils/permissions";
+import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import WarehouseList from "./WarehouseList";
 import WarehouseModal from "./WarehouseModal";
 
@@ -10,11 +12,24 @@ function Warehouse() {
     const [deleteIngredient, setDeleteIngredient] = useState(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [inventory, setInventory] = useState([]);
+    const [permissionMessage, setPermissionMessage] = useState("");
     const outletContext = useOutletContext() || {};
     const search = outletContext.search || "";
+    const permissions = getUserPermissions();
+    const canManageInventory = permissions.includes("manage_inventory");
+
+    const denyManageInventory = () => {
+        setPermissionMessage("You do not have permission to manage inventory.");
+    };
 
     const getIngredients = async () => {
-        const res = await api.get("/restaurants/1/ingredients");
+        const restaurantId = await ensureCurrentRestaurantId();
+        if (!restaurantId) {
+            setInventory([]);
+            return;
+        }
+
+        const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
         setInventory(res.data.data);
     };
 
@@ -24,8 +39,16 @@ function Warehouse() {
     }, []);
 
     const addIngredient = async (ingredient) => {
+        if (!canManageInventory) {
+            denyManageInventory();
+            return;
+        }
+
         try {
-            await api.post("/restaurants/1/ingredients", ingredient);
+            const restaurantId = await ensureCurrentRestaurantId();
+            if (!restaurantId) return;
+
+            await api.post(`/restaurants/${restaurantId}/ingredients`, ingredient);
             getIngredients();
             outletContext.refreshWarehouseStats?.();
             setOpenModal(false);
@@ -35,8 +58,16 @@ function Warehouse() {
     };
 
     const updateIngredient = async (ingredient) => {
+        if (!canManageInventory) {
+            denyManageInventory();
+            return;
+        }
+
         try {
-            await api.patch(`/restaurants/1/ingredients/${ingredient.id}`, {
+            const restaurantId = await ensureCurrentRestaurantId();
+            if (!restaurantId) return;
+
+            await api.patch(`/restaurants/${restaurantId}/ingredients/${ingredient.id}`, {
                 name: ingredient.name,
                 unit: ingredient.unit,
                 current_quantity: ingredient.current_quantity,
@@ -53,13 +84,26 @@ function Warehouse() {
     };
 
     const handleEdit = (ingredient) => {
+        if (!canManageInventory) {
+            denyManageInventory();
+            return;
+        }
+
         setSelectedIngredient(ingredient);
         setOpenModal(true);
     };
 
     const handleDelete = async () => {
+        if (!canManageInventory) {
+            denyManageInventory();
+            return;
+        }
+
         try {
-            await api.delete(`/restaurants/1/ingredients/${deleteIngredient.id}`);
+            const restaurantId = await ensureCurrentRestaurantId();
+            if (!restaurantId) return;
+
+            await api.delete(`/restaurants/${restaurantId}/ingredients/${deleteIngredient.id}`);
             getIngredients();
             outletContext.refreshWarehouseStats?.();
             setIsDeleteOpen(false);
@@ -99,15 +143,38 @@ function Warehouse() {
                 stats={stats}
                 search={search}
                 onAdd={() => {
+                    if (!canManageInventory) {
+                        denyManageInventory();
+                        return;
+                    }
+
                     setSelectedIngredient(null);
                     setOpenModal(true);
                 }}
                 onEdit={handleEdit}
                 onDelete={(ingredient) => {
+                    if (!canManageInventory) {
+                        denyManageInventory();
+                        return;
+                    }
+
                     setDeleteIngredient(ingredient);
                     setIsDeleteOpen(true);
                 }}
             />
+
+            {permissionMessage && (
+                <div className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-center text-sm font-extrabold text-red-700 shadow-xl">
+                    {permissionMessage}
+                    <button
+                        type="button"
+                        onClick={() => setPermissionMessage("")}
+                        className="ml-3 text-red-900 underline"
+                    >
+                        Close
+                    </button>
+                </div>
+            )}
 
             <WarehouseModal
                 isOpen={openModal}

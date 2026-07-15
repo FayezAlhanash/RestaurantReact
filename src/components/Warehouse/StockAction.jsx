@@ -4,6 +4,8 @@ import RefillModal from "./RefillModal";
 import WasteModal from "./WasteModal";
 import AdjustModal from "./AdjustModal";
 import api from "../../API/axios";
+import { getUserPermissions } from "../../utils/permissions";
+import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 
 function StockActions() {
     const [action, setAction] = useState(null);
@@ -12,19 +14,39 @@ function StockActions() {
     const [selectedIngredient, setSelectedIngredient] = useState(null);
     const [ingredients, setIngredients] = useState([]);
     const [movements, setMovements] = useState([]);
+    const [permissionMessage, setPermissionMessage] = useState("");
+    const permissions = getUserPermissions();
+    const canManageInventory = permissions.includes("manage_inventory");
     const getIngredients = async () => {
-        const res = await api.get("/restaurants/1/ingredients");
+        const restaurantId = await ensureCurrentRestaurantId();
+        if (!restaurantId) {
+            setIngredients([]);
+            return;
+        }
+
+        const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
         setIngredients(res.data.data);
     };
 
     const openAction = (type) => {
+        if (!canManageInventory) {
+            setPermissionMessage("You do not have permission to manage inventory.");
+            return;
+        }
+
         if (!selectedIngredient) {
             alert("Please select an ingredient first");
             return;
         }
         setAction(type);
     }; const getMovements = async () => {
-        const res = await api.get("/restaurants/1/stock-movements");
+        const restaurantId = await ensureCurrentRestaurantId();
+        if (!restaurantId) {
+            setMovements([]);
+            return;
+        }
+
+        const res = await api.get(`/restaurants/${restaurantId}/stock-movements`);
         setMovements(res.data.data);
     };
     useEffect(() => {
@@ -34,7 +56,10 @@ function StockActions() {
     }, []);
 
     const refreshAfterAction = async () => {
-        const res = await api.get("/restaurants/1/ingredients");
+        const restaurantId = await ensureCurrentRestaurantId();
+        if (!restaurantId) return;
+
+        const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
         await getIngredients();
         await getMovements();   // 🔥 مهم
         setAction(null);
@@ -62,6 +87,12 @@ function StockActions() {
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#7F1D1D] mb-6 sm:mb-8">
                 Stock Actions
             </h1>
+
+            {permissionMessage && (
+                <p className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-extrabold text-red-700">
+                    {permissionMessage}
+                </p>
+            )}
 
             {/* SELECT */}
             <div className="bg-white shadow-md rounded-2xl p-4 sm:p-6 mb-8 border">

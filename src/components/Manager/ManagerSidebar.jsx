@@ -6,7 +6,13 @@ import {
   FolderPlus,
   LayoutDashboard,
   LogOut,
+  Package,
+  ClipboardList,
+  ReceiptText,
   Sparkles,
+  Store,
+  Table,
+  TriangleAlert,
   UtensilsCrossed,
 } from "lucide-react";
 import { clearSession } from "../../utils/auth";
@@ -23,6 +29,7 @@ const navItems = [
     label: "Menu Builder",
     description: "Categories and modifiers",
     icon: FolderPlus,
+    permissions: ["manage_menu"],
   },
   {
     to: "/manager/add-food",
@@ -30,10 +37,76 @@ const navItems = [
     description: "Dishes, filters, recipes",
     icon: UtensilsCrossed,
   },
+  {
+    to: "/manager/ingredients",
+    label: "Recipes",
+    description: "Food ingredient links",
+    icon: Package,
+    permissions: ["view_recipes", "manage_recipes"],
+  },
+  {
+    to: "/manager/inventory",
+    label: "Inventory",
+    description: "Ingredients and stock levels",
+    icon: Package,
+    permissions: ["monitor_inventory"],
+  },
+  {
+    to: "/manager/stock-actions",
+    label: "Stock Actions",
+    description: "Refill, adjust, waste",
+    icon: ClipboardList,
+    permissions: ["monitor_inventory"],
+  },
+  {
+    to: "/manager/low-stock",
+    label: "Low Stock",
+    description: "Inventory alerts",
+    icon: TriangleAlert,
+    permissions: ["monitor_inventory"],
+  },
+  {
+    to: "/manager/takeaway-orders",
+    label: "Takeaway Orders",
+    description: "Menu, catalog, orders",
+    icon: ReceiptText,
+    permissions: ["manage_takeaway_orders"],
+  },
+  {
+    to: "/manager/kitchen-orders",
+    label: "Kitchen Orders",
+    description: "Queue and preparation",
+    icon: ChefHat,
+    permissions: ["manage_kitchen_orders"],
+  },
+  {
+    to: "/manager/dine-in-service",
+    label: "Dine-in Service",
+    description: "Serve orders and cash",
+    icon: ChefHat,
+    permissions: ["serve_dine_in_orders", "process_payments"],
+  },
+  {
+    to: "/manager/tables",
+    label: "Tables",
+    description: "Floor plan and table status",
+    icon: Table,
+    permissions: ["manage_tables"],
+  },
+  {
+    to: "/manager/restaurants",
+    label: "Restaurants",
+    description: "Branches and restaurant profiles",
+    icon: Store,
+    permissions: ["manage_restaurants"],
+  },
 ];
 
-function ManagerSidebar({ isOpen = false, onClose }) {
+function ManagerSidebar({ isOpen = false, onClose, permissions = [] }) {
   const navigate = useNavigate();
+  const canShow = (requiredPermissions = []) =>
+    !requiredPermissions.length ||
+    requiredPermissions.some((permission) => permissions.includes(permission));
 
   const handleLogout = () => {
     clearSession();
@@ -87,7 +160,7 @@ function ManagerSidebar({ isOpen = false, onClose }) {
         </p>
 
         <nav className="mt-3 space-y-2">
-          {navItems.map((item) => {
+          {navItems.filter((item) => canShow(item.permissions)).map((item) => {
             const Icon = item.icon;
 
             return (

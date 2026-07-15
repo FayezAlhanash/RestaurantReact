@@ -4,16 +4,50 @@ import { Bell, Menu, Search, Settings2 } from "lucide-react";
 import ManagerSidebar from "./ManagerSidebar";
 import api from "../../API/axios";
 import { getStoredUser, storeUser } from "../../utils/auth";
+import {
+  getProfileUserPermissions,
+  getUserPermissions,
+  toPermissionKeys,
+} from "../../utils/permissions";
 
 const mobileLinks = [
   { to: "/manager/dashboard", label: "Dashboard" },
-  { to: "/manager/add-menu", label: "Menu" },
+  { to: "/manager/add-menu", label: "Menu", permissions: ["manage_menu"] },
   { to: "/manager/add-food", label: "Foods" },
+  { to: "/manager/ingredients", label: "Recipes", permissions: ["view_recipes", "manage_recipes"] },
+  { to: "/manager/inventory", label: "Inventory", permissions: ["monitor_inventory"] },
+  { to: "/manager/stock-actions", label: "Stock", permissions: ["monitor_inventory"] },
+  { to: "/manager/low-stock", label: "Low Stock", permissions: ["monitor_inventory"] },
+  {
+    to: "/manager/takeaway-orders",
+    label: "Takeaway",
+    permissions: ["manage_takeaway_orders"],
+  },
+  {
+    to: "/manager/kitchen-orders",
+    label: "Kitchen",
+    permissions: ["manage_kitchen_orders"],
+  },
+  {
+    to: "/manager/dine-in-service",
+    label: "Dine-in",
+    permissions: ["serve_dine_in_orders", "process_payments"],
+  },
+  { to: "/manager/tables", label: "Tables", permissions: ["manage_tables"] },
+  {
+    to: "/manager/restaurants",
+    label: "Restaurants",
+    permissions: ["manage_restaurants"],
+  },
 ];
 
 export default function ManagerLayout() {
   const [search, setSearch] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [permissions, setPermissions] = useState(() => getUserPermissions());
+  const canShow = (requiredPermissions = []) =>
+    !requiredPermissions.length ||
+    requiredPermissions.some((permission) => permissions.includes(permission));
 
   useEffect(() => {
     const refreshProfile = async () => {
@@ -23,13 +57,36 @@ export default function ManagerLayout() {
 
       try {
         const res = await api.get("/profile/permissions");
+        const nextPermissions = toPermissionKeys(
+          getProfileUserPermissions(res.data)
+        );
+
         storeUser(user, res.data);
+        setPermissions(nextPermissions);
       } catch (error) {
         console.log(error.response?.data || error);
       }
     };
 
     refreshProfile();
+
+    const handleFocus = () => {
+      refreshProfile();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshProfile();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   return (
@@ -47,6 +104,7 @@ export default function ManagerLayout() {
         <ManagerSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
+          permissions={permissions}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -94,7 +152,7 @@ export default function ManagerLayout() {
             </div>
 
             <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
-              {mobileLinks.map((link) => (
+              {mobileLinks.filter((link) => canShow(link.permissions)).map((link) => (
                 <NavLink
                   key={link.to}
                   to={link.to}

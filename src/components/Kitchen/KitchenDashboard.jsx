@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { BellRing, CheckCircle2, Flame, LogOut, Utensils } from "lucide-react";
+import { BellRing, CheckCircle2, Flame, Utensils } from "lucide-react";
 
 import OrderCard from "../../components/Kitchen/OrderCard";
-import { clearSession, getStoredUser } from "../../utils/auth";
+import { getStoredUser } from "../../utils/auth";
 import {
     fetchKitchenQueue,
     markKitchenOrderReady,
@@ -26,7 +25,6 @@ export default function KitchenDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const shouldPollRef = useRef(true);
-    const navigate = useNavigate();
     const user = getStoredUser();
 
     const chefName =
@@ -157,24 +155,10 @@ export default function KitchenDashboard() {
         }
     };
 
-    const handleLogout = () => {
-        clearSession();
-        navigate("/", { replace: true });
-    };
-
     return (
         <main className="kitchen-screen min-h-screen bg-[#1f2326] text-[#f5f1eb]">
-            <header className="flex min-h-[76px] items-center justify-between border-b border-white/10 bg-[#292e33] px-5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] lg:px-8">
+            <header className="flex min-h-[76px] items-center justify-between border-b border-white/10 bg-[#292e33] py-3 pl-20 pr-5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] lg:pr-8">
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex h-11 min-w-40 items-center justify-center gap-3 rounded-xl border border-white/10 bg-[#363c42] px-5 text-sm font-extrabold text-[#f8ded8] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#414850]"
-                    >
-                        تسجيل الخروج
-                        <LogOut size={18} strokeWidth={2.5} />
-                    </button>
-
                     <button
                         type="button"
                         onClick={() => setShowCompleted((current) => !current)}

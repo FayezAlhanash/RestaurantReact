@@ -8,7 +8,7 @@ import {
 } from "../../utils/kitchenOrders";
 import { createStripeCardElement } from "../../utils/stripePayments";
 
-function OrderSidebar({ cartItems, setCartItems }) {
+function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +91,12 @@ function OrderSidebar({ cartItems, setCartItems }) {
         setErrorMessage("");
 
         try {
+            if (!canProcessPayments) {
+                throw new Error(
+                    "This account does not have permission to pay takeaway orders."
+                );
+            }
+
             if (paymentMethod === "stripe" && !isStripeReady) {
                 throw new Error("Stripe is still loading. Try again in a moment.");
             }
@@ -259,7 +265,12 @@ function OrderSidebar({ cartItems, setCartItems }) {
                         {errorMessage}
                     </p>
                 )}
-                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
+                {!canProcessPayments && (
+                    <p className="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-center text-xs font-extrabold text-red-700">
+                        Payment is unavailable for this account.
+                    </p>
+                )}
+                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
                     {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${total.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (

@@ -7,29 +7,73 @@ const ADMIN_DEFAULT_PERMISSIONS = [
 ];
 
 export function toPermissionKeys(permissions = []) {
-    if (!Array.isArray(permissions)) return [];
+    if (!Array.isArray(permissions)) {
+        if (permissions && typeof permissions === "object") {
+            return Object.entries(permissions)
+                .filter(([, value]) => Boolean(value))
+                .map(([key]) => key);
+        }
+
+        return [];
+    }
 
     return permissions
-        .map((permission) =>
-            typeof permission === "string"
-                ? permission
-                : permission?.key ?? permission?.name
-        )
+        .flatMap((permission) => {
+            if (typeof permission === "string") return [permission];
+
+            if (!permission || typeof permission !== "object") return [];
+
+            return [
+                permission.key,
+                permission.slug,
+                permission.code,
+                permission.name,
+                permission.permission_key,
+                permission.permission?.key,
+                permission.permission?.slug,
+                permission.permission?.code,
+                permission.permission?.name,
+                permission.pivot?.permission?.key,
+                permission.pivot?.permission?.slug,
+                permission.pivot?.permission?.code,
+                permission.pivot?.permission?.name,
+            ].filter(Boolean);
+        })
         .filter(Boolean);
 }
 
 export function getProfileUserPermissions(profile = {}) {
     const data = profile.data ?? profile;
+    const permissions = [
+        ...(Array.isArray(data.user_permissions) ? data.user_permissions : []),
+        ...(Array.isArray(data.userPermissions) ? data.userPermissions : []),
+        ...(Array.isArray(data.role_permissions) ? data.role_permissions : []),
+        ...(Array.isArray(data.rolePermissions) ? data.rolePermissions : []),
+        ...(Array.isArray(data.permissions) ? data.permissions : []),
+        ...(Array.isArray(data.role?.permissions) ? data.role.permissions : []),
+        ...(Array.isArray(data.role?.role_permissions)
+            ? data.role.role_permissions
+            : []),
+        ...(Array.isArray(data.user?.permissions) ? data.user.permissions : []),
+        ...(Array.isArray(data.user?.user_permissions)
+            ? data.user.user_permissions
+            : []),
+        ...(Array.isArray(data.user?.role_permissions)
+            ? data.user.role_permissions
+            : []),
+        ...(Array.isArray(data.user?.role?.permissions)
+            ? data.user.role.permissions
+            : []),
+        ...(Array.isArray(data.user?.role?.role_permissions)
+            ? data.user.role.role_permissions
+            : []),
+    ];
 
-    if (Array.isArray(data.user_permissions)) {
-        return data.user_permissions;
-    }
-
-    if (Array.isArray(data.permissions)) {
+    if (!permissions.length && data.permissions && typeof data.permissions === "object") {
         return data.permissions;
     }
 
-    return [];
+    return permissions;
 }
 
 export function getUserPermissions() {
@@ -39,33 +83,20 @@ export function getUserPermissions() {
 
     const roleName = String(user.role?.name ?? "").toLowerCase();
     const roleId = Number(user.role_id ?? user.role?.id);
+    const userPermissions = toPermissionKeys([
+        ...(Array.isArray(user.user_permissions) ? user.user_permissions : []),
+        ...(Array.isArray(user.userPermissions) ? user.userPermissions : []),
+        ...(Array.isArray(user.permissions) ? user.permissions : []),
+        ...(Array.isArray(user.role_permissions) ? user.role_permissions : []),
+        ...(Array.isArray(user.rolePermissions) ? user.rolePermissions : []),
+        ...(Array.isArray(user.role?.permissions) ? user.role.permissions : []),
+        ...(Array.isArray(user.role?.role_permissions)
+            ? user.role.role_permissions
+            : []),
+    ]);
 
-    if (Array.isArray(user.user_permissions)) {
-        const userPermissions = toPermissionKeys(user.user_permissions);
-
-        if (userPermissions.length) {
-            return Array.from(new Set(userPermissions));
-        }
-
-        if (roleName === "admin" || roleId === 1) {
-            return ADMIN_DEFAULT_PERMISSIONS;
-        }
-
-        return [];
-    }
-
-    if (Array.isArray(user.permissions)) {
-        const userPermissions = toPermissionKeys(user.permissions);
-
-        if (userPermissions.length) {
-            return Array.from(new Set(userPermissions));
-        }
-
-        if (roleName === "admin" || roleId === 1) {
-            return ADMIN_DEFAULT_PERMISSIONS;
-        }
-
-        return [];
+    if (userPermissions.length) {
+        return Array.from(new Set(userPermissions));
     }
 
     if (roleName === "admin" || roleId === 1) {

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import api from "../../API/axios";
 import { getStoredUser, storeUser } from "../../utils/auth";
-import { canAssignPermissionToUser } from "../../utils/permissionScopes";
+import {
+    canAssignPermissionToUser,
+    filterPermissionsForUser,
+} from "../../utils/permissionScopes";
 
 const getList = (data, key) => {
     if (Array.isArray(data)) return data;
@@ -15,6 +18,12 @@ const getUserName = (user) =>
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.email ||
     `User #${user.id}`;
+
+const getPermissionKey = (permission = {}) =>
+    permission.key ?? permission.name ?? permission.slug ?? permission.code ?? "";
+
+const getPermissionIdByKey = (permissions, key) =>
+    permissions.find((permission) => getPermissionKey(permission) === key)?.id;
 
 export default function UserPermission() {
     const [users, setUsers] = useState([]);
@@ -122,9 +131,45 @@ export default function UserPermission() {
         if (!canAssignPermissionToUser(selectedUser, permission)) return;
         setPermissionError("");
 
+        const selectedPermissionKey = getPermissionKey(permission);
+        const monitorInventoryId = getPermissionIdByKey(
+            permissions,
+            "monitor_inventory"
+        );
+        const manageInventoryId = getPermissionIdByKey(
+            permissions,
+            "manage_inventory"
+        );
+        const viewRecipesId = getPermissionIdByKey(permissions, "view_recipes");
+        const manageRecipesId = getPermissionIdByKey(
+            permissions,
+            "manage_recipes"
+        );
         const exists = userPerms.includes(permissionId);
 
         if (exists) {
+            if (
+                selectedPermissionKey === "monitor_inventory" &&
+                manageInventoryId &&
+                userPerms.includes(manageInventoryId)
+            ) {
+                setPermissionError(
+                    "Remove manage_inventory before removing monitor_inventory"
+                );
+                return;
+            }
+
+            if (
+                selectedPermissionKey === "view_recipes" &&
+                manageRecipesId &&
+                userPerms.includes(manageRecipesId)
+            ) {
+                setPermissionError(
+                    "Remove manage_recipes before removing view_recipes"
+                );
+                return;
+            }
+
             const restaurantId =
                 selectedUser.restaurant_id ||
                 permissionRestaurantIds[permissionId] ||
@@ -178,6 +223,66 @@ export default function UserPermission() {
                 selectedUser.restaurant_id ||
                 permissionRestaurantIds[permissionId] ||
                 "";
+
+            if (
+                selectedPermissionKey === "manage_inventory" &&
+                monitorInventoryId &&
+                !userPerms.includes(monitorInventoryId)
+            ) {
+                const monitorPermission = permissions.find(
+                    (item) => item.id === monitorInventoryId
+                );
+
+                if (monitorPermission?.scope === "restaurant" && !restaurantId) {
+                    setPermissionError("Select restaurant for restaurant permission");
+                    return;
+                }
+
+                const monitorFormData = new FormData();
+                monitorFormData.append("permission_id", monitorInventoryId);
+
+                if (monitorPermission?.scope === "restaurant") {
+                    monitorFormData.append("restaurant_id", restaurantId);
+                }
+
+                await api.post(
+                    `/admin/users/${selectedUser.id}/permissions`,
+                    monitorFormData
+                );
+                setUserPerms((prev) => [
+                    ...new Set([...prev, monitorInventoryId]),
+                ]);
+            }
+
+            if (
+                selectedPermissionKey === "manage_recipes" &&
+                viewRecipesId &&
+                !userPerms.includes(viewRecipesId)
+            ) {
+                const viewRecipesPermission = permissions.find(
+                    (item) => item.id === viewRecipesId
+                );
+
+                if (viewRecipesPermission?.scope === "restaurant" && !restaurantId) {
+                    setPermissionError("Select restaurant for restaurant permission");
+                    return;
+                }
+
+                const viewRecipesFormData = new FormData();
+                viewRecipesFormData.append("permission_id", viewRecipesId);
+
+                if (viewRecipesPermission?.scope === "restaurant") {
+                    viewRecipesFormData.append("restaurant_id", restaurantId);
+                }
+
+                await api.post(
+                    `/admin/users/${selectedUser.id}/permissions`,
+                    viewRecipesFormData
+                );
+                setUserPerms((prev) => [
+                    ...new Set([...prev, viewRecipesId]),
+                ]);
+            }
 
             if (permission?.scope === "restaurant" && !restaurantId) {
                 setPermissionError("Select restaurant for restaurant permission");
@@ -282,7 +387,7 @@ export default function UserPermission() {
 
                 {selectedUser && (
                     <div className="grid grid-cols-2 gap-2">
-                        {permissions.map((p) => {
+                        {filterPermissionsForUser(selectedUser, permissions).map((p) => {
                             const checked = userPerms.includes(p.id);
                             const needsRestaurant =
                                 p.scope === "restaurant" &&

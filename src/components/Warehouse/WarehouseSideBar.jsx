@@ -1,10 +1,15 @@
 import {
     BarChart3,
+    CheckCircle2,
     CirclePlus,
     ClipboardList,
+    FolderPlus,
     LogOut,
     MessageSquare,
     PackageCheck,
+    ReceiptText,
+    Store,
+    Table,
     TriangleAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -12,8 +17,11 @@ import { clearSession } from "../../utils/auth";
 import { NavLink } from "react-router-dom";
 
 
-function WarehouseSideBar({ onAdd, stats }) {
+function WarehouseSideBar({ onAdd, stats, permissions = [] }) {
     const navigate = useNavigate();
+    const canShow = (requiredPermissions = []) =>
+        !requiredPermissions.length ||
+        requiredPermissions.some((permission) => permissions.includes(permission));
 
     const handleLogout = () => {
         clearSession();
@@ -130,6 +138,118 @@ function WarehouseSideBar({ onAdd, stats }) {
                         <MessageSquare size={20} />
                         Manager Chat
                     </NavLink>
+
+                    {canShow(["manage_menu"]) && (
+                        <NavLink
+                            to="/warehouse/add-menu"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <FolderPlus size={20} />
+                            Menu Builder
+                        </NavLink>
+                    )}
+
+                    {canShow(["manage_takeaway_orders"]) && (
+                        <NavLink
+                            to="/warehouse/takeaway-orders"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <ReceiptText size={20} />
+                            Takeaway Orders
+                        </NavLink>
+                    )}
+
+                    {canShow(["manage_kitchen_orders"]) && (
+                        <NavLink
+                            to="/warehouse/kitchen-orders"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <PackageCheck size={20} />
+                            Kitchen Orders
+                        </NavLink>
+                    )}
+
+                    {canShow(["serve_dine_in_orders", "process_payments"]) && (
+                        <NavLink
+                            to="/warehouse/dine-in-service"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <CheckCircle2 size={20} />
+                            Dine-in Service
+                        </NavLink>
+                    )}
+
+                    {canShow(["view_reports"]) && (
+                        <NavLink
+                            to="/warehouse/reports"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <BarChart3 size={20} />
+                            Reports
+                        </NavLink>
+                    )}
+
+                    {canShow(["manage_tables"]) && (
+                        <NavLink
+                            to="/warehouse/tables"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <Table size={20} />
+                            Tables
+                        </NavLink>
+                    )}
+
+                    {canShow(["manage_restaurants"]) && (
+                        <NavLink
+                            to="/warehouse/restaurants"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition lg:w-full
+            ${isActive
+                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    : "text-[#74645E] hover:bg-[#F8F5F1] hover:text-[#7F1D1D]"
+                                }`
+                            }
+                        >
+                            <Store size={20} />
+                            Restaurants
+                        </NavLink>
+                    )}
 
                 </nav>
 

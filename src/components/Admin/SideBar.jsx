@@ -1,4 +1,5 @@
 import {
+    CheckCircle2,
     LayoutDashboard,
     UtensilsCrossed,
     Users,
@@ -6,6 +7,10 @@ import {
     ShieldCheck,
     Table,
     LogOut,
+    ReceiptText,
+    ClipboardList,
+    Package,
+    TriangleAlert,
     X,
 } from "lucide-react";
 
@@ -58,6 +63,36 @@ function SideBar({ isOpen, onClose }) {
             title: "Tables",
             path: "/tables",
             permissions: ["manage_tables"],
+        },
+        {
+            icon: Package,
+            title: "Inventory",
+            path: "/inventory",
+            permissions: ["monitor_inventory"],
+        },
+        {
+            icon: ClipboardList,
+            title: "Stock Actions",
+            path: "/stock-actions",
+            permissions: ["monitor_inventory"],
+        },
+        {
+            icon: TriangleAlert,
+            title: "Low Stock",
+            path: "/low-stock",
+            permissions: ["monitor_inventory"],
+        },
+        {
+            icon: ReceiptText,
+            title: "Takeaway Orders",
+            path: "/takeaway-orders",
+            permissions: ["manage_takeaway_orders"],
+        },
+        {
+            icon: CheckCircle2,
+            title: "Dine-in Service",
+            path: "/dine-in-service",
+            permissions: ["serve_dine_in_orders", "process_payments"],
         },
     ];
 

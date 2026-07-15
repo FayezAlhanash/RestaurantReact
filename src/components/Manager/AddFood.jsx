@@ -20,6 +20,7 @@ import {
   filterCategoriesByRestaurant,
   getResponseList,
 } from "./managerHelpers";
+import { getUserPermissions } from "../../utils/permissions";
 
 const getFoodImageUrl = (image) => {
   if (!image) return "";
@@ -44,6 +45,7 @@ export default function AddFood() {
   const [editingFood, setEditingFood] = useState(null);
   const [deleteFood, setDeleteFood] = useState(null);
   const [ingredients, setIngredients] = useState([]);
+  const [permissions, setPermissions] = useState(() => getUserPermissions());
   const [isSavingFood, setIsSavingFood] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -87,8 +89,26 @@ export default function AddFood() {
   };
 
   const handleAttachIngredients = async (recipe) => {
+    if (!permissions.includes("manage_recipes")) return;
+
     try {
-      console.log(recipe);
+      const restaurantId = await ensureManagerRestaurantId();
+      const foodId = recipe.food_id ?? selectedFood?.id;
+
+      if (!foodId) return;
+
+      for (const ingredient of recipe.ingredients) {
+        const formData = new FormData();
+
+        formData.append("ingredient_id", ingredient.ingredient_id);
+        formData.append("quantity", ingredient.quantity);
+
+        await api.post(
+          `/restaurants/${restaurantId}/foods/${foodId}/ingredients`,
+          formData
+        );
+      }
+
       setOpenIngredientModal(false);
     } catch (err) {
       console.error(err.response?.data || err);
@@ -131,7 +151,7 @@ export default function AddFood() {
       setEditingFood(null);
       setOpenFoodModal(false);
 
-      if (!isEditing) {
+      if (!isEditing && permissions.includes("manage_recipes")) {
         setOpenIngredientModal(true);
       }
     } catch (err) {
@@ -170,6 +190,7 @@ export default function AddFood() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPermissions(getUserPermissions());
     fetchCategories();
     fetchFoods();
     fetchIngredients();

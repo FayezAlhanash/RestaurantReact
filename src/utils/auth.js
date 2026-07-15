@@ -71,15 +71,38 @@ export function storeUser(user, profile = {}) {
         user?.restaurant_id ??
         user?.restaurant?.id ??
         null;
+    const role =
+        profileData.role ??
+        profileData.user?.role ??
+        user?.role ??
+        null;
     const sessionUser = JSON.stringify({
         ...user,
         restaurant,
         restaurant_id: restaurantId,
-        role: profileData.role ?? user?.role ?? null,
+        role,
+        permissions:
+            profileData.permissions ??
+            profileData.user?.permissions ??
+            user?.permissions ??
+            [],
+        role_permissions:
+            profileData.role_permissions ??
+            profileData.rolePermissions ??
+            profileData.user?.role_permissions ??
+            profileData.user?.rolePermissions ??
+            user?.role_permissions ??
+            user?.rolePermissions ??
+            [],
         user_permissions:
             profileData.user_permissions ??
+            profileData.userPermissions ??
             profileData.permissions ??
+            profileData.user?.user_permissions ??
+            profileData.user?.userPermissions ??
+            profileData.user?.permissions ??
             user?.user_permissions ??
+            user?.userPermissions ??
             user?.permissions ??
             [],
     });

@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import { clearSession, getStoredUser } from "../../utils/auth";
+import { getUserPermissions } from "../../utils/permissions";
 
 const getList = (data) => {
     if (Array.isArray(data)) return data;
@@ -108,10 +109,15 @@ function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, a
     );
 }
 
-export default function WaiterDashboard() {
+export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [cashPayments, setCashPayments] = useState([]);
     const [readyOrders, setReadyOrders] = useState([]);
-    const [activeTab, setActiveTab] = useState("cash");
+    const permissions = getUserPermissions();
+    const canServeDineInOrders = permissions.includes("serve_dine_in_orders");
+    const canProcessPayments = permissions.includes("process_payments");
+    const initialTab =
+        mode === "ready" || !canProcessPayments ? "ready" : "cash";
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [isLoading, setIsLoading] = useState(true);
     const [busyKey, setBusyKey] = useState("");
     const [message, setMessage] = useState("");
@@ -125,8 +131,12 @@ export default function WaiterDashboard() {
         try {
             setIsLoading(true);
             const [cashResponse, readyResponse] = await Promise.all([
-                api.get("/waiter/pending-cash-payments"),
-                api.get("/waiter/ready-restaurant-orders"),
+                canProcessPayments
+                    ? api.get("/waiter/pending-cash-payments")
+                    : Promise.resolve({ data: [] }),
+                canServeDineInOrders
+                    ? api.get("/waiter/ready-restaurant-orders")
+                    : Promise.resolve({ data: [] }),
             ]);
 
             setCashPayments(getList(cashResponse.data));
@@ -137,7 +147,7 @@ export default function WaiterDashboard() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [canProcessPayments, canServeDineInOrders]);
 
     useEffect(() => {
         loadData();
@@ -147,6 +157,8 @@ export default function WaiterDashboard() {
     }, [loadData]);
 
     const confirmCash = async (payment) => {
+        if (!canProcessPayments) return;
+
         const invoiceId = getInvoiceId(payment);
         const formData = new FormData();
         formData.append("invoice_id", invoiceId);
@@ -155,6 +167,8 @@ export default function WaiterDashboard() {
     };
 
     const markServed = async (order) => {
+        if (!canServeDineInOrders) return;
+
         const formData = new FormData();
         const invoiceId = getInvoiceId(order);
 
@@ -178,8 +192,15 @@ export default function WaiterDashboard() {
         }
     };
 
-    const currentItems = activeTab === "cash" ? cashPayments : readyOrders;
-    const title = activeTab === "cash" ? "Cash payments" : "Ready orders";
+    const visibleTabs = [
+        { id: "cash", label: "Cash payments", icon: Banknote, show: canProcessPayments && mode !== "ready" },
+        { id: "ready", label: "Ready orders", icon: CheckCircle2, show: canServeDineInOrders && mode !== "cash" },
+    ].filter((tab) => tab.show);
+    const safeActiveTab = visibleTabs.some((tab) => tab.id === activeTab)
+        ? activeTab
+        : visibleTabs[0]?.id || "ready";
+    const currentItems = safeActiveTab === "cash" ? cashPayments : readyOrders;
+    const title = safeActiveTab === "cash" ? "Cash payments" : "Ready orders";
 
     const handleLogout = () => {
         clearSession();
@@ -192,7 +213,8 @@ export default function WaiterDashboard() {
     );
 
     return (
-        <main className="min-h-screen bg-[#f7efe4] text-[#211b18]">
+        <main className={`${embedded ? "" : "min-h-screen"} bg-[#f7efe4] text-[#211b18]`}>
+            {!embedded && (
             <header className="sticky top-0 z-20 border-b border-[#e3d5c5] bg-white/95 px-3 py-3 shadow-sm backdrop-blur sm:px-4 sm:py-4">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
@@ -224,6 +246,7 @@ export default function WaiterDashboard() {
                     </div>
                 </div>
             </header>
+            )}
 
             <section className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-5">
                 <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -244,13 +267,11 @@ export default function WaiterDashboard() {
                     </div>
                 </div>
 
+                {visibleTabs.length > 1 && (
                 <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 shadow-sm">
-                    {[
-                        { id: "cash", label: "Cash payments", icon: Banknote },
-                        { id: "ready", label: "Ready orders", icon: CheckCircle2 },
-                    ].map((tab) => {
+                    {visibleTabs.map((tab) => {
                         const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
+                        const isActive = safeActiveTab === tab.id;
 
                         return (
                             <button
@@ -269,6 +290,7 @@ export default function WaiterDashboard() {
                         );
                     })}
                 </div>
+                )}
 
                 {message && (
                     <p className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
@@ -292,7 +314,7 @@ export default function WaiterDashboard() {
                             const restaurantOrderId = getRestaurantOrderId(item);
                             const key = `${activeTab}:${invoiceId || restaurantOrderId || index}`;
 
-                            if (activeTab === "cash") {
+                            if (safeActiveTab === "cash") {
                                 return (
                                     <WaiterCard
                                         key={key}

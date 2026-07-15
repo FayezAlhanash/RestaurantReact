@@ -56,8 +56,25 @@ function Login() {
             const profileData = profile.data ?? profile;
             const sessionUser = {
                 ...user,
-                role: profileData.role ?? user.role,
-                user_permissions: profileData.user_permissions || [],
+                role: profileData.role ?? profileData.user?.role ?? user.role,
+                permissions:
+                    profileData.permissions ??
+                    profileData.user?.permissions ??
+                    [],
+                role_permissions:
+                    profileData.role_permissions ??
+                    profileData.rolePermissions ??
+                    profileData.user?.role_permissions ??
+                    profileData.user?.rolePermissions ??
+                    [],
+                user_permissions:
+                    profileData.user_permissions ??
+                    profileData.userPermissions ??
+                    profileData.permissions ??
+                    profileData.user?.user_permissions ??
+                    profileData.user?.userPermissions ??
+                    profileData.user?.permissions ??
+                    [],
             };
             const roleId = getRoleId(sessionUser);
             const homePath = getHomePath(roleId);

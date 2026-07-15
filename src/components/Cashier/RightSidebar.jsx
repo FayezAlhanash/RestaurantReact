@@ -1,16 +1,30 @@
-import { BookOpen, Headset, House, LogOut, ReceiptText, Settings } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, Headset, House, LogOut, Package, ReceiptText, Settings, Store, Table, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { clearSession } from "../../utils/auth";
 
 const navigation = [
-    { id: "menu", label: "Menu", icon: House },
-    { id: "catalog", label: "Catalog", icon: BookOpen },
-    { id: "orders", label: "Orders", icon: ReceiptText },
+    { id: "menu", label: "Menu", icon: House, permissions: ["manage_takeaway_orders"] },
+    { id: "catalog", label: "Catalog", icon: BookOpen, permissions: ["manage_takeaway_orders"] },
+    { id: "orders", label: "Orders", icon: ReceiptText, permissions: ["manage_takeaway_orders"] },
+    { id: "serveOrders", label: "Dine-in", icon: CheckCircle2, permissions: ["serve_dine_in_orders", "process_payments"] },
+    { id: "inventory", label: "Inventory", icon: Package, permissions: ["monitor_inventory"] },
+    { id: "stockActions", label: "Stock", icon: ClipboardList, permissions: ["monitor_inventory"] },
+    { id: "lowStock", label: "Low", icon: TriangleAlert, permissions: ["monitor_inventory"] },
+    { id: "tables", label: "Tables", icon: Table, permissions: ["manage_tables"] },
+    {
+        id: "restaurants",
+        label: "Restaurants",
+        icon: Store,
+        permissions: ["manage_restaurants"],
+    },
     { id: "settings", label: "Settings", icon: Settings },
 ];
 
-function RightSidebar({ activeView = "menu", onViewChange }) {
+function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
     const navigate = useNavigate();
+    const canShow = (requiredPermissions = []) =>
+        !requiredPermissions.length ||
+        requiredPermissions.some((permission) => permissions.includes(permission));
 
     const handleLogout = () => {
         clearSession();
@@ -24,7 +38,7 @@ function RightSidebar({ activeView = "menu", onViewChange }) {
             </div>
 
             <nav className="mt-10 flex w-full flex-1 flex-col gap-3">
-                {navigation.map((item) => {
+                {navigation.filter((item) => canShow(item.permissions)).map((item) => {
                     const Icon = item.icon;
                     return (
                         <button

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../API/axios";
+import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import WarehouseList from "./WarehouseList";
 
 function LowStock() {
@@ -7,14 +8,21 @@ function LowStock() {
 
     const getLowStock = async () => {
         try {
+            const restaurantId = await ensureCurrentRestaurantId();
+            if (!restaurantId) {
+                setInventory([]);
+                return;
+            }
+
             const res = await api.get(
-                "/restaurants/1/inventory-alerts/low-stock"
+                `/restaurants/${restaurantId}/inventory-alerts/low-stock`
             );
 
             setInventory(res.data.data);
 
         } catch (error) {
             console.log(error.response?.data || error);
+            setInventory([]);
         }
     };
 

@@ -1,20 +1,43 @@
 import { useState } from "react";
 import api from "../../API/axios";
+import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 
 function WasteModal({ onClose, ingredient, onSuccess }) {
     const [quantity, setQuantity] = useState("");
     const [notes, setNotes] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     const handleSubmit = async () => {
-        await api.post(
-            `/restaurants/1/ingredients/${ingredient.id}/waste`,
-            {
-                quantity: Number(quantity),
-                notes,
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
+        setErrorMessage("");
+
+        try {
+            const restaurantId = await ensureCurrentRestaurantId();
+            if (!restaurantId) {
+                setErrorMessage("Restaurant id was not found for this account.");
+                return;
             }
-        );
-        await onSuccess();
-        onClose();
+
+            await api.post(
+                `/restaurants/${restaurantId}/ingredients/${ingredient.id}/waste`,
+                {
+                    quantity: Number(quantity),
+                    notes,
+                }
+            );
+            await onSuccess();
+            onClose();
+        } catch (error) {
+            setErrorMessage(
+                error.response?.data?.message ||
+                    "Waste could not be saved. Please try again."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -28,20 +51,29 @@ function WasteModal({ onClose, ingredient, onSuccess }) {
                 <input
                     placeholder="Quantity"
                     className="border p-3 w-full mb-3 rounded-xl outline-none focus:border-[#7F1D1D]"
+                    disabled={isSubmitting}
                     onChange={(e) => setQuantity(e.target.value)}
                 />
 
                 <input
                     placeholder="Notes"
                     className="border p-3 w-full mb-3 rounded-xl outline-none focus:border-[#7F1D1D]"
+                    disabled={isSubmitting}
                     onChange={(e) => setNotes(e.target.value)}
                 />
 
+                {errorMessage && (
+                    <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+                        {errorMessage}
+                    </p>
+                )}
+
                 <button
                     onClick={handleSubmit}
-                    className="bg-red-500 text-white w-full py-3 rounded-xl font-bold"
+                    disabled={isSubmitting}
+                    className="bg-red-500 text-white w-full py-3 rounded-xl font-bold disabled:cursor-not-allowed disabled:bg-gray-300"
                 >
-                    Save
+                    {isSubmitting ? "Please wait..." : "Save"}
                 </button>
 
             </div>

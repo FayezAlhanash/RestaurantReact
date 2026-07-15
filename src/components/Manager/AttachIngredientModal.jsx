@@ -11,6 +11,7 @@ export default function AttachIngredientModal({
   const [rows, setRows] = useState([
     {
       ingredient_id: "",
+      quantity: "",
     },
   ]);
 
@@ -20,6 +21,7 @@ export default function AttachIngredientModal({
       setRows([
         {
           ingredient_id: "",
+          quantity: "",
         },
       ]);
     }
@@ -30,6 +32,7 @@ export default function AttachIngredientModal({
       ...rows,
       {
         ingredient_id: "",
+        quantity: "",
       },
     ]);
   };
@@ -50,6 +53,7 @@ export default function AttachIngredientModal({
       .filter((row) => row.ingredient_id)
       .map((row) => ({
         ingredient_id: row.ingredient_id,
+        quantity: Number(row.quantity || 0),
       }));
 
     onSave({
@@ -69,10 +73,10 @@ export default function AttachIngredientModal({
         <div className="flex items-center justify-between border-b border-stone-200 bg-stone-50 px-5 py-4">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-[#7F1D1D]">
-              Ingredients setup
+              Food ingredients
             </p>
             <h2 className="text-xl font-black text-stone-950">
-              Add Ingredients
+              Link Ingredients
             </h2>
             <p className="text-sm font-semibold text-stone-500">
               {food?.name || "New food item"}
@@ -88,11 +92,12 @@ export default function AttachIngredientModal({
         </div>
 
         <div className="p-5">
-          <div className="overflow-x-auto rounded-lg border border-sky-200">
+          <div className="overflow-x-auto rounded-lg border border-stone-200 shadow-sm">
             <table className="w-full min-w-[420px]">
-              <thead className="bg-sky-50 text-xs font-black uppercase tracking-wide text-sky-700">
+              <thead className="bg-stone-100 text-xs font-black uppercase tracking-wide text-stone-600">
                 <tr>
                   <th className="px-4 py-3 text-left">Ingredient</th>
+                  <th className="px-4 py-3 text-left">Quantity</th>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
@@ -119,6 +124,20 @@ export default function AttachIngredientModal({
                           </option>
                         ))}
                       </select>
+                    </td>
+
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.quantity}
+                        onChange={(e) =>
+                          handleChange(index, "quantity", e.target.value)
+                        }
+                        className={fieldClass}
+                        placeholder="2"
+                      />
                     </td>
 
                     <td className="p-3 text-right">
@@ -162,7 +181,7 @@ export default function AttachIngredientModal({
             className="group inline-flex items-center gap-2 rounded-lg bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:-translate-y-0.5 hover:scale-105 hover:bg-[#651717] hover:shadow-xl active:translate-y-0 active:scale-100"
           >
             <Save size={17} className="transition duration-200 group-hover:-rotate-6" />
-            Save Ingredients
+            Save Links
           </button>
         </div>
       </div>
