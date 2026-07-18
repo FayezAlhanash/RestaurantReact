@@ -1,12 +1,16 @@
 import {
     Banknote,
+    ChevronLeft,
+    ChevronRight,
     CheckCircle2,
     CreditCard,
     Minus,
+    Moon,
     Plus,
     ReceiptText,
     Search,
     ShoppingBag,
+    Sun,
     Trash2,
     Utensils,
     X,
@@ -14,13 +18,16 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../API/axios";
+import onboardingCoffee from "../../assets/onboarding-coffee.jpg";
+import onboardingDining from "../../assets/onboarding-dining.jpg";
+import onboardingTerrace from "../../assets/onboarding-terrace.jpg";
 import {
     confirmStripePayment,
     createStripeCardElement,
     findStripeClientSecret,
 } from "../../utils/stripePayments";
+import { useTheme } from "../../context/ThemeContext";
 import CategoryTabs from "../Cashier/CategoryTabs";
-import MenuItemCard from "../Cashier/MenuItem";
 import ProductModal from "../Cashier/ProductModal";
 
 const getList = (data) => {
@@ -380,35 +387,42 @@ function CustomerFoodCard({ item, onOpen }) {
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
 
     return (
-        <article className="flex gap-3 rounded-2xl border border-[#E7DCD6] bg-white p-3 shadow-sm">
-            <img
-                src={imageUrl}
-                alt={item.title}
-                className="h-24 w-24 shrink-0 rounded-xl bg-[#EDE5DF] object-cover"
-            />
-            <div className="flex min-w-0 flex-1 flex-col">
-                <div className="min-w-0">
-                    <p className="truncate text-xs font-black uppercase tracking-wide text-[#9A7A70]">
-                        {item.restaurantName}
-                    </p>
-                    <h2 className="mt-1 line-clamp-1 text-base font-black text-[#241F1D]">
-                        {item.title}
-                    </h2>
-                        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-[#5F504A]">
-                        {item.description || item.categoryName}
-                    </p>
-                </div>
-                <div className="mt-auto flex items-center justify-between gap-3 pt-3">
-                    <span className="text-lg font-black text-[#7F1D1D]">
-                        ${Number(item.price ?? 0).toFixed(2)}
-                    </span>
+        <article className="customer-food-card group grid grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] sm:block sm:rounded-[26px] sm:hover:-translate-y-1">
+            <div className="relative min-h-[150px] overflow-hidden bg-[#111719] sm:h-44">
+                <img
+                    src={imageUrl}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent" />
+                <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-[#7F1D1D] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px]">
+                    {item.categoryName || "Menu"}
+                </span>
+                <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-[#FFD166] backdrop-blur sm:bottom-3 sm:right-3 sm:px-3 sm:text-sm">
+                    ${Number(item.price ?? 0).toFixed(2)}
+                </span>
+            </div>
+
+            <div className="flex min-h-[150px] min-w-0 flex-col p-3 sm:min-h-44 sm:p-4">
+                <p className="truncate text-xs font-black uppercase tracking-wide text-[#FFD166]">
+                    {item.restaurantName}
+                </p>
+                <h2 className="mt-1.5 line-clamp-2 text-base font-black leading-5 text-white sm:mt-2 sm:line-clamp-1 sm:text-xl sm:leading-7">
+                    {item.title}
+                </h2>
+                <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5 text-white/62 sm:mt-2 sm:text-sm sm:leading-6">
+                    {item.description || item.categoryName || "Freshly prepared for your table."}
+                </p>
+
+                <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:gap-3 sm:pt-5">
+                    <span className="truncate text-xs font-bold text-white/45 sm:text-sm">Tap to customize</span>
                     <button
                         type="button"
                         onClick={onOpen}
-                        className="grid h-10 w-10 place-items-center rounded-xl bg-[#7F1D1D] text-white shadow-sm transition active:scale-95"
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 sm:h-11 sm:w-11"
                         aria-label={`Add ${item.title}`}
                     >
-                        <Plus size={19} />
+                        <Plus size={18} />
                     </button>
                 </div>
             </div>
@@ -421,39 +435,229 @@ function RestaurantSelectCard({ restaurant, itemCount, isActive, onSelect }) {
         <button
             type="button"
             onClick={onSelect}
-            className={`group overflow-hidden rounded-2xl border bg-white text-left shadow-[0_16px_34px_rgba(42,28,22,0.10)] transition hover:-translate-y-0.5 active:scale-[0.99] ${
+            className={`group overflow-hidden rounded-[26px] border text-left shadow-[0_20px_46px_rgba(0,0,0,0.24)] transition duration-300 hover:-translate-y-1 active:scale-[0.99] ${
                 isActive
-                    ? "border-[#D8A23A] ring-4 ring-[#D8A23A]/20"
-                    : "border-[#E7DCD6] hover:border-[#D8A23A]/60"
+                    ? "border-[#7F1D1D] bg-[#7F1D1D]/10 ring-4 ring-[#7F1D1D]/20"
+                    : "border-white/10 bg-white/[0.06] hover:border-[#FFD166]/50 hover:bg-white/[0.09]"
             }`}
         >
-            <div className="relative h-36 overflow-hidden bg-[#EDE5DF] sm:h-44">
+            <div className="relative h-40 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),transparent_58%),linear-gradient(135deg,#171D20,#0D1113)] sm:h-48">
                 <img
                     src={getRestaurantImageUrl(restaurant)}
                     alt={restaurant.name}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    className="h-full w-full object-contain p-7 opacity-90 transition duration-700 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1D1410]/70 via-[#7A3A2C]/18 to-transparent" />
-                <span className="absolute left-3 top-3 rounded-full bg-[#FFF7DA]/95 px-3 py-1 text-xs font-black text-[#5F3D06] backdrop-blur">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1113] via-[#0D1113]/30 to-transparent" />
+                <span className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-xs font-black text-[#FFD166] backdrop-blur">
                     {itemCount} items
                 </span>
                 {isActive && (
-                    <span className="absolute right-3 top-3 rounded-full bg-[#D8A23A] px-3 py-1 text-xs font-black text-[#241707]">
-                        Open
+                    <span className="absolute right-3 top-3 rounded-full bg-[#7F1D1D] px-3 py-1 text-xs font-black text-white">
+                        Selected
                     </span>
                 )}
-                <div className="absolute bottom-3 left-3 right-3">
-                    <h2 className="truncate text-xl font-black text-white">
+                <div className="customer-image-text absolute bottom-4 left-4 right-4">
+                    <h2 className="truncate text-2xl font-black text-white drop-shadow">
                         {restaurant.name}
                     </h2>
                     {restaurant.description && (
-                        <p className="mt-1 line-clamp-1 text-xs font-bold text-white/95 drop-shadow">
+                        <p className="mt-1 line-clamp-1 text-xs font-bold text-white/70">
                             {restaurant.description}
                         </p>
                     )}
                 </div>
             </div>
         </button>
+    );
+}
+
+function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [isSliderPaused, setIsSliderPaused] = useState(false);
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStartX = useRef(0);
+    const activeItem = featuredItems[activeIndex];
+
+    useEffect(() => {
+        if (!featuredItems.length || isSliderPaused) return undefined;
+
+        setActiveIndex((currentIndex) =>
+            Math.min(currentIndex, featuredItems.length - 1)
+        );
+
+        const intervalId = window.setInterval(() => {
+            setActiveIndex((currentIndex) => (currentIndex + 1) % featuredItems.length);
+        }, 6500);
+
+        return () => window.clearInterval(intervalId);
+    }, [featuredItems.length, isSliderPaused]);
+
+    const selectByIndex = (index) => {
+        if (!featuredItems.length) return;
+
+        setActiveIndex((index + featuredItems.length) % featuredItems.length);
+    };
+
+    const goToPreviousSlide = () => {
+        selectByIndex(activeIndex - 1);
+    };
+
+    const goToNextSlide = () => {
+        selectByIndex(activeIndex + 1);
+    };
+
+    const handlePointerDown = (event) => {
+        if (event.target.closest("a,button")) return;
+
+        setIsSliderPaused(true);
+        setIsDragging(true);
+        dragStartX.current = event.clientX;
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handlePointerMove = (event) => {
+        if (!isDragging) return;
+
+        setDragOffset(event.clientX - dragStartX.current);
+    };
+
+    const handlePointerUp = (event) => {
+        if (!isDragging) return;
+
+        const distance = event.clientX - dragStartX.current;
+
+        if (distance > 80) {
+            goToPreviousSlide();
+        } else if (distance < -80) {
+            goToNextSlide();
+        }
+
+        setDragOffset(0);
+        setIsDragging(false);
+        setIsSliderPaused(false);
+    };
+
+    if (!featuredItems.length) {
+        return (
+            <section className="relative mb-3 h-[320px] w-full overflow-hidden rounded-[24px] border border-white/10 bg-[#101517] px-4 text-white sm:mb-4 sm:h-[380px] sm:rounded-[30px] lg:h-[430px]">
+                <div className="mx-auto flex h-full max-w-7xl items-center justify-center text-center">
+                    <div>
+                        <h2 className="text-2xl font-black">Loading dishes...</h2>
+                        <p className="mt-2 text-sm font-semibold text-white/55">
+                            Preparing the dine-in menu for table {tableNumber}.
+                        </p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    return (
+        <section
+            onMouseEnter={() => setIsSliderPaused(true)}
+            onMouseLeave={() => !isDragging && setIsSliderPaused(false)}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className="relative mb-3 h-[320px] w-full touch-pan-y overflow-hidden rounded-[24px] border border-white/10 bg-[#101517] text-white shadow-[0_28px_70px_rgba(0,0,0,0.28)] sm:mb-4 sm:h-[380px] sm:rounded-[30px] lg:h-[430px]"
+        >
+            <div
+                className={`absolute inset-0 flex cursor-grab select-none ${
+                    isDragging
+                        ? "cursor-grabbing"
+                        : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                }`}
+                style={{
+                    transform: `translate3d(calc(-${activeIndex * 100}% + ${dragOffset}px), 0, 0)`,
+                }}
+            >
+                {featuredItems.map((item) => (
+                    <article
+                        key={`${item.restaurant_id}-${item.id}`}
+                        className="relative h-full w-full min-w-full overflow-hidden"
+                    >
+                        <img
+                            src={item.image}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,13,14,0.92)_0%,rgba(10,13,14,0.70)_42%,rgba(10,13,14,0.18)_100%)]" />
+                        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#101517] to-transparent" />
+
+                        <div className="relative z-10 mx-auto grid h-full max-w-7xl items-end gap-4 px-4 py-7 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,0.95fr)_280px] lg:items-center">
+                            <div className="max-w-2xl pb-8 sm:pb-9 lg:pb-0">
+                                <p className="mb-2 inline-flex max-w-full rounded-full bg-[#FFD166] px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#241707] shadow-[0_12px_24px_rgba(255,209,102,0.18)] sm:mb-3 sm:px-3.5 sm:text-[11px]">
+                                    Featured from {item.restaurantName}
+                                </p>
+                                <h1 className="line-clamp-2 text-3xl font-black leading-[1.02] tracking-normal text-white drop-shadow sm:text-5xl lg:text-6xl">
+                                    {item.title}
+                                </h1>
+                                <p className="mt-2 line-clamp-2 max-w-xl text-xs font-semibold leading-5 text-white/72 sm:mt-3 sm:text-base sm:leading-6">
+                                    {item.description || `Freshly prepared by ${item.restaurantName}.`}
+                                </p>
+
+                                <div className="mt-4 flex flex-wrap items-center gap-2.5 sm:mt-5 sm:gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => onGoToMenu(item)}
+                                        className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[#7F1D1D] px-4 py-2.5 text-xs font-black text-white shadow-[0_18px_36px_rgba(127,29,29,0.30)] transition hover:bg-[#681718] active:scale-[0.98] sm:min-h-[46px] sm:rounded-2xl sm:px-5 sm:py-3 sm:text-sm"
+                                    >
+                                        Go to menu
+                                        <ChevronRight size={18} />
+                                    </button>
+                                    <span className="rounded-xl border border-white/10 bg-black/28 px-3 py-2 text-sm font-black text-[#FFD166] backdrop-blur sm:rounded-2xl sm:px-3.5 sm:py-2.5 sm:text-base">
+                                        ${Number(item.price ?? 0).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="hidden justify-self-end lg:block">
+                                <div className="w-[260px] rounded-[26px] border border-white/10 bg-black/30 p-3 shadow-[0_30px_70px_rgba(0,0,0,0.28)] backdrop-blur xl:w-[280px]">
+                                    <img
+                                        src={item.image}
+                                        alt={item.title}
+                                        className="aspect-[4/3] w-full rounded-[20px] object-cover"
+                                    />
+                                    <div className="flex items-center justify-between gap-3 pt-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-black text-white">
+                                                {item.restaurantName}
+                                            </p>
+                                            <p className="truncate text-xs font-bold text-white/52">
+                                                {item.categoryName}
+                                            </p>
+                                        </div>
+                                        <ShoppingBag className="shrink-0 text-[#FFD166]" size={22} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                ))}
+            </div>
+
+            <div className="absolute bottom-4 left-1/2 z-20 flex max-w-[58vw] -translate-x-1/2 items-center gap-1.5 overflow-hidden sm:bottom-7 sm:gap-2">
+                {featuredItems.map((item, index) => (
+                    <button
+                        key={`${item.restaurant_id}-${item.id}-dot`}
+                        type="button"
+                        onClick={() => selectByIndex(index)}
+                        className={`h-2 shrink-0 rounded-full transition sm:h-2.5 ${
+                            index === activeIndex ? "w-7 bg-[#FFD166] sm:w-9" : "w-2 bg-white/40 sm:w-2.5"
+                        }`}
+                        aria-label={`Show ${item.title}`}
+                    />
+                ))}
+            </div>
+
+            {activeItem && (
+                <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-xl border border-white/10 bg-black/28 px-3 py-2 text-xs font-black text-white/70 backdrop-blur sm:right-5 sm:top-5 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
+                    {activeIndex + 1} / {featuredItems.length}
+                </div>
+            )}
+        </section>
     );
 }
 
@@ -477,20 +681,20 @@ function OrderPanel({
 
     return (
         <section
-            className={`flex flex-col overflow-hidden border border-[#B75D42]/25 bg-[#5A2E25] text-white shadow-[0_20px_45px_rgba(90,46,37,0.20)] ${
+            className={`flex flex-col overflow-hidden border border-white/10 bg-[#151A1D]/92 text-white shadow-[0_28px_70px_rgba(0,0,0,0.30)] backdrop-blur-xl ${
                 isMobile
-                    ? "max-h-[78dvh] rounded-t-2xl"
-                    : "max-h-[calc(100dvh-7.5rem)] min-h-[520px] rounded-2xl"
+                    ? "max-h-[78dvh] rounded-t-[28px]"
+                    : "max-h-[calc(100dvh-7.5rem)] min-h-[520px] rounded-[28px]"
             }`}
         >
-            <div className={`shrink-0 border-b border-white/10 ${isMobile ? "p-4" : "p-5"}`}>
+            <div className={`shrink-0 border-b border-white/10 bg-white/[0.03] ${isMobile ? "p-4" : "p-5"}`}>
                 <div className="flex items-center gap-3">
-                    <div className={`${isMobile ? "h-10 w-10" : "h-12 w-12"} grid place-items-center rounded-xl bg-[#D8A23A] text-[#261707]`}>
+                    <div className={`${isMobile ? "h-10 w-10" : "h-12 w-12"} grid place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_14px_32px_rgba(127,29,29,0.28)]`}>
                         <ReceiptText size={isMobile ? 19 : 22} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h2 className={`${isMobile ? "text-xl" : "text-2xl"} font-black leading-7`}>Bill</h2>
-                        <p className="text-sm font-bold text-white/60">
+                        <h2 className={`${isMobile ? "text-xl" : "text-2xl"} font-black leading-7`}>Your order</h2>
+                        <p className="text-sm font-bold text-white/55">
                             {itemCount ? `${itemCount} items in your order` : "No items yet"}
                         </p>
                     </div>
@@ -507,12 +711,12 @@ function OrderPanel({
                 </div>
             </div>
 
-            <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}>
+            <div className={`customer-order-scroll min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}>
                 {cartItems.length ? (
                     cartItems.map((item, index) => (
                         <div
                             key={`${item.id}-${item.notes}-${index}`}
-                            className={`rounded-2xl border border-white/10 bg-white/10 ${isMobile ? "p-3" : "p-4"}`}
+                            className={`rounded-2xl border border-white/10 bg-white/[0.07] ${isMobile ? "p-3" : "p-4"}`}
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -539,11 +743,11 @@ function OrderPanel({
                             </div>
 
                             <div className="mt-4 flex items-center justify-between gap-3">
-                                <div className="flex shrink-0 items-center rounded-xl border border-white/15 bg-[#4C261F] p-1">
+                                <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
                                     <button
                                         type="button"
                                         onClick={() => onChangeQuantity(index, -1)}
-                                        className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#F6C65B]`}
+                                        className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
                                         aria-label="Decrease quantity"
                                     >
                                         <Minus size={16} />
@@ -554,13 +758,13 @@ function OrderPanel({
                                     <button
                                         type="button"
                                         onClick={() => onChangeQuantity(index, 1)}
-                                        className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#F6C65B]`}
+                                        className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
                                         aria-label="Increase quantity"
                                     >
                                         <Plus size={16} />
                                     </button>
                                 </div>
-                                <span className={`${isMobile ? "text-base" : "text-lg"} shrink-0 font-black text-[#F6C65B]`}>
+                                <span className={`${isMobile ? "text-base" : "text-lg"} shrink-0 font-black text-[#FFD166]`}>
                                     ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
                                 </span>
                             </div>
@@ -568,7 +772,7 @@ function OrderPanel({
                     ))
                 ) : (
                     <div className="flex h-full min-h-64 flex-col items-center justify-center px-6 text-center">
-                        <ShoppingBag className="text-[#F6C65B]" size={34} />
+                        <ShoppingBag className="text-[#FFD166]" size={34} />
                         <h3 className="mt-3 font-black">Your order is empty</h3>
                         <p className="mt-1 text-sm font-medium text-white/55">
                             Add dishes and they will appear here.
@@ -597,7 +801,7 @@ function OrderPanel({
                                 onClick={() => onPaymentMethodChange(method.id)}
                                 className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-black transition ${
                                     isActive
-                                        ? "bg-[#D8A23A] text-[#241707]"
+                                        ? "bg-[#FFD166] text-[#151A1D]"
                                         : "text-white/70 hover:bg-white/10 hover:text-white"
                                 }`}
                             >
@@ -627,7 +831,7 @@ function OrderPanel({
                     </div>
                 )}
             </div>
-            <div className={`space-y-3 rounded-xl border border-white/10 bg-white/10 ${isMobile ? "p-3" : "p-4"} text-base`}>
+            <div className={`space-y-3 rounded-2xl border border-white/10 bg-white/[0.07] ${isMobile ? "p-3" : "p-4"} text-base`}>
                 <div className="flex items-center justify-between text-white/65">
                     <span>Subtotal</span>
                     <span className="font-black text-white">
@@ -637,7 +841,7 @@ function OrderPanel({
                 <div className="border-t border-dashed border-white/20" />
                 <div className="flex items-end justify-between">
                     <span className="text-lg font-black">Total</span>
-                    <span className={`${isMobile ? "text-2xl" : "text-3xl"} font-black text-[#F6C65B]`}>
+                    <span className={`${isMobile ? "text-2xl" : "text-3xl"} font-black text-[#FFD166]`}>
                         ${subtotal.toFixed(2)}
                     </span>
                 </div>
@@ -648,7 +852,7 @@ function OrderPanel({
                     type="button"
                     onClick={onSubmit}
                     disabled={!itemCount || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
-                    className="h-12 w-full rounded-xl bg-[#D8A23A] px-4 text-sm font-black text-[#241707] shadow-sm transition hover:bg-[#F0BD4E] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
+                    className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
                 >
                     {isSubmitting ? "Sending..." : "Send"}
                 </button>
@@ -702,14 +906,14 @@ function MobileOrderBar({
                 </div>
             )}
 
-            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#6B3528]/20 bg-[#FFF8EA]/95 px-3 py-3 shadow-[0_-12px_30px_rgba(70,45,30,0.18)] backdrop-blur">
-                <div className="mx-auto flex max-w-5xl items-center gap-3">
+            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#101517]/92 px-2.5 py-2.5 shadow-[0_-18px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:px-3 sm:py-3">
+                <div className="mx-auto flex max-w-5xl items-center gap-2 sm:gap-3">
                     <button
                         type="button"
                         onClick={onOpen}
-                        className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl bg-[#5A2E25] px-4 py-3 text-left text-white shadow-sm transition active:scale-[0.99]"
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2.5 text-left text-white shadow-sm transition active:scale-[0.99] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3"
                     >
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#D8A23A] text-[#241707]">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#7F1D1D] text-white sm:h-10 sm:w-10">
                             <ShoppingBag size={18} />
                         </span>
                         <span className="min-w-0">
@@ -720,7 +924,7 @@ function MobileOrderBar({
                                 View bill
                             </span>
                         </span>
-                        <span className="ml-auto shrink-0 text-lg font-black text-[#F6C65B]">
+                        <span className="ml-auto shrink-0 text-base font-black text-[#FFD166] sm:text-lg">
                             ${subtotal.toFixed(2)}
                         </span>
                     </button>
@@ -729,7 +933,7 @@ function MobileOrderBar({
                         type="button"
                         onClick={onSubmit}
                         disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
-                        className="h-14 shrink-0 rounded-2xl bg-[#D8A23A] px-5 text-sm font-black text-[#241707] shadow-sm transition active:scale-95 disabled:opacity-60"
+                        className="h-12 shrink-0 rounded-xl bg-[#7F1D1D] px-4 text-xs font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.25)] transition active:scale-95 disabled:opacity-60 sm:h-14 sm:rounded-2xl sm:px-5 sm:text-sm"
                     >
                         {isSubmitting ? "Sending..." : paymentMethod === "cash" ? "Cash" : "Stripe"}
                     </button>
@@ -739,11 +943,164 @@ function MobileOrderBar({
     );
 }
 
+const onboardingSlides = [
+    {
+        image: onboardingCoffee,
+        eyebrow: "Welcome",
+        title: "Your table is ready",
+        description:
+            "Relax, browse the menu, and order directly from your seat whenever you are ready.",
+        align: "items-end text-left",
+    },
+    {
+        image: onboardingTerrace,
+        eyebrow: "Simple ordering",
+        title: "Pick your favorites",
+        description:
+            "Choose a restaurant, filter dishes, customize your meal, and add everything to your bill.",
+        align: "items-start text-left",
+    },
+    {
+        image: onboardingDining,
+        eyebrow: "Order now",
+        title: "Good food is one tap away",
+        description:
+            "Send your order to the team and keep enjoying your time at the table.",
+        align: "items-end text-left",
+    },
+];
+
+function CustomerOnboarding({ tableNumber, onFinish }) {
+    const [activeSlide, setActiveSlide] = useState(0);
+    const isLastSlide = activeSlide === onboardingSlides.length - 1;
+
+    const goToPrevious = () =>
+        setActiveSlide((current) => Math.max(0, current - 1));
+
+    const goToNext = () => {
+        if (isLastSlide) {
+            onFinish();
+            return;
+        }
+
+        setActiveSlide((current) =>
+            Math.min(onboardingSlides.length - 1, current + 1)
+        );
+    };
+
+    return (
+        <main className="customer-experience relative min-h-dvh overflow-hidden bg-[#140F0D] font-[Raleway] text-white">
+            <div
+                className="absolute inset-0 flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+            >
+                {onboardingSlides.map((item) => (
+                    <img
+                        key={item.title}
+                        src={item.image}
+                        alt=""
+                        className="h-full w-full min-w-full object-cover"
+                    />
+                ))}
+            </div>
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,10,8,0.25)_0%,rgba(13,10,8,0.58)_44%,rgba(13,10,8,0.88)_100%)]" />
+
+            <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-5 sm:px-8">
+                <div className="rounded-full border border-white/15 bg-black/25 px-4 py-2 text-xs font-black uppercase tracking-wide text-white/85 backdrop-blur">
+                    Table {tableNumber}
+                </div>
+                <button
+                    type="button"
+                    onClick={onFinish}
+                    className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white backdrop-blur transition active:scale-95"
+                >
+                    Skip
+                </button>
+            </div>
+
+            <div
+                className="relative z-10 flex min-h-dvh transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+            >
+                {onboardingSlides.map((item, index) => (
+                    <section
+                        key={item.title}
+                        className={`flex min-h-dvh w-full min-w-full flex-col justify-end px-5 pb-28 pt-24 sm:px-8 lg:px-12 ${item.align}`}
+                    >
+                        <div
+                            className={`w-full max-w-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                                index === activeSlide
+                                    ? "translate-y-0 opacity-100"
+                                    : "translate-y-5 opacity-0"
+                            }`}
+                        >
+                            <p className="mb-3 inline-flex rounded-full bg-[#D8A23A] px-4 py-2 text-xs font-black uppercase tracking-wide text-[#241707]">
+                                {item.eyebrow}
+                            </p>
+                            <h1 className="max-w-[12ch] text-4xl font-black leading-[1.04] text-white drop-shadow sm:text-6xl">
+                                {item.title}
+                            </h1>
+                            <p className="mt-4 max-w-md text-base font-semibold leading-7 text-white/82 sm:text-lg">
+                                {item.description}
+                            </p>
+                        </div>
+                    </section>
+                ))}
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-8 sm:px-8 lg:px-12">
+                <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-4">
+                    <button
+                        type="button"
+                        onClick={goToPrevious}
+                        disabled={activeSlide === 0}
+                        className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur transition active:scale-95 disabled:opacity-35"
+                        aria-label="Previous slide"
+                    >
+                        <ChevronLeft size={22} />
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                        {onboardingSlides.map((item, index) => (
+                            <button
+                                key={item.title}
+                                type="button"
+                                onClick={() => setActiveSlide(index)}
+                                className={`h-2.5 rounded-full transition ${
+                                    index === activeSlide
+                                        ? "w-8 bg-[#D8A23A]"
+                                        : "w-2.5 bg-white/45"
+                                }`}
+                                aria-label={`Go to slide ${index + 1}`}
+                            />
+                        ))}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={goToNext}
+                        className={`flex h-12 shrink-0 items-center justify-center gap-2 rounded-full font-black shadow-[0_16px_34px_rgba(0,0,0,0.25)] transition active:scale-95 ${
+                            isLastSlide
+                                ? "min-w-36 bg-[#D8A23A] px-5 text-[#241707]"
+                                : "w-12 bg-white text-[#241707]"
+                        }`}
+                        aria-label={isLastSlide ? "Order now" : "Next slide"}
+                    >
+                        {isLastSlide ? "Order Now" : <ChevronRight size={22} />}
+                    </button>
+                </div>
+            </div>
+        </main>
+    );
+}
+
 function DineInOrder() {
+    const { isLight, toggleTheme } = useTheme();
     const { tableId = "1" } = useParams();
     const orderStorageKey = `customer-dine-in-order:${tableId}`;
     const invoiceStorageKey = `customer-dine-in-invoice:${tableId}`;
     const tableTokenStorageKey = `customer-dine-in-table-token:${tableId}`;
+    const onboardingStorageKey = `customer-dine-in-onboarding:${tableId}`;
     const [restaurants, setRestaurants] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
     const [tableToken, setTableToken] = useState(() =>
@@ -769,6 +1126,10 @@ function DineInOrder() {
     const [activeInvoiceId, setActiveInvoiceId] = useState(() =>
         sessionStorage.getItem(invoiceStorageKey)
     );
+    const [showOnboarding, setShowOnboarding] = useState(
+        () => sessionStorage.getItem(onboardingStorageKey) !== "done"
+    );
+    const menuSectionRef = useRef(null);
     const stripeCardContainerRef = useRef(null);
     const stripeCardRef = useRef(null);
 
@@ -905,16 +1266,13 @@ function DineInOrder() {
         [activeRestaurant, restaurants]
     );
 
-    const menuCountByRestaurant = useMemo(() => {
-        const counts = new Map();
-
-        menuItems.forEach((item) => {
-            const key = String(item.restaurant_id ?? "");
-            counts.set(key, (counts.get(key) || 0) + 1);
-        });
-
-        return counts;
-    }, [menuItems]);
+    const featuredItems = useMemo(
+        () =>
+            menuItems
+                .filter((item) => item.image)
+                .slice(0, 12),
+        [menuItems]
+    );
 
     const activeRestaurantCategories = useMemo(() => {
         const categoryMap = new Map();
@@ -930,6 +1288,12 @@ function DineInOrder() {
 
         return Array.from(categoryMap.values());
     }, [activeRestaurant, menuItems]);
+
+    useEffect(() => {
+        if (activeRestaurant || !restaurants.length) return;
+
+        setActiveRestaurant(String(restaurants[0].id));
+    }, [activeRestaurant, restaurants]);
 
     const subtotal = cartItems.reduce(
         (total, item) => total + Number(item.price ?? 0) * Number(item.quantity ?? 1),
@@ -1034,13 +1398,42 @@ function DineInOrder() {
         }
     };
 
+    const finishOnboarding = () => {
+        sessionStorage.setItem(onboardingStorageKey, "done");
+        setShowOnboarding(false);
+    };
+
+    const goToDishRestaurantMenu = (item) => {
+        setActiveRestaurant(String(item.restaurant_id));
+        setActiveCategory("all");
+        setSearch("");
+
+        window.setTimeout(() => {
+            menuSectionRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        }, 0);
+    };
+
+    if (showOnboarding) {
+        return (
+            <CustomerOnboarding
+                tableNumber={tableNumber}
+                onFinish={finishOnboarding}
+            />
+        );
+    }
+
     return (
-        <div className="min-h-dvh bg-[radial-gradient(circle_at_top_left,rgba(246,198,91,0.26),transparent_32%),radial-gradient(circle_at_top_right,rgba(31,117,93,0.16),transparent_28%),linear-gradient(135deg,#FFF9EC_0%,#F2DCB8_50%,#D5AA78_100%)] font-[Raleway] text-[#241F1D]">
-            <header className="sticky top-0 z-30 border-b border-[#B75D42]/25 bg-[#6B3528]/95 px-4 py-3 text-white shadow-[0_12px_30px_rgba(107,53,40,0.16)] backdrop-blur">
-                <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+        <div className="customer-experience min-h-dvh overflow-hidden bg-[#101517] font-[Raleway] text-white">
+            <div className="customer-dark-overlay pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.24),transparent_30%),radial-gradient(circle_at_12%_20%,rgba(255,209,102,0.13),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)]" />
+
+            <header className="customer-dark-header sticky top-0 z-30 border-b border-white/10 bg-[#101517]/82 px-3 py-2.5 text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:px-4 sm:py-3">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#D8A23A] text-[#241707] shadow-sm">
-                            <Utensils size={20} />
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_12px_30px_rgba(127,29,29,0.28)] sm:h-11 sm:w-11">
+                            <Utensils size={18} />
                         </div>
                         <div className="min-w-0">
                             <p className="truncate text-sm font-black text-white">
@@ -1052,36 +1445,44 @@ function DineInOrder() {
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => itemCount > 0 && setIsMobileCartOpen(true)}
-                        className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/10 text-[#F6C65B] shadow-sm transition active:scale-95 lg:pointer-events-none"
-                        aria-label="Open bill"
-                    >
-                        <ShoppingBag size={20} />
-                        {itemCount > 0 && (
-                            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#D8A23A] px-1 text-[10px] font-black text-[#241707]">
-                                {itemCount}
-                            </span>
-                        )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={toggleTheme}
+                            className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10 text-[#FFD166] shadow-sm transition hover:bg-white/[0.14] active:scale-95 sm:h-11 sm:w-11 sm:rounded-2xl"
+                            aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
+                            title={isLight ? "Dark mode" : "Light mode"}
+                        >
+                            {isLight ? <Moon size={20} /> : <Sun size={20} />}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => itemCount > 0 && setIsMobileCartOpen(true)}
+                            className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10 text-[#FFD166] shadow-sm transition active:scale-95 sm:h-11 sm:w-11 sm:rounded-2xl lg:pointer-events-none"
+                            aria-label="Open bill"
+                        >
+                            <ShoppingBag size={20} />
+                            {itemCount > 0 && (
+                                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#7F1D1D] px-1 text-[10px] font-black text-white">
+                                    {itemCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            <main className={`mx-auto grid max-w-7xl gap-4 px-3 pt-4 sm:px-4 sm:pt-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start ${itemCount ? "pb-28 lg:pb-8" : "pb-8"}`}>
-                <div className="min-w-0">
-                    <section className="mb-4 overflow-hidden rounded-2xl border border-[#6F1515]/15 bg-[#fffdf8]/95 p-4 shadow-[0_18px_45px_rgba(70,45,30,0.14)] sm:mb-5 sm:p-5">
-                        <p className="mb-2 inline-flex rounded-full bg-[#175F48]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#175F48]">
-                            Dine in ordering
-                        </p>
-                        <h1 className="text-xl font-black text-[#201A18] sm:text-2xl">
-                            Choose a restaurant
-                        </h1>
-                        <p className="mt-1 text-sm font-semibold text-[#5F504A]">
-                            Pick a restaurant to filter its menu. Tap a dish to customize it.
-                        </p>
-                    </section>
+            <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 lg:grid-cols-[minmax(0,1fr)_370px] lg:items-start ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}>
+                <div className="lg:col-span-2">
+                    <FeaturedDishSlider
+                        featuredItems={featuredItems}
+                        tableNumber={tableNumber}
+                        onGoToMenu={goToDishRestaurantMenu}
+                    />
+                </div>
 
+                <div className="min-w-0">
                     {successMessage && (
                         <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
                             <CheckCircle2 size={18} />
@@ -1095,52 +1496,28 @@ function DineInOrder() {
                         </p>
                     )}
 
-                    <section className="min-w-0">
-                        {isLoading ? (
-                            <div className="rounded-2xl border border-[#E7DCD6] bg-white/80 px-6 py-14 text-center">
-                                <h2 className="text-lg font-black">Loading restaurants...</h2>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-                                {restaurants.map((restaurant) => (
-                                    <RestaurantSelectCard
-                                        key={restaurant.id}
-                                        restaurant={restaurant}
-                                        itemCount={menuCountByRestaurant.get(String(restaurant.id)) || 0}
-                                        isActive={String(activeRestaurant) === String(restaurant.id)}
-                                        onSelect={() => {
-                                            setActiveRestaurant(String(restaurant.id));
-                                            setActiveCategory("all");
-                                            setSearch("");
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </section>
-
-                    <section className="mt-4 min-w-0 rounded-2xl border border-[#6F1515]/15 bg-[#fffdf8]/90 p-3 shadow-[0_18px_45px_rgba(70,45,30,0.12)] sm:mt-5 sm:p-4">
+                    <section ref={menuSectionRef} className="scroll-mt-20 min-w-0 rounded-[24px] border border-white/10 bg-white/[0.06] p-2 shadow-[0_28px_70px_rgba(0,0,0,0.24)] backdrop-blur sm:scroll-mt-24 sm:rounded-[30px] sm:p-4">
                         {activeRestaurantData ? (
                             <>
-                                <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-[#6B3528] via-[#A94F3A] to-[#1F755D] p-3 text-white sm:flex-row sm:items-center sm:justify-between">
+                                <div className="mb-3 flex flex-col gap-3 rounded-[20px] border border-white/10 bg-[#12181B] p-2.5 text-white sm:mb-4 sm:rounded-[24px] sm:p-3 md:flex-row md:items-center md:justify-between">
                                     <div className="flex min-w-0 items-center gap-3">
                                         <img
                                             src={getRestaurantImageUrl(activeRestaurantData)}
                                             alt={activeRestaurantData.name}
-                                            className="h-14 w-14 shrink-0 rounded-xl object-cover ring-2 ring-white/20"
+                                            className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-white/10 sm:h-16 sm:w-16 sm:rounded-2xl"
                                         />
                                         <div className="min-w-0">
-                                            <p className="text-xs font-black uppercase tracking-wide text-[#F6C65B]">
+                                            <p className="text-xs font-black uppercase tracking-wide text-[#FFD166]">
                                                 Menu
                                             </p>
-                                                <h2 className="truncate text-lg font-black sm:text-xl">
+                                            <h2 className="truncate text-xl font-black sm:text-2xl">
                                                 {activeRestaurantData.name}
                                             </h2>
                                         </div>
                                     </div>
 
-                                    <label className="flex h-12 min-w-0 items-center gap-3 rounded-xl border border-white/15 bg-white/15 px-4 backdrop-blur sm:w-[340px]">
-                                        <Search size={18} className="text-[#F6C65B]" />
+                                    <label className="flex h-11 min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.07] px-3 backdrop-blur sm:h-12 sm:rounded-2xl sm:px-4 md:w-[340px]">
+                                        <Search size={18} className="text-[#FFD166]" />
                                         <input
                                             value={search}
                                             onChange={(event) => setSearch(event.target.value)}
@@ -1154,12 +1531,13 @@ function DineInOrder() {
                                     activeCategory={activeCategory}
                                     setActiveCategory={setActiveCategory}
                                     categories={activeRestaurantCategories}
+                                    variant="dark"
                                 />
 
                                 {visibleItems.length ? (
-                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+                                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
                                         {visibleItems.map((item) => (
-                                            <MenuItemCard
+                                            <CustomerFoodCard
                                                 key={item.id}
                                                 item={item}
                                                 onOpen={() => setSelectedItem(item)}
@@ -1167,21 +1545,21 @@ function DineInOrder() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="rounded-2xl border border-dashed border-[#D8C8C1] bg-white/70 px-6 py-14 text-center">
+                                    <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.04] px-6 py-14 text-center text-white">
                                         <h3 className="text-lg font-black">No items found</h3>
-                                        <p className="mt-1 text-sm font-semibold text-[#5F504A]">
+                                        <p className="mt-1 text-sm font-semibold text-white/55">
                                             Try another search or category.
                                         </p>
                                     </div>
                                 )}
                             </>
                         ) : (
-                            <div className="rounded-2xl bg-gradient-to-br from-[#6B3528] via-[#A94F3A] to-[#1F755D] px-6 py-14 text-center text-white">
-                                <ShoppingBag className="mx-auto text-[#F6C65B]" size={34} />
-                                <h2 className="mt-3 text-lg font-black">
+                            <div className="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(127,29,29,0.24),transparent_34%),linear-gradient(135deg,#161D20,#202629)] px-6 py-14 text-center text-white">
+                                <ShoppingBag className="mx-auto text-[#FFD166]" size={34} />
+                                <h2 className="mt-3 text-xl font-black">
                                     Choose a restaurant to see its dishes
                                 </h2>
-                                <p className="mt-1 text-sm font-medium text-white/70">
+                                <p className="mt-2 text-sm font-medium text-white/60">
                                     The dish modal will open only when you tap a food item.
                                 </p>
                             </div>
@@ -1239,6 +1617,7 @@ function DineInOrder() {
                     item={selectedItem}
                     onClose={() => setSelectedItem(null)}
                     addToCart={addToCart}
+                    variant={isLight ? "light" : "dark"}
                 />
             )}
         </div>

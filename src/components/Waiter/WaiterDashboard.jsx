@@ -79,26 +79,26 @@ const getFoodName = (item) => {
 
 function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, action }) {
     return (
-        <article className="flex min-h-[220px] min-w-0 flex-col rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#eadfce]">
+        <article className="flex min-h-[260px] min-w-0 flex-col rounded-[28px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-xs font-black uppercase tracking-wide text-[#8a7972]">
+                    <p className="text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
                         {eyebrow}
                     </p>
-                    <h2 className="mt-1 break-words text-lg font-black sm:text-xl">{title}</h2>
+                    <h2 className="mt-2 break-words text-2xl font-black text-white">{title}</h2>
                 </div>
                 {total !== undefined && !emphasizeTotal && (
-                    <span className="shrink-0 rounded-full bg-[#fff8ea] px-3 py-1 text-sm font-black text-[#7f1d1d]">
+                    <span className="shrink-0 rounded-full bg-[#FFD166]/14 px-3 py-1 text-sm font-black text-[#FFD166]">
                         ${Number(total).toFixed(2)}
                     </span>
                 )}
             </div>
             {total !== undefined && emphasizeTotal && (
-                <div className="mt-4 rounded-2xl border border-[#f1d8a1] bg-[#fff8ea] px-4 py-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-[#8a6a1f]">
+                <div className="mt-5 rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 px-4 py-4">
+                    <p className="text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
                         Amount to collect
                     </p>
-                    <p className="mt-1 break-words text-3xl font-black leading-none text-[#7f1d1d] sm:text-4xl">
+                    <p className="mt-2 break-words text-5xl font-black leading-none text-[#FFD166]">
                         ${Number(total).toFixed(2)}
                     </p>
                 </div>
@@ -150,10 +150,13 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     }, [canProcessPayments, canServeDineInOrders]);
 
     useEffect(() => {
-        loadData();
+        const timeoutId = window.setTimeout(loadData, 0);
         const intervalId = window.setInterval(loadData, 7000);
 
-        return () => window.clearInterval(intervalId);
+        return () => {
+            window.clearTimeout(timeoutId);
+            window.clearInterval(intervalId);
+        };
     }, [loadData]);
 
     const confirmCash = async (payment) => {
@@ -213,24 +216,24 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     );
 
     return (
-        <main className={`${embedded ? "" : "min-h-screen"} bg-[#f7efe4] text-[#211b18]`}>
+        <main className={`${embedded ? "min-h-[calc(100dvh-88px)]" : "min-h-screen"} bg-[radial-gradient(circle_at_85%_8%,rgba(127,29,29,0.18),transparent_28%),radial-gradient(circle_at_15%_20%,rgba(255,209,102,0.12),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)] text-white`}>
             {!embedded && (
-            <header className="sticky top-0 z-20 border-b border-[#e3d5c5] bg-white/95 px-3 py-3 shadow-sm backdrop-blur sm:px-4 sm:py-4">
+            <header className="sticky top-0 z-20 border-b border-white/10 bg-[#101517]/92 px-3 py-3 shadow-sm backdrop-blur-xl sm:px-4 sm:py-4">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#d8a23a] text-[#241707] sm:h-12 sm:w-12">
+                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#FFD166] text-[#151A1D] sm:h-12 sm:w-12">
                             <Utensils size={22} />
                         </div>
                         <div className="min-w-0">
                             <h1 className="truncate text-lg font-black sm:text-xl">Waiter dashboard</h1>
-                            <p className="text-sm font-bold text-[#7b6a61]">{waiterName}</p>
+                            <p className="text-sm font-bold text-white/55">{waiterName}</p>
                         </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                         <button
                             type="button"
                             onClick={loadData}
-                            className="grid h-11 w-11 place-items-center rounded-xl border border-[#e3d5c5] bg-white text-[#6b3528]"
+                            className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.07] text-[#FFD166]"
                             aria-label="Refresh"
                         >
                             <RefreshCw size={18} />
@@ -238,7 +241,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="flex h-11 items-center gap-2 rounded-xl bg-[#6b3528] px-3 text-sm font-black text-white sm:px-4"
+                            className="flex h-11 items-center gap-2 rounded-xl bg-[#7F1D1D] px-3 text-sm font-black text-white sm:px-4"
                         >
                             <LogOut size={17} />
                             <span className="hidden sm:inline">Logout</span>
@@ -248,27 +251,29 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             </header>
             )}
 
-            <section className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-5">
-                <div className="mb-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <p className="text-xs font-black uppercase text-[#8a7972]">Cash due</p>
-                        <p className="mt-1 text-2xl font-black sm:text-3xl">{cashPayments.length}</p>
-                        <p className="mt-1 text-sm font-black text-[#7f1d1d]">
+            <section className="mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-6">
+                <div className="mb-5 grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-[26px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/55">Cash due</p>
+                        <p className="mt-3 text-5xl font-black text-[#FFD166]">{cashPayments.length}</p>
+                    </div>
+                    <div className="rounded-[26px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/55">Ready</p>
+                        <p className="mt-3 text-5xl font-black text-[#FFD166]">{readyOrders.length}</p>
+                    </div>
+                    <div className="rounded-[26px] border border-[#7F1D1D]/25 bg-[#7F1D1D]/14 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/65">Money to collect</p>
+                        <p className="mt-3 text-5xl font-black text-[#FFD166]">
                             ${cashTotal.toFixed(2)}
                         </p>
-                    </div>
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <p className="text-xs font-black uppercase text-[#8a7972]">Ready</p>
-                        <p className="mt-1 text-2xl font-black sm:text-3xl">{readyOrders.length}</p>
-                    </div>
-                    <div className="rounded-2xl bg-[#6b3528] p-4 text-white shadow-sm">
-                        <p className="text-xs font-black uppercase text-white/65">Auto refresh</p>
-                        <p className="mt-1 text-lg font-black">Every 7 seconds</p>
+                        <p className="mt-2 text-sm font-bold text-white/58">
+                            Pending cash payments
+                        </p>
                     </div>
                 </div>
 
                 {visibleTabs.length > 1 && (
-                <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 shadow-sm">
+                <div className="mb-5 grid grid-cols-2 gap-2 rounded-[24px] border border-white/10 bg-[#252A2D] p-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.16)]">
                     {visibleTabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = safeActiveTab === tab.id;
@@ -278,10 +283,10 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-black transition sm:h-12 sm:gap-2 sm:text-sm ${
+                                className={`flex h-12 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-black transition sm:gap-2 ${
                                     isActive
-                                        ? "bg-[#d8a23a] text-[#241707]"
-                                        : "text-[#7b6a61] hover:bg-[#fff8ea]"
+                                        ? "bg-[#FFD166] text-[#151A1D]"
+                                        : "text-white/58 hover:bg-white/[0.07] hover:text-white"
                                 }`}
                             >
                                 <Icon size={18} />
@@ -293,22 +298,22 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 )}
 
                 {message && (
-                    <p className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
+                    <p className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
                         {message}
                     </p>
                 )}
                 {errorMessage && (
-                    <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-700">
+                    <p className="mb-4 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-3 text-sm font-black text-[#7F1D1D]">
                         {errorMessage}
                     </p>
                 )}
 
                 {isLoading ? (
-                    <div className="rounded-2xl bg-white px-6 py-16 text-center font-black shadow-sm">
+                    <div className="rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-16 text-center text-xl font-black shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
                         Loading {title.toLowerCase()}...
                     </div>
                 ) : currentItems.length ? (
-                    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         {currentItems.map((item, index) => {
                             const invoiceId = getInvoiceId(item);
                             const restaurantOrderId = getRestaurantOrderId(item);
@@ -333,14 +338,14 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                                     )
                                                 }
                                                 disabled={busyKey === key || !invoiceId}
-                                                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#6b3528] text-sm font-black text-white disabled:bg-[#c9bab5]"
+                                                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
                                             >
                                                 <Banknote size={18} />
                                                 {busyKey === key ? "Confirming..." : "Confirm cash"}
                                             </button>
                                         }
                                     >
-                                        <p className="text-sm font-semibold text-[#7b6a61]">
+                                        <p className="text-base font-semibold leading-6 text-white/62">
                                             Customer selected cash. Collect the money, then confirm.
                                         </p>
                                     </WaiterCard>
@@ -364,7 +369,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                                 )
                                             }
                                             disabled={busyKey === key || !restaurantOrderId}
-                                            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#d8a23a] text-sm font-black text-[#241707] disabled:bg-[#c9bab5]"
+                                            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FFD166] text-sm font-black text-[#151A1D] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition hover:bg-[#ffdc82] disabled:bg-white/15 disabled:text-white/40"
                                         >
                                             <CheckCircle2 size={18} />
                                             {busyKey === key ? "Saving..." : "Mark served"}
@@ -372,7 +377,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                     }
                                 >
                                     <div className="space-y-2">
-                                        <p className="flex items-center gap-2 text-sm font-black text-[#7b6a61]">
+                                        <p className="flex items-center gap-2 text-sm font-black text-white/58">
                                             <Clock3 size={16} />
                                             Ready to serve
                                         </p>
@@ -380,20 +385,20 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                             getItems(item).map((orderItem, orderItemIndex) => (
                                                 <div
                                                     key={orderItem.id || orderItemIndex}
-                                                    className="rounded-xl bg-[#fff8ea] px-3 py-2"
+                                                    className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2"
                                                 >
                                                     <div className="flex min-w-0 justify-between gap-3">
                                                         <span className="min-w-0 break-words font-black">
                                                             {getFoodName(orderItem)}
                                                         </span>
-                                                        <span className="font-black text-[#7f1d1d]">
+                                                        <span className="font-black text-[#FFD166]">
                                                             {Number(orderItem.quantity ?? 1)}x
                                                         </span>
                                                     </div>
                                                 </div>
                                             ))
                                         ) : (
-                                            <p className="rounded-xl bg-[#fff8ea] px-3 py-4 text-sm font-bold text-[#7b6a61]">
+                                            <p className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-4 text-sm font-bold text-white/58">
                                                 No items returned.
                                             </p>
                                         )}
@@ -403,10 +408,10 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                         })}
                     </div>
                 ) : (
-                    <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-sm">
-                        <ReceiptText className="mx-auto text-[#d8a23a]" size={34} />
+                    <div className="rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                        <ReceiptText className="mx-auto text-[#FFD166]" size={38} />
                         <h2 className="mt-3 text-xl font-black">No {title.toLowerCase()}</h2>
-                        <p className="mt-2 text-sm font-bold text-[#8a7972]">
+                        <p className="mt-2 text-sm font-bold text-white/55">
                             Nothing needs waiter action right now.
                         </p>
                     </div>

@@ -21,6 +21,10 @@ import {
     toPermissionKeys,
 } from "../../utils/permissions";
 import { BookOpen, House, ReceiptText, ShieldAlert } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
+
+const REPORTS_BACKGROUND =
+    "bg-[radial-gradient(circle_at_86%_12%,rgba(127,29,29,0.14),transparent_30%),radial-gradient(circle_at_16%_22%,rgba(255,209,102,0.10),transparent_26%),linear-gradient(145deg,#0D1214_0%,#12191C_54%,#211619_100%)]";
 
 const getList = (data) => {
     if (Array.isArray(data?.food)) return data.food;
@@ -106,6 +110,7 @@ const fetchRestaurantMenu = async (restaurant) => {
 };
 
 function CashierDashboard({ embedded = false }) {
+    const { isLight } = useTheme();
     const [activeView, setActiveView] = useState("menu");
     const [permissions, setPermissions] = useState(() => getUserPermissions());
     const [openModal, setOpenModal] = useState(false);
@@ -160,6 +165,7 @@ function CashierDashboard({ embedded = false }) {
     const canManageTakeawayOrders = permissions.includes("manage_takeaway_orders");
     const canProcessPayments =
         canManageTakeawayOrders || permissions.includes("process_payments");
+    const cashierVariant = isLight ? "light" : "dark";
     const embeddedNavigation = [
         { id: "menu", label: "Menu", icon: House },
         { id: "catalog", label: "Catalog", icon: BookOpen },
@@ -260,8 +266,8 @@ function CashierDashboard({ embedded = false }) {
         <div
             className={
                 embedded
-                    ? "min-h-[720px] overflow-hidden rounded-lg border border-[#E9DED8] bg-[#F5F1EB] font-[Raleway] text-[#261F1D] shadow-sm lg:flex"
-                    : "min-h-dvh bg-[#F5F1EB] font-[Raleway] text-[#261F1D] lg:flex lg:h-dvh lg:overflow-hidden"
+                    ? `cashier-dashboard h-[calc(100dvh-88px)] overflow-hidden rounded-lg border border-white/10 ${REPORTS_BACKGROUND} font-[Raleway] text-white shadow-sm lg:flex`
+                    : `cashier-dashboard min-h-dvh ${REPORTS_BACKGROUND} font-[Raleway] text-white lg:flex lg:h-dvh lg:overflow-hidden`
             }
         >
             {!embedded && (
@@ -276,11 +282,11 @@ function CashierDashboard({ embedded = false }) {
 
             <main
                 className={`min-w-0 flex-1 ${
-                    embedded ? "max-h-[calc(100dvh-170px)] overflow-y-auto" : "lg:overflow-y-auto"
+                    embedded ? "cashier-scroll min-h-0 overflow-y-auto" : "cashier-scroll lg:overflow-y-auto"
                 }`}
             >
                 {embedded ? (
-                    <div className="border-b border-[#E9DED8]/80 bg-[#F5F1EB] px-4 py-3 sm:px-6">
+                    <div className="border-b border-white/[0.08] bg-[#0F1517]/78 px-4 py-3 backdrop-blur-xl sm:px-6">
                         <nav className="flex gap-2 overflow-x-auto">
                             {embeddedNavigation.map((item) => {
                                 const Icon = item.icon;
@@ -293,8 +299,8 @@ function CashierDashboard({ embedded = false }) {
                                         onClick={() => setActiveView(item.id)}
                                         className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition ${
                                             isActive
-                                                ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-sm"
-                                                : "border-[#E5D8D2] bg-white text-[#74645E] hover:border-[#7F1D1D]/30 hover:text-[#7F1D1D]"
+                                                ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-sm shadow-[#7F1D1D]/20"
+                                                : "border-white/10 bg-white/[0.055] text-white/66 hover:border-[#FFD166]/30 hover:bg-white/[0.09] hover:text-white"
                                         }`}
                                     >
                                         <Icon size={17} />
@@ -311,14 +317,14 @@ function CashierDashboard({ embedded = false }) {
                 {!canManageTakeawayOrders &&
                 ["menu", "catalog", "orders"].includes(activeView) ? (
                     <section className="grid min-h-[calc(100dvh-96px)] place-items-center px-4 pb-10 sm:px-6 xl:px-8">
-                        <div className="max-w-md rounded-[28px] border border-[#E7DCD6] bg-white px-6 py-12 text-center shadow-sm">
-                            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#F9ECEC] text-[#7F1D1D]">
+                        <div className="max-w-md rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-12 text-center shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
+                            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#7F1D1D]/14 text-[#7F1D1D]">
                                 <ShieldAlert size={26} />
                             </div>
-                            <h1 className="mt-4 text-2xl font-black text-[#261F1D]">
+                            <h1 className="mt-4 text-2xl font-black text-white">
                                 Takeaway orders unavailable
                             </h1>
-                            <p className="mt-3 text-sm font-medium leading-6 text-[#806F69]">
+                            <p className="mt-3 text-sm font-medium leading-6 text-white/58">
                                 This cashier needs the manage_takeaway_orders permission to
                                 access menu, catalog, and takeaway order actions.
                             </p>
@@ -344,30 +350,31 @@ function CashierDashboard({ embedded = false }) {
                 ) : activeView === "restaurants" && permissions.includes("manage_restaurants") ? (
                     <RestaurantsManagements />
                 ) : (
-                    <section className="px-4 pb-10 sm:px-6 xl:px-8">
-                        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <section className="px-4 pb-10 pt-1 sm:px-6 xl:px-8">
+                        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#9A7A70]">Today&apos;s menu</p>
-                                <h1 className="text-2xl font-extrabold sm:text-3xl">Choose an item</h1>
+                                <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#FFD166]">Today&apos;s menu</p>
+                                <h1 className="text-2xl font-extrabold text-white sm:text-3xl">Choose an item</h1>
                             </div>
-                            <p className="text-sm font-medium text-[#806F69]">{visibleItems.length} items available</p>
+                            <p className="text-sm font-medium text-white/60">{visibleItems.length} items available</p>
                         </div>
 
                         <CategoryTabs
                             activeCategory={activeCategory}
                             setActiveCategory={setActiveCategory}
                             categories={categories}
+                            variant={cashierVariant}
                         />
 
                         {isLoadingMenu ? (
-                            <div className="rounded-[28px] border border-[#E7DCD6] bg-white/70 px-6 py-16 text-center">
-                                <h2 className="text-xl font-bold">Loading menu...</h2>
-                                <p className="mt-2 text-[#806F69]">Getting the latest food list.</p>
+                            <div className="rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                                <h2 className="text-xl font-bold text-white">Loading menu...</h2>
+                                <p className="mt-2 text-white/58">Getting the latest food list.</p>
                             </div>
                         ) : menuError ? (
-                            <div className="rounded-[28px] border border-red-100 bg-red-50 px-6 py-16 text-center">
-                                <h2 className="text-xl font-bold text-red-800">Menu unavailable</h2>
-                                <p className="mt-2 text-red-700">{menuError}</p>
+                            <div className="rounded-[28px] border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-6 py-16 text-center">
+                                <h2 className="text-xl font-bold text-[#7F1D1D]">Menu unavailable</h2>
+                                <p className="mt-2 text-[#ff9aaa]">{menuError}</p>
                             </div>
                         ) : visibleItems.length > 0 ? (
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -383,9 +390,9 @@ function CashierDashboard({ embedded = false }) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-[28px] border border-dashed border-[#D8C8C1] bg-white/70 px-6 py-16 text-center">
-                                <h2 className="text-xl font-bold">No items found</h2>
-                                <p className="mt-2 text-[#806F69]">Try another category or search phrase.</p>
+                            <div className="rounded-[28px] border border-dashed border-white/15 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                                <h2 className="text-xl font-bold text-white">No items found</h2>
+                                <p className="mt-2 text-white/58">Try another category or search phrase.</p>
                             </div>
                         )}
                     </section>
@@ -396,13 +403,14 @@ function CashierDashboard({ embedded = false }) {
                     onClose={() => setOpenModal(false)}
                     item={selectedItem}
                     addToCart={addToCart}
+                    variant={cashierVariant}
                 />
             </main>
 
             {canManageTakeawayOrders && !["tables", "restaurants", "inventory", "stockActions", "lowStock", "serveOrders"].includes(activeView) && (
                 <aside
-                    className={`border-t border-[#E9DED8] bg-white lg:w-[360px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[390px] ${
-                        embedded ? "lg:max-h-[calc(100dvh-170px)] lg:overflow-y-auto" : "lg:h-dvh"
+                    className={`cashier-order-panel border-t border-white/10 bg-[#0F1517] lg:w-[360px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[390px] ${
+                        embedded ? "cashier-scroll min-h-0 lg:h-full lg:overflow-y-auto" : "cashier-scroll lg:h-dvh"
                     }`}
                 >
                     <OrderSidebar

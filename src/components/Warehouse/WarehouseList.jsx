@@ -1,31 +1,47 @@
-import { Boxes, CirclePlus, PackageCheck, TriangleAlert, Warehouse } from "lucide-react";
+import { Boxes, Building2, CirclePlus, PackageCheck, TriangleAlert, Warehouse } from "lucide-react";
 import WarehouseCard from "./WarehouseCard";
 
 function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
     const styles = {
-        red: "bg-[#F9ECEC] text-[#7F1D1D]",
-        yellow: "bg-[#FFF6D8] text-[#84630A]",
-        green: "bg-[#F0FAEC] text-[#2E7D32]",
-        neutral: "bg-[#F8F5F1] text-[#6B5B55]",
+        red: "bg-[#7F1D1D]/14 text-[#7F1D1D]",
+        yellow: "bg-[#FFD166]/14 text-[#FFD166]",
+        green: "bg-emerald-400/12 text-emerald-300",
+    };
+    const borders = {
+        red: "border-[#7F1D1D]/45",
+        yellow: "border-[#FFD166]/45",
+        green: "border-emerald-400/45",
     };
 
     return (
-        <div className="rounded-[24px] border border-[#E8D9D3] bg-white p-5 shadow-[0_8px_30px_rgba(83,53,42,0.05)]">
+        <div className={`rounded-[24px] border ${borders[tone]} bg-[#20292D]/88 p-5 shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm`}>
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <p className="text-sm font-bold text-[#94847D]">{title}</p>
-                    <h3 className="mt-2 text-3xl font-black text-[#2C2421]">{value}</h3>
+                    <p className="text-sm font-bold text-white/50">{title}</p>
+                    <h3 className="mt-2 text-3xl font-black text-[#FFD166]">{value}</h3>
                 </div>
                 <div className={`grid h-12 w-12 place-items-center rounded-2xl ${styles[tone]}`}>
                     <Icon size={23} />
                 </div>
             </div>
-            <p className="mt-4 text-sm text-[#8C7B74]">{helper}</p>
+            <p className="mt-4 text-sm font-medium text-white/45">{helper}</p>
         </div>
     );
 }
 
-function WarehouseList({ inventory = [], stats, search, onAdd, onEdit, onDelete, readOnly = false }) {
+function WarehouseList({
+    inventory = [],
+    stats,
+    search,
+    onAdd,
+    onEdit,
+    onDelete,
+    readOnly = false,
+    isAdmin = false,
+    restaurants = [],
+    selectedRestaurantId = "",
+    onRestaurantChange,
+}) {
     const fallbackStats = {
         total: inventory.length,
         lowStock: inventory.filter(
@@ -44,8 +60,8 @@ function WarehouseList({ inventory = [], stats, search, onAdd, onEdit, onDelete,
     const displayStats = stats || fallbackStats;
 
     return (
-        <section className="px-4 py-6 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="cashier-scroll px-4 py-6 text-white sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <StatCard
                     title="Total Ingredients"
                     value={displayStats.total || 0}
@@ -67,22 +83,59 @@ function WarehouseList({ inventory = [], stats, search, onAdd, onEdit, onDelete,
                     icon={TriangleAlert}
                     tone="yellow"
                 />
-                <StatCard
-                    title="Total Quantity"
-                    value={displayStats.totalUnits || 0}
-                    helper="Combined available units"
-                    icon={Boxes}
-                    tone="neutral"
-                />
             </div>
 
-            <div className="mt-6 rounded-[28px] border border-[#E8D9D3] bg-white p-4 shadow-[0_12px_40px_rgba(83,53,42,0.06)] sm:p-6">
+            {isAdmin && (
+                <div className="mt-5 rounded-[24px] border border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] p-4 shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
+                                <Building2 size={21} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+                                    Admin warehouse view
+                                </p>
+                                <h3 className="text-lg font-black text-white">
+                                    Choose restaurant warehouse
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    {restaurants.length > 0 && (
+                        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                            {restaurants.map((restaurant) => {
+                                const active =
+                                    String(selectedRestaurantId) === String(restaurant.id);
+
+                                return (
+                                    <button
+                                        key={restaurant.id}
+                                        type="button"
+                                        onClick={() => onRestaurantChange?.(restaurant.id)}
+                                        className={`shrink-0 rounded-2xl border px-4 py-2 text-sm font-black transition ${
+                                            active
+                                                ? "border-[#FFD166]/70 bg-[#FFD166]/16 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
+                                                : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/35 hover:bg-[#FFD166]/10 hover:text-white"
+                                        }`}
+                                    >
+                                        #{restaurant.id} {restaurant.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="mt-6 rounded-[28px] border border-[#3A4448] bg-[#182124]/90 p-4 shadow-[0_20px_46px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] backdrop-blur-sm sm:p-6">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#A08980]">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#FFD166]">
                             Live inventory
                         </p>
-                        <h2 className="mt-1 text-2xl font-black sm:text-3xl">
+                        <h2 className="mt-1 text-2xl font-black text-white sm:text-3xl">
                             Current Inventory Levels
                         </h2>
                     </div>
@@ -90,7 +143,7 @@ function WarehouseList({ inventory = [], stats, search, onAdd, onEdit, onDelete,
                     {!readOnly && onAdd && (
                         <button
                             onClick={onAdd}
-                            className="flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#681718]"
+                            className="flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718]"
                         >
                             <CirclePlus size={18} />
                             Add Ingredient
@@ -110,14 +163,14 @@ function WarehouseList({ inventory = [], stats, search, onAdd, onEdit, onDelete,
                         ))}
                     </div>
                 ) : (
-                    <div className="rounded-[24px] border border-dashed border-[#D9C8C0] bg-[#FDFBF9] px-6 py-14 text-center">
-                        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#F9ECEC] text-[#7F1D1D]">
+                    <div className="rounded-[24px] border border-dashed border-[#465155] bg-[#20292D] px-6 py-14 text-center">
+                        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#7F1D1D]/14 text-[#7F1D1D]">
                             <Boxes size={30} />
                         </div>
-                        <h3 className="mt-4 text-xl font-black">
+                        <h3 className="mt-4 text-xl font-black text-white">
                             {search ? "No ingredients found" : "No inventory yet"}
                         </h3>
-                        <p className="mx-auto mt-2 max-w-md text-sm text-[#8C7B74]">
+                        <p className="mx-auto mt-2 max-w-md text-sm text-white/52">
                             {search
                                 ? "Try another search keyword."
                                 : "Add your first ingredient to start tracking stock levels."}

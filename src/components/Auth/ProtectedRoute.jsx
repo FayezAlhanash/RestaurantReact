@@ -16,16 +16,22 @@ export default function ProtectedRoute({
   const roleId = Number(user?.role_id ?? user?.role?.id);
 
   // 1) ROLE check
-  const roleAllowed =
-    !allowedRoles.length || allowedRoles.includes(roleId);
+  const hasRoleGate = allowedRoles.length > 0;
+  const hasPermissionGate = allowedPermissions.length > 0;
+  const roleAllowed = !hasRoleGate || allowedRoles.includes(roleId);
 
   // 2) PERMISSION check
   const permissionAllowed =
-    !allowedPermissions.length || canAny(allowedPermissions);
+    !hasPermissionGate || canAny(allowedPermissions);
 
   // 3) FINAL decision
-  if (!roleAllowed || !permissionAllowed) {
-    return <Navigate to={getHomePath(roleId) || "/"} replace />;
+  const isAllowed =
+    hasRoleGate && hasPermissionGate
+      ? roleAllowed || permissionAllowed
+      : roleAllowed && permissionAllowed;
+
+  if (!isAllowed) {
+    return <Navigate to={getHomePath(roleId, user) || "/"} replace />;
   }
 
   return <Outlet />;

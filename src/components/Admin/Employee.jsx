@@ -16,24 +16,58 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../API/axios";
-import { RESTAURANT_ROLE_IDS } from "../../utils/permissionScopes";
+import { useTheme } from "../../context/ThemeContext";
+import { isRestaurantRole } from "../../utils/permissionScopes";
 import AddEmployeeModal from "./AddEmployeeModal";
 
-const roleOptions = [
-    { value: "3", label: "Manager" },
-    { value: "4", label: "Cashier" },
-    { value: "5", label: "Delivery" },
-    { value: "6", label: "Chef" },
-    { value: "7", label: "Warehouse Manager" },
-    { value: "8", label: "Waiter" },
-];
+const getList = (data, key) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+};
 
 function getEmployeeName(employee) {
     return [employee?.first_name, employee?.last_name].filter(Boolean).join(" ");
 }
 
-function getRoleName(employee) {
-    return employee?.role?.name || roleOptions.find((role) => role.value === String(employee?.role_id))?.label || "No role";
+function getRoleName(employee, roles = []) {
+    return (
+        employee?.role?.name ||
+        roles.find((role) => String(role.id) === String(employee?.role_id))?.name ||
+        "No role"
+    );
+}
+
+function getRestaurantId(employee) {
+    return (
+        employee?.restaurant_id ??
+        employee?.restaurant?.id ??
+        employee?.employee?.restaurant_id ??
+        employee?.staff?.restaurant_id ??
+        employee?.pivot?.restaurant_id ??
+        ""
+    );
+}
+
+function getRestaurantName(employee, restaurants = []) {
+    const directName =
+        employee?.restaurant?.name ||
+        employee?.restaurant_name ||
+        employee?.restaurantName ||
+        employee?.branch?.name ||
+        employee?.employee?.restaurant?.name ||
+        employee?.staff?.restaurant?.name ||
+        "";
+
+    if (directName) return directName;
+
+    const restaurantId = getRestaurantId(employee);
+    const matchedRestaurant = restaurants.find(
+        (restaurant) => String(restaurant.id) === String(restaurantId)
+    );
+
+    return matchedRestaurant?.name || "";
 }
 
 function isActive(employee) {
@@ -41,6 +75,7 @@ function isActive(employee) {
 }
 
 function Employee() {
+    const { isLight } = useTheme();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [restaurants, setRestaurants] = useState([]);
     const [employeeToDelete, setEmployeeToDelete] = useState(null);
@@ -52,12 +87,22 @@ function Employee() {
     const [editRestaurantId, setEditRestaurantId] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState("all");
+    const [roles, setRoles] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
 
-    const needsRestaurant = RESTAURANT_ROLE_IDS.includes(
-        Number(selectedEmployee?.role_id)
+    const roleOptions = useMemo(
+        () =>
+            roles.filter(
+                (role) => String(role.name ?? "").toLowerCase() !== "customer"
+            ),
+        [roles]
     );
+
+    const selectedEmployeeRole =
+        roleOptions.find((role) => String(role.id) === String(selectedEmployee?.role_id)) ??
+        selectedEmployee?.role;
+    const needsRestaurant = isRestaurantRole(selectedEmployeeRole);
 
     const getEmployees = useCallback(async () => {
         setIsLoading(true);
@@ -76,16 +121,21 @@ function Employee() {
     }, []);
 
     useEffect(() => {
-        const fetchRestaurants = async () => {
+        const fetchPageData = async () => {
             try {
-                const res = await api.get("/restaurants");
-                setRestaurants(res.data.restaurants || []);
+                const [restaurantsResponse, rolesResponse] = await Promise.all([
+                    api.get("/restaurants"),
+                    api.get("/admin/roles"),
+                ]);
+
+                setRestaurants(restaurantsResponse.data.restaurants || []);
+                setRoles(getList(rolesResponse.data, "roles"));
             } catch (err) {
                 console.log(err);
             }
         };
 
-        fetchRestaurants();
+        fetchPageData();
         const timeoutId = window.setTimeout(getEmployees, 0);
 
         return () => window.clearTimeout(timeoutId);
@@ -148,27 +198,33 @@ function Employee() {
                 getEmployeeName(employee),
                 employee.email,
                 employee.phone_number,
-                getRoleName(employee),
+                getRoleName(employee, roleOptions),
                 employee.status,
-                employee.restaurant?.name,
+                getRestaurantName(employee, restaurants),
             ]
                 .filter(Boolean)
                 .join(" ")
                 .toLowerCase()
                 .includes(query))
         );
-    }, [employees, roleFilter, searchQuery]);
+    }, [employees, restaurants, roleFilter, roleOptions, searchQuery]);
 
     const roleFilterOptions = [
         { value: "all", label: "All", count: employees.length },
         ...roleOptions.map((role) => ({
-            ...role,
+            value: String(role.id),
+            label: role.name,
             count: employees.filter(
-                (employee) => String(employee.role_id ?? employee.role?.id) === role.value
+                (employee) => String(employee.role_id ?? employee.role?.id) === String(role.id)
             ).length,
         })),
     ];
     const hasActiveFilters = roleFilter !== "all";
+    const tableBorder = isLight ? "border-[#E4CFC3]" : "border-white/[0.08]";
+    const tableRowBorder = isLight ? "border-[#EAD8CD]" : "border-white/[0.07]";
+    const tableText = isLight ? "text-[#241815]" : "text-white";
+    const tableMutedText = isLight ? "text-[#6B5A52]" : "text-white/45";
+    const tableSubtleText = isLight ? "text-[#7A6A64]" : "text-white/38";
     const clearFilters = () => {
         setRoleFilter("all");
     };
@@ -179,52 +235,56 @@ function Employee() {
             value: employees.length,
             helper: `${filteredEmployees.length} shown`,
             icon: Users,
-            card: "border-teal-200 bg-teal-50 text-teal-950",
-            iconBox: "bg-teal-600 text-white ring-teal-200",
-            helperClass: "text-teal-700",
+            card: isLight
+                ? "border-[#8BCFB0]/45 bg-[#FFF9F2] text-[#241815]"
+                : "border-emerald-400/25 bg-[linear-gradient(145deg,rgba(16,185,129,0.18),rgba(32,43,47,0.94))] text-white",
+            iconBox: isLight
+                ? "border border-[#8BCFB0]/50 bg-[#E9F7EF] text-[#2E8B61] shadow-[0_12px_28px_rgba(46,139,97,0.08)]"
+                : "border border-emerald-400/35 bg-emerald-400/10 text-emerald-300 shadow-[0_12px_28px_rgba(16,185,129,0.12)]",
+            helperClass: isLight ? "text-[#2E8B61]" : "text-emerald-300",
         },
         {
             label: "Delivery Employees",
             value: employees.filter((employee) =>
-                String(getRoleName(employee)).toLowerCase().includes("delivery")
+                String(getRoleName(employee, roleOptions)).toLowerCase().includes("delivery")
             ).length,
             helper: "Assigned to delivery flow",
             icon: Truck,
-            card: "border-amber-200 bg-amber-50 text-amber-950",
-            iconBox: "bg-amber-600 text-white ring-amber-200",
-            helperClass: "text-amber-700",
+            card: "border-[#FFD166]/25 bg-[linear-gradient(145deg,rgba(255,209,102,0.18),rgba(32,43,47,0.94))] text-white",
+            iconBox: "border border-[#FFD166]/35 bg-[#FFD166]/10 text-[#FFD166] shadow-[0_12px_28px_rgba(255,209,102,0.12)]",
+            helperClass: "text-[#FFD166]",
         },
         {
             label: "Active Employees",
             value: employees.filter(isActive).length,
             helper: "Currently enabled",
             icon: BadgeCheck,
-            card: "border-rose-200 bg-rose-50 text-rose-950",
-            iconBox: "bg-[#7F1D1D] text-white ring-rose-200",
-            helperClass: "text-rose-700",
+            card: "border-[#7F1D1D]/25 bg-[linear-gradient(145deg,rgba(127,29,29,0.18),rgba(32,43,47,0.94))] text-white",
+            iconBox: "border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] shadow-[0_12px_28px_rgba(127,29,29,0.12)]",
+            helperClass: "text-[#7F1D1D]",
         },
     ];
 
     return (
-        <div className="min-h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(127,29,29,0.12),transparent_34%),linear-gradient(135deg,#F7EFE6_0%,#E6D8C8_52%,#D8C7B6_100%)] p-4 text-[#241F1D] sm:p-6 lg:p-8">
+        <div className="min-h-full overflow-y-auto bg-[radial-gradient(circle_at_86%_10%,rgba(127,29,29,0.18),transparent_30%),radial-gradient(circle_at_18%_22%,rgba(255,209,102,0.12),transparent_26%),radial-gradient(circle_at_60%_82%,rgba(52,211,153,0.08),transparent_30%),linear-gradient(145deg,#0D1214_0%,#12191C_52%,#24171A_100%)] p-4 text-white sm:p-6 lg:p-8">
             <div className="mx-auto max-w-[1500px]">
-                <section className="mb-6 rounded-xl border border-white/70 bg-white/95 p-5 shadow-[0_18px_50px_rgba(70,45,30,0.10)] sm:p-6">
+                <section className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm sm:p-6">
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                         <div>
-                            <p className="text-xs font-black uppercase text-[#8E6E62]">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
                                 Staff administration
                             </p>
-                            <h1 className="mt-2 text-3xl font-black text-[#201A18] sm:text-4xl">
+                            <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">
                                 Employees Management
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm font-medium text-stone-500">
+                            <p className="mt-2 max-w-2xl text-sm font-medium text-white/55">
                                 Manage staff roles, contact details, and restaurant assignments.
                             </p>
                         </div>
 
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(127,29,29,0.24)] transition hover:-translate-y-0.5 hover:bg-[#681718]"
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:bg-[#681718]"
                         >
                             <UserPlus size={18} />
                             Add Employee
@@ -232,7 +292,7 @@ function Employee() {
                     </div>
 
                     {errorMessage && (
-                        <p className="mt-5 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                        <p className="mt-5 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
                             {errorMessage}
                         </p>
                     )}
@@ -245,18 +305,18 @@ function Employee() {
                         return (
                             <article
                                 key={card.label}
-                                className={`rounded-xl border p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg ${card.card}`}
+                                className={`rounded-[24px] border p-5 shadow-[0_18px_42px_rgba(0,0,0,0.22)] ring-1 ring-white/[0.03] transition duration-200 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_24px_58px_rgba(0,0,0,0.3)] ${card.card}`}
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <p className="text-xs font-black uppercase opacity-70">
+                                        <p className="text-xs font-black uppercase tracking-[0.12em] opacity-70">
                                             {card.label}
                                         </p>
-                                        <h2 className="mt-3 text-3xl font-black">
+                                        <h2 className="mt-3 text-4xl font-black tabular-nums">
                                             {card.value}
                                         </h2>
                                     </div>
-                                    <div className={`grid h-11 w-11 place-items-center rounded-lg ring-1 ${card.iconBox}`}>
+                                    <div className={`grid h-11 w-11 place-items-center rounded-2xl ${card.iconBox}`}>
                                         <Icon size={21} />
                                     </div>
                                 </div>
@@ -268,33 +328,33 @@ function Employee() {
                     })}
                 </section>
 
-                <section className="overflow-hidden rounded-xl border border-white/70 bg-white/95 shadow-[0_18px_50px_rgba(70,45,30,0.10)]">
-                    <div className="grid gap-4 border-b border-[#E4D5C6] p-5 lg:grid-cols-[minmax(220px,1fr)_minmax(320px,520px)] lg:items-center">
+                <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(30,42,45,0.98),rgba(17,27,30,0.96))] shadow-[0_24px_70px_rgba(0,0,0,0.30)] ring-1 ring-white/[0.04]">
+                    <div className="grid gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.14),transparent_34%),rgba(255,255,255,0.03)] p-5 lg:grid-cols-[minmax(220px,1fr)_minmax(320px,520px)] lg:items-center">
                         <div className="min-w-0">
-                            <h2 className="text-2xl font-black">Staff Directory</h2>
-                            <p className="mt-1 text-sm font-medium text-stone-500">
+                            <h2 className="text-2xl font-black text-white">Staff Directory</h2>
+                            <p className="mt-1 text-sm font-medium text-white/48">
                                 {isLoading
                                     ? "Loading employees..."
                                     : `${filteredEmployees.length} of ${employees.length} employees`}
                             </p>
                         </div>
 
-                        <div className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-[#D8C8B8] bg-[#FFF9F2] px-4 shadow-inner">
-                            <Search size={18} className="shrink-0 text-[#7F1D1D]" />
+                        <div className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 shadow-inner">
+                            <Search size={18} className="shrink-0 text-[#FFD166]" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
                                 placeholder="Search name, role, contact..."
-                                className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-stone-400"
+                                className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/35"
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-4 border-b border-[#E4D5C6] bg-gradient-to-r from-rose-50 via-white to-teal-50 p-5">
+                    <div className="space-y-4 border-b border-white/[0.08] bg-[#172124] p-5">
                         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                            <div className="flex items-center gap-2 text-sm font-black text-stone-800">
-                                <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#F9ECEC] text-[#7F1D1D]">
+                            <div className="flex items-center gap-2 text-sm font-black text-white">
+                                <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]">
                                     <ListFilter size={18} />
                                 </div>
                                 Filters
@@ -304,14 +364,14 @@ function Employee() {
                                 type="button"
                                 onClick={clearFilters}
                                 disabled={!hasActiveFilters}
-                                className="w-fit rounded-lg border border-stone-200 bg-white px-4 py-2 text-sm font-black text-stone-600 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:text-stone-950 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+                                className="w-fit rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-black text-white/65 transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0"
                             >
                                 Clear filters
                             </button>
                         </div>
 
                         <div className="space-y-2">
-                            <p className="text-xs font-black uppercase tracking-wide text-[#7F1D1D]">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
                                 Role
                             </p>
                             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -325,15 +385,23 @@ function Employee() {
                                             onClick={() => setRoleFilter(option.value)}
                                             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                                                 isActiveFilter
-                                                    ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-rose-200"
-                                                    : "border-rose-200 bg-white text-[#7F1D1D] hover:border-rose-300 hover:bg-rose-50"
+                                                    ? isLight
+                                                        ? "border-[#B87878] bg-[#F9ECEC] text-[#7F1D1D] shadow-[0_14px_30px_rgba(127,29,29,0.10)]"
+                                                        : "border-[#7F1D1D]/65 bg-[#7F1D1D]/18 text-white shadow-[0_14px_30px_rgba(127,29,29,0.14)]"
+                                                    : isLight
+                                                        ? "border-[#E4CFC3] bg-[#FFF9F2] text-[#6B5A52] hover:border-[#7F1D1D]/35 hover:bg-[#FFF4EA] hover:text-[#241815]"
+                                                        : "border-white/10 bg-[#202B2F] text-white/70 hover:border-[#7F1D1D]/35 hover:bg-[#253236] hover:text-white"
                                             }`}
                                         >
                                             {option.label}
                                             <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
                                                 isActiveFilter
-                                                    ? "bg-white/18 text-white"
-                                                    : "bg-rose-100 text-[#7F1D1D]"
+                                                    ? isLight
+                                                        ? "bg-[#FFF4EA] text-[#241815]"
+                                                        : "bg-white/18 text-white"
+                                                    : isLight
+                                                        ? "bg-[#F3E5D9] text-[#6B5A52]"
+                                                        : "bg-white/[0.07] text-white/45"
                                             }`}>
                                                 {option.count}
                                             </span>
@@ -344,34 +412,41 @@ function Employee() {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px] border-collapse">
+                    <div className={`overflow-x-auto ${isLight ? "bg-[#FFF9F2]" : "bg-[#111A1D]"}`}>
+                        <table className="w-full min-w-[900px] border-separate border-spacing-0">
                             <thead>
-                                <tr className="border-y border-[#E4D5C6] bg-[#FFF7EF] text-left text-xs font-black uppercase text-[#73564A]">
-                                    <th className="px-3 py-4">Employee</th>
-                                    <th className="px-3 py-4">Role</th>
-                                    <th className="px-3 py-4">Contact</th>
-                                    <th className="px-3 py-4">Restaurant</th>
-                                    <th className="px-3 py-4">Status</th>
-                                    <th className="px-3 py-4 text-right">Action</th>
+                                <tr className={`text-left text-xs font-black uppercase tracking-[0.12em] ${
+                                    isLight
+                                        ? "bg-[#F6E8DE] text-[#7A6A64]"
+                                        : "bg-[linear-gradient(90deg,rgba(255,209,102,0.08),rgba(127,29,29,0.08))] text-white/55"
+                                }`}>
+                                    <th className={`border-y px-4 py-4 ${tableBorder}`}>Employee</th>
+                                    <th className={`border-y px-4 py-4 ${tableBorder}`}>Role</th>
+                                    <th className={`border-y px-4 py-4 ${tableBorder}`}>Contact</th>
+                                    <th className={`border-y px-4 py-4 ${tableBorder}`}>Restaurant</th>
+                                    <th className={`border-y px-4 py-4 ${tableBorder}`}>Status</th>
+                                    <th className={`border-y px-4 py-4 text-right ${tableBorder}`}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-3 py-12 text-center text-sm font-bold text-stone-500">
+                                        <td colSpan="6" className="px-3 py-12 text-center text-sm font-bold text-white/45">
                                             Loading employees...
                                         </td>
                                     </tr>
                                 ) : filteredEmployees.length ? (
-                                    filteredEmployees.map((employee) => (
+                                    filteredEmployees.map((employee) => {
+                                        const restaurantName = getRestaurantName(employee, restaurants);
+
+                                        return (
                                         <tr
                                             key={employee.id}
-                                            className="border-b border-[#EFE2D5] transition hover:bg-[#FFF7EF]"
+                                            className={`group transition ${isLight ? "hover:bg-[#FFF4EA]" : "hover:bg-white/[0.035]"}`}
                                         >
-                                            <td className="px-3 py-4">
+                                            <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#7F1D1D] text-sm font-black text-white shadow-sm">
+                                                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.20)] ring-1 ring-white/10">
                                                         {getEmployeeName(employee)
                                                             .split(" ")
                                                             .map((part) => part[0])
@@ -380,62 +455,77 @@ function Employee() {
                                                             .toUpperCase() || "EM"}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="truncate font-black">
+                                                        <p className={`truncate text-base font-black ${tableText}`}>
                                                             {getEmployeeName(employee) || "Unnamed employee"}
                                                         </p>
-                                                        <p className="text-xs font-bold text-stone-400">
+                                                        <p className={`text-xs font-bold ${tableSubtleText}`}>
                                                             EMP-{employee.id}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-4">
-                                                <span className="inline-flex items-center gap-2 rounded-lg bg-[#E8F3F1] px-3 py-1.5 text-sm font-bold text-[#0F766E]">
+                                            <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
+                                                <span className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-bold shadow-[0_8px_20px_rgba(16,185,129,0.08)] ${
+                                                    isLight
+                                                        ? "border-[#8BCFB0]/45 bg-[#E9F7EF] text-[#2E8B61]"
+                                                        : "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                                                }`}>
                                                     <ShieldCheck size={15} />
-                                                    {getRoleName(employee)}
+                                                    {getRoleName(employee, roleOptions)}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-4">
+                                            <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
                                                 <div className="space-y-1 text-sm">
-                                                    <p className="flex items-center gap-2 font-bold">
-                                                        <Mail size={14} className="text-stone-400" />
+                                                    <p className={`flex items-center gap-2 font-bold ${tableText}`}>
+                                                        <Mail size={14} className={isLight ? "text-[#7A6A64]" : "text-white/35"} />
                                                         {employee.email || "No email"}
                                                     </p>
-                                                    <p className="flex items-center gap-2 text-stone-500">
-                                                        <Phone size={14} className="text-stone-400" />
+                                                    <p className={`flex items-center gap-2 ${tableMutedText}`}>
+                                                        <Phone size={14} className={isLight ? "text-[#7A6A64]" : "text-white/35"} />
                                                         {employee.phone_number || "No phone"}
                                                     </p>
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-4">
-                                                <span className="inline-flex items-center gap-2 text-sm font-bold text-stone-600">
-                                                    <Building2 size={15} className="text-[#B45309]" />
-                                                    {employee.restaurant?.name || "Not assigned"}
+                                            <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
+                                                <span
+                                                    className={`inline-flex max-w-[230px] items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-black ${
+                                                        restaurantName
+                                                            ? "border-[#FFD166]/28 bg-[#FFD166]/10 text-[#FFD166]"
+                                                            : "border-white/10 bg-white/[0.04] text-white/42"
+                                                    }`}
+                                                    title={restaurantName || "Not assigned"}
+                                                >
+                                                    <Building2 size={15} className={restaurantName ? "text-[#FFD166]" : "text-white/28"} />
+                                                    <span className="truncate">
+                                                        {restaurantName || "Not assigned"}
+                                                    </span>
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-4">
+                                            <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
                                                 <span
-                                                    className={`inline-flex rounded-full px-3 py-1 text-sm font-black ${
+                                                    className={`inline-flex rounded-full px-3 py-1 text-sm font-black shadow-[0_8px_20px_rgba(0,0,0,0.12)] ${
                                                         isActive(employee)
-                                                            ? "bg-emerald-100 text-emerald-800"
-                                                            : "bg-red-100 text-red-800"
+                                                            ? isLight
+                                                                ? "border border-[#8BCFB0]/45 bg-[#E9F7EF] text-[#2E8B61]"
+                                                                : "border border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                                                            : "border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                                                     }`}
                                                 >
                                                     {employee.status || "unknown"}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-4">
+                                            <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => handleShowEmployee(employee.id)}
-                                                        className="grid h-9 w-9 place-items-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                                                        className="grid h-9 w-9 place-items-center rounded-xl border border-sky-400/30 bg-sky-400/10 text-sky-300 transition hover:bg-sky-400/18"
                                                         title="Details"
                                                     >
                                                         <Info size={17} />
                                                     </button>
                                                     <button
                                                         onClick={() => openEditModal(employee)}
-                                                        className="grid h-9 w-9 place-items-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
+                                                        className="grid h-9 w-9 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
                                                         title="Edit"
                                                     >
                                                         <Pencil size={17} />
@@ -445,7 +535,7 @@ function Employee() {
                                                             setEmployeeToDelete(employee);
                                                             setIsDeleteOpen(true);
                                                         }}
-                                                        className="grid h-9 w-9 place-items-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100"
+                                                        className="grid h-9 w-9 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D] transition hover:bg-[#7F1D1D]/18"
                                                         title="Delete"
                                                     >
                                                         <Trash2 size={17} />
@@ -453,10 +543,11 @@ function Employee() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <tr>
-                                        <td colSpan="6" className="px-3 py-12 text-center text-sm font-bold text-stone-500">
+                                        <td colSpan="6" className="px-3 py-12 text-center text-sm font-bold text-white/45">
                                             No employees match your search.
                                         </td>
                                     </tr>
@@ -469,6 +560,7 @@ function Employee() {
 
             <AddEmployeeModal
                 isOpen={isModalOpen}
+                roles={roleOptions}
                 onClose={() => {
                     setIsModalOpen(false);
                     getEmployees();
@@ -476,37 +568,37 @@ function Employee() {
             />
 
             {isInfoOpen && selectedEmployee && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-                    <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-black">Employee Details</h2>
                             <button
                                 onClick={() => setIsInfoOpen(false)}
-                                className="grid h-9 w-9 place-items-center rounded-lg text-stone-500 hover:bg-stone-100"
+                                className="grid h-9 w-9 place-items-center rounded-xl text-white/55 hover:bg-white/[0.06] hover:text-white"
                             >
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="space-y-3 rounded-lg bg-[#FBFAF8] p-4 text-sm">
+                        <div className="space-y-3 rounded-2xl border border-white/10 bg-[#0D1214] p-4 text-sm text-white/65">
                             <p><span className="font-black">Name:</span> {getEmployeeName(selectedEmployee)}</p>
                             <p><span className="font-black">Phone:</span> {selectedEmployee.phone_number || "No phone"}</p>
                             <p><span className="font-black">Gender:</span> {selectedEmployee.gender || "Not set"}</p>
                             <p><span className="font-black">National Number:</span> {selectedEmployee.national_number || "Not set"}</p>
-                            <p><span className="font-black">Role:</span> {getRoleName(selectedEmployee)}</p>
+                            <p><span className="font-black">Role:</span> {getRoleName(selectedEmployee, roleOptions)}</p>
                         </div>
                     </div>
                 </div>
             )}
 
             {isEditOpen && selectedEmployee && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-                    <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-black">Edit Employee</h2>
                             <button
                                 onClick={() => setIsEditOpen(false)}
-                                className="grid h-9 w-9 place-items-center rounded-lg text-stone-500 hover:bg-stone-100"
+                                className="grid h-9 w-9 place-items-center rounded-xl text-white/55 hover:bg-white/[0.06] hover:text-white"
                             >
                                 <X size={18} />
                             </button>
@@ -514,7 +606,7 @@ function Employee() {
 
                         <div className="space-y-4">
                             <label className="block">
-                                <span className="mb-2 block text-sm font-black text-stone-700">Phone</span>
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Phone</span>
                                 <input
                                     type="text"
                                     value={selectedEmployee.phone_number || ""}
@@ -524,12 +616,12 @@ function Employee() {
                                             phone_number: event.target.value,
                                         })
                                     }
-                                    className="w-full rounded-lg border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                                 />
                             </label>
 
                             <label className="block">
-                                <span className="mb-2 block text-sm font-black text-stone-700">Role</span>
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Role</span>
                                 <select
                                     value={selectedEmployee.role_id || ""}
                                     onChange={(event) =>
@@ -538,11 +630,11 @@ function Employee() {
                                             role_id: event.target.value,
                                         })
                                     }
-                                    className="w-full rounded-lg border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                                 >
                                     {roleOptions.map((role) => (
-                                        <option key={role.value} value={role.value}>
-                                            {role.label}
+                                        <option key={role.id} value={role.id}>
+                                            {role.name}
                                         </option>
                                     ))}
                                 </select>
@@ -550,11 +642,11 @@ function Employee() {
 
                             {needsRestaurant && (
                                 <label className="block">
-                                    <span className="mb-2 block text-sm font-black text-stone-700">Restaurant</span>
+                                    <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Restaurant</span>
                                     <select
                                         value={editRestaurantId}
                                         onChange={(event) => setEditRestaurantId(event.target.value)}
-                                        className="w-full rounded-lg border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                                        className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                                     >
                                         <option value="">Select Restaurant</option>
                                         {restaurants.map((restaurant) => (
@@ -570,13 +662,13 @@ function Employee() {
                         <div className="mt-6 flex gap-3">
                             <button
                                 onClick={() => setIsEditOpen(false)}
-                                className="flex-1 rounded-lg border border-stone-200 py-3 text-sm font-black text-stone-600 hover:bg-stone-50"
+                                className="flex-1 rounded-2xl border border-white/10 py-3 text-sm font-black text-white/65 hover:bg-white/[0.05] hover:text-white"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleUpdateEmployee}
-                                className="flex-1 rounded-lg bg-[#7F1D1D] py-3 text-sm font-black text-white hover:bg-[#681718]"
+                                className="flex-1 rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white hover:bg-[#681718]"
                             >
                                 Save
                             </button>
@@ -586,27 +678,27 @@ function Employee() {
             )}
 
             {isDeleteOpen && employeeToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-                    <div className="w-full max-w-md rounded-xl bg-white p-5 text-center shadow-2xl">
-                        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-600">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-center text-white shadow-2xl">
+                        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]">
                             <Trash2 size={28} />
                         </div>
                         <h2 className="text-xl font-black">Delete Employee</h2>
-                        <p className="mt-3 text-sm font-medium text-stone-500">
+                        <p className="mt-3 text-sm font-medium text-white/55">
                             Are you sure you want to delete
-                            <span className="font-black text-stone-900"> {getEmployeeName(employeeToDelete)}</span>?
+                            <span className="font-black text-white"> {getEmployeeName(employeeToDelete)}</span>?
                         </p>
 
                         <div className="mt-6 flex gap-3">
                             <button
                                 onClick={() => setIsDeleteOpen(false)}
-                                className="flex-1 rounded-lg border border-stone-200 py-3 text-sm font-black text-stone-600 hover:bg-stone-50"
+                                className="flex-1 rounded-2xl border border-white/10 py-3 text-sm font-black text-white/65 hover:bg-white/[0.05] hover:text-white"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleDeleteEmployee}
-                                className="flex-1 rounded-lg bg-red-600 py-3 text-sm font-black text-white hover:bg-red-700"
+                                className="flex-1 rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white hover:bg-[#681718]"
                             >
                                 Delete
                             </button>

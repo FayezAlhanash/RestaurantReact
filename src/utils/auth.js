@@ -13,7 +13,75 @@ export function getRoleId(user) {
     return Number.isNaN(roleId) ? null : roleId;
 }
 
-export function getHomePath(roleId) {
+function collectPermissionKeys(user = {}) {
+    const permissionSources = [
+        user.permissions,
+        user.role_permissions,
+        user.rolePermissions,
+        user.user_permissions,
+        user.userPermissions,
+        user.role?.permissions,
+        user.role?.role_permissions,
+    ];
+
+    return Array.from(
+        new Set(
+            permissionSources.flatMap((permissions) => {
+                if (!Array.isArray(permissions)) return [];
+
+                return permissions.flatMap((permission) => {
+                    if (typeof permission === "string") return [permission];
+                    if (!permission || typeof permission !== "object") return [];
+
+                    return [
+                        permission.key,
+                        permission.slug,
+                        permission.code,
+                        permission.name,
+                        permission.permission_key,
+                        permission.permission?.key,
+                        permission.permission?.slug,
+                        permission.permission?.code,
+                        permission.permission?.name,
+                        permission.pivot?.permission?.key,
+                        permission.pivot?.permission?.slug,
+                        permission.pivot?.permission?.code,
+                        permission.pivot?.permission?.name,
+                    ].filter(Boolean);
+                });
+            })
+        )
+    );
+}
+
+export function getPermissionHomePath(user = {}) {
+    const permissions = collectPermissionKeys(user);
+    const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
+    const can = (...requiredPermissions) =>
+        requiredPermissions.some((permission) => permissions.includes(permission));
+
+    if (can("manage_users", "manage_restaurant_staff")) return "/employee";
+    if (can("manage_roles", "manage_permissions")) return "/roles";
+    if (isAdmin && can("manage_restaurants", "monitor_restaurant")) return "/restaurants";
+    if (isAdmin && can("manage_tables")) return "/tables";
+    if (can("monitor_inventory", "manage_inventory")) return "/inventory";
+    if (can("manage_takeaway_orders")) return "/takeaway-orders";
+    if (can("manage_kitchen_orders")) return "/kitchen-orders";
+    if (can("serve_dine_in_orders", "process_payments")) return "/dine-in-service";
+    if (can("manage_menu")) return "/add-menu";
+    if (can("view_recipes", "manage_recipes")) return "/ingredients";
+    if (can("view_reports", "view_global_reports")) return "/reports";
+
+    return "/no-tasks";
+}
+
+export function getHomePath(roleId, user = {}) {
+    if (Number(roleId) !== ROLE_IDS.ADMIN) {
+        const permissionHomePath = getPermissionHomePath(user);
+
+        if (permissionHomePath) return permissionHomePath;
+    }
+
     switch (Number(roleId)) {
         case ROLE_IDS.ADMIN:
             return "/dashboard";
@@ -34,7 +102,7 @@ export function getHomePath(roleId) {
             return "/waiter";
 
         default:
-            return null;
+            return getPermissionHomePath(user) || "/no-tasks";
     }
 }
 

@@ -27,7 +27,7 @@ function Login() {
         try {
             const formData = new FormData();
 
-            formData.append("login", login);
+            formData.append("login", login.trim());
             formData.append("password", password);
 
             // تسجيل الدخول
@@ -77,7 +77,7 @@ function Login() {
                     [],
             };
             const roleId = getRoleId(sessionUser);
-            const homePath = getHomePath(roleId);
+            const homePath = getHomePath(roleId, sessionUser);
 
             if (!homePath) {
                 clearSession();

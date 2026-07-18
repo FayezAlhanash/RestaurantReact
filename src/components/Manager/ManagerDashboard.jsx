@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowUpRight,
   BarChart3,
+  Building2,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -19,7 +20,9 @@ import {
 } from "lucide-react";
 import api from "../../API/axios";
 import { ensureManagerRestaurantId } from "./managerHelpers";
+import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
+import { useTheme } from "../../context/ThemeContext";
 
 const currentYear = new Date().getFullYear();
 const defaultFrom = `${currentYear}-01-01`;
@@ -35,9 +38,10 @@ const slides = [
     to: "/manager/add-menu",
     action: "Open categories",
     icon: Tags,
-    bg: "from-[#081C15] via-[#123524] to-[#1B4332]",
-    accent: "bg-emerald-400 text-emerald-950",
-    glow: "shadow-emerald-500/20",
+    bg: "from-[#101517] via-[#1D2427] to-[#2A171C]",
+    accent: "bg-[#FFD166] text-[#151A1D]",
+    accentSoft: "bg-[#FFD166]/16 text-[#FFD166]",
+    glow: "shadow-[#7F1D1D]/20",
   },
   {
     eyebrow: "Food library",
@@ -48,9 +52,10 @@ const slides = [
     to: "/manager/add-food",
     action: "Open foods",
     icon: UtensilsCrossed,
-    bg: "from-[#111827] via-[#1E3A5F] to-[#0F766E]",
-    accent: "bg-sky-300 text-sky-950",
-    glow: "shadow-sky-500/20",
+    bg: "from-[#101517] via-[#172327] to-[#352027]",
+    accent: "bg-[#7F1D1D] text-white",
+    accentSoft: "bg-[#7F1D1D]/18 text-[#7F1D1D]",
+    glow: "shadow-[#7F1D1D]/20",
   },
   {
     eyebrow: "Modifier groups",
@@ -61,9 +66,10 @@ const slides = [
     to: "/manager/add-menu",
     action: "Preview modifiers",
     icon: Layers3,
-    bg: "from-[#2A0F1F] via-[#4A1942] to-[#7C2D12]",
-    accent: "bg-amber-300 text-amber-950",
-    glow: "shadow-amber-500/20",
+    bg: "from-[#101517] via-[#26181B] to-[#3A2025]",
+    accent: "bg-[#FFD166] text-[#151A1D]",
+    accentSoft: "bg-[#FFD166]/16 text-[#FFD166]",
+    glow: "shadow-[#FFD166]/20",
   },
 ];
 
@@ -78,76 +84,88 @@ function getList(data) {
 }
 
 function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
+  const { isLight } = useTheme();
   const tones = {
     red: {
-      background: "linear-gradient(135deg, #FFF8F7 0%, #FFFFFF 100%)",
+      background: "linear-gradient(135deg, #303539 0%, #252A2D 100%)",
       accent: "#7F1D1D",
-      border: "#F0D4D0",
-      icon: "bg-[#F9ECEC] text-[#7F1D1D]",
-      glow: "#F9ECEC",
+      border: "rgba(127,29,29,0.24)",
+      icon: "bg-[#7F1D1D]/14 text-[#7F1D1D]",
+      glow: "rgba(127,29,29,0.08)",
     },
     green: {
-      background: "linear-gradient(135deg, #F1F8F4 0%, #FFFFFF 100%)",
-      accent: "#28724F",
-      border: "#CFE7D8",
-      icon: "bg-emerald-50 text-emerald-700",
-      glow: "#E7F5EC",
+      background: "linear-gradient(135deg, #303539 0%, #252A2D 100%)",
+      accent: "#FFD166",
+      border: "rgba(255,209,102,0.22)",
+      icon: "bg-[#FFD166]/14 text-[#FFD166]",
+      glow: "rgba(255,209,102,0.08)",
     },
     blue: {
-      background: "linear-gradient(135deg, #F1F7FB 0%, #FFFFFF 100%)",
-      accent: "#2E6F8F",
-      border: "#CFE3EF",
-      icon: "bg-sky-50 text-sky-700",
-      glow: "#E6F3F8",
+      background: "linear-gradient(135deg, #303539 0%, #252A2D 100%)",
+      accent: "#FFD166",
+      border: "rgba(255,255,255,0.14)",
+      icon: "bg-[#FFD166]/14 text-[#FFD166]",
+      glow: "rgba(255,209,102,0.08)",
     },
     amber: {
-      background: "linear-gradient(135deg, #FFF7EA 0%, #FFFFFF 100%)",
-      accent: "#9A5A1B",
-      border: "#EAD8B8",
-      icon: "bg-amber-50 text-amber-700",
-      glow: "#FFF0D6",
+      background: "linear-gradient(135deg, #303539 0%, #252A2D 100%)",
+      accent: "#FFD166",
+      border: "rgba(255,209,102,0.22)",
+      icon: "bg-[#FFD166]/14 text-[#FFD166]",
+      glow: "rgba(255,209,102,0.08)",
     },
   };
   const toneStyle = tones[tone] ?? tones.red;
+  const lightTone = {
+    red: { accent: "#7F1D1D", border: "rgba(127,29,29,0.24)", icon: "bg-[#7F1D1D]/12 text-[#7F1D1D]" },
+    green: { accent: "#9B6A00", border: "rgba(255,209,102,0.52)", icon: "bg-[#FFD166]/18 text-[#8f5f00]" },
+    blue: { accent: "#9B6A00", border: "rgba(127,29,29,0.16)", icon: "bg-[#FFD166]/18 text-[#8f5f00]" },
+    amber: { accent: "#9B6A00", border: "rgba(255,209,102,0.52)", icon: "bg-[#FFD166]/18 text-[#8f5f00]" },
+  }[tone] ?? { accent: "#7F1D1D", border: "rgba(127,29,29,0.16)", icon: "bg-[#7F1D1D]/12 text-[#7F1D1D]" };
 
   return (
     <article
-      className="relative min-h-[150px] overflow-hidden rounded-lg border p-5 shadow-sm"
-      style={{ background: toneStyle.background, borderColor: toneStyle.border }}
+      className="relative min-h-[190px] overflow-hidden rounded-[28px] border p-6 shadow-[0_18px_42px_rgba(0,0,0,0.22)]"
+      style={{
+        background: isLight
+          ? "linear-gradient(135deg, #FFF9F2 0%, #F8EFE8 100%)"
+          : toneStyle.background,
+        borderColor: isLight ? lightTone.border : toneStyle.border,
+      }}
     >
+      <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: isLight ? lightTone.accent : toneStyle.accent }} />
       <div
-        className="absolute -right-10 -top-10 h-32 w-32 rounded-full"
+        className="absolute -right-8 -top-8 h-28 w-28 rounded-full blur-xl"
         style={{ backgroundColor: toneStyle.glow }}
       />
-      <div className="absolute -bottom-12 left-5 h-28 w-28 rounded-full bg-white/70" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+          <p className={`text-sm font-black uppercase tracking-[0.16em] ${isLight ? "text-[#7A6A64]" : "text-white/60"}`}>
             {title}
           </p>
           <strong
-            className="mt-3 block text-5xl font-black leading-none"
-            style={{ color: toneStyle.accent }}
+            className="mt-5 block text-7xl font-black leading-none"
+            style={{ color: isLight ? lightTone.accent : toneStyle.accent }}
           >
             {value}
           </strong>
         </div>
-        <div className={`grid h-12 w-12 place-items-center rounded-lg backdrop-blur ${toneStyle.icon}`}>
-          <Icon size={21} />
+        <div className={`grid h-14 w-14 place-items-center rounded-2xl backdrop-blur ${isLight ? lightTone.icon : toneStyle.icon}`}>
+          <Icon size={24} />
         </div>
       </div>
-      <p className="relative mt-5 text-base font-bold text-stone-500">{helper}</p>
+      <p className={`relative mt-6 text-xl font-bold ${isLight ? "text-[#6E5E58]" : "text-white/76"}`}>{helper}</p>
     </article>
   );
 }
 
 function EmptyState({ text }) {
   return (
-    <div className="rounded-lg border border-dashed border-[#E5B7A6] bg-[#FFF8F4] px-5 py-10 text-center">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20">
+    <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.05] px-5 py-10 text-center">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20">
         <BarChart3 size={22} />
       </div>
-      <p className="mt-3 text-sm font-black text-stone-700">{text}</p>
+      <p className="mt-3 text-sm font-black text-white/70">{text}</p>
     </div>
   );
 }
@@ -156,9 +174,9 @@ function ReportTable({ columns, rows, emptyText }) {
   if (!rows.length) return <EmptyState text={emptyText} />;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#12181B]">
       <table className="w-full border-collapse text-left text-base">
-        <thead className="bg-[#FFF7ED] text-sm font-black uppercase tracking-[0.12em] text-stone-500">
+        <thead className="bg-white/[0.06] text-sm font-black uppercase tracking-[0.12em] text-white/48">
           <tr>
             {columns.map((column) => (
               <th key={column.key} className="px-5 py-4">
@@ -167,11 +185,11 @@ function ReportTable({ columns, rows, emptyText }) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-stone-100">
+        <tbody className="divide-y divide-white/10">
           {rows.map((row, index) => (
-            <tr key={row.id ?? row.date ?? row.food_id ?? index} className="transition hover:bg-[#FFF8F4]">
+            <tr key={row.id ?? row.date ?? row.food_id ?? index} className="transition hover:bg-white/[0.05]">
               {columns.map((column) => (
-                <td key={column.key} className="px-5 py-4 text-base font-bold text-stone-700">
+                <td key={column.key} className="px-5 py-4 text-base font-bold text-white/72">
                   {column.render ? column.render(row, index) : row[column.key]}
                 </td>
               ))}
@@ -191,6 +209,8 @@ export default function ManagerDashboard() {
   const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(defaultTo);
   const [restaurant, setRestaurant] = useState(null);
+  const [restaurants, setRestaurants] = useState([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
   const [summary, setSummary] = useState(null);
   const [topFoods, setTopFoods] = useState([]);
   const [dailyRevenue, setDailyRevenue] = useState([]);
@@ -201,9 +221,18 @@ export default function ManagerDashboard() {
   const slide = slides[activeSlide];
 
   const permissions = getUserPermissions();
-  const canViewReports = permissions.includes("view_reports");
+  const user = getStoredUser();
+  const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
+  const canViewReports =
+    permissions.includes("view_reports") || permissions.includes("view_global_reports");
 
   const params = useMemo(() => ({ from, to }), [from, to]);
+
+  const getActiveRestaurantId = useCallback(async () => {
+    if (isAdmin) return selectedRestaurantId || null;
+
+    return ensureManagerRestaurantId();
+  }, [isAdmin, selectedRestaurantId]);
 
   const goToPreviousSlide = () => {
     setActiveSlide((current) =>
@@ -217,7 +246,7 @@ export default function ManagerDashboard() {
     );
   };
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     if (!canViewReports) {
       setIsLoading(false);
       setErrorMessage("This manager does not have the view_reports permission.");
@@ -228,10 +257,14 @@ export default function ManagerDashboard() {
     setErrorMessage("");
 
     try {
-      const restaurantId = await ensureManagerRestaurantId();
+      const restaurantId = await getActiveRestaurantId();
 
       if (!restaurantId) {
-        throw new Error("Restaurant id was not found for this manager.");
+        throw new Error(
+          isAdmin
+            ? "Choose a restaurant dashboard first."
+            : "Restaurant id was not found for this manager."
+        );
       }
 
       const [summaryRes, topFoodsRes, revenueRes, ordersRes] = await Promise.all([
@@ -257,12 +290,35 @@ export default function ManagerDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [canViewReports, getActiveRestaurantId, isAdmin, params]);
 
   useEffect(() => {
+    if (!isAdmin) return undefined;
+
+    const fetchRestaurants = async () => {
+      try {
+        const res = await api.get("/restaurants");
+        const restaurantList = res.data.restaurants || res.data.data || [];
+
+        setRestaurants(restaurantList);
+        setSelectedRestaurantId((current) => current || restaurantList[0]?.id || "");
+      } catch (error) {
+        console.log(error.response?.data || error);
+        setErrorMessage("Restaurants could not be loaded for admin reports.");
+      }
+    };
+
+    fetchRestaurants();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin && !selectedRestaurantId) {
+      setIsLoading(false);
+      return;
+    }
+
     loadReports();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdmin, loadReports, selectedRestaurantId]);
 
   useEffect(() => {
     if (isSliderPaused) return undefined;
@@ -310,7 +366,7 @@ export default function ManagerDashboard() {
   const revenue = summary?.revenue ?? {};
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-full space-y-6 bg-[radial-gradient(circle_at_85%_8%,rgba(127,29,29,0.18),transparent_28%),radial-gradient(circle_at_15%_20%,rgba(255,209,102,0.12),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)] p-4 text-white sm:p-6">
       <section
         onMouseEnter={() => setIsSliderPaused(true)}
         onMouseLeave={() => setIsSliderPaused(false)}
@@ -318,7 +374,7 @@ export default function ManagerDashboard() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className={`overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${slide.bg} text-white shadow-2xl ${slide.glow}`}
+        className={`overflow-hidden rounded-[30px] border border-white/10 bg-gradient-to-br ${slide.bg} text-white shadow-2xl ${slide.glow}`}
       >
         <div
           className={`flex cursor-grab select-none ${
@@ -338,7 +394,7 @@ export default function ManagerDashboard() {
               >
                 <div className="flex flex-col justify-between">
                   <div>
-                    <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-white/80 backdrop-blur">
+                    <div className={`mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-black uppercase tracking-wide backdrop-blur ${item.accentSoft}`}>
                       <SlideIcon size={15} />
                       {item.eyebrow}
                     </div>
@@ -354,7 +410,7 @@ export default function ManagerDashboard() {
                   <div className="mt-8 flex flex-wrap items-center gap-3">
                     <Link
                       to={item.to}
-                      className={`group inline-flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black shadow-lg transition duration-200 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-100 ${item.accent}`}
+                      className={`group inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black shadow-lg transition duration-200 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-100 ${item.accent}`}
                     >
                       {item.action}
                       <ArrowUpRight
@@ -381,9 +437,9 @@ export default function ManagerDashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between rounded-lg border border-white/10 bg-white/10 p-5 backdrop-blur">
+                <div className="flex flex-col justify-between rounded-[24px] border border-white/10 bg-white/10 p-5 backdrop-blur">
                   <div className="flex items-center justify-between">
-                    <div className={`grid h-14 w-14 place-items-center rounded-lg ${item.accent}`}>
+                    <div className={`grid h-14 w-14 place-items-center rounded-2xl ${item.accent}`}>
                       <SlideIcon size={27} />
                     </div>
                     <div className="flex gap-2">
@@ -420,53 +476,109 @@ export default function ManagerDashboard() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden rounded-lg border border-[#F2C7B3] bg-gradient-to-br from-[#FFF1E7] via-white to-[#EAF8FF] p-5 shadow-sm">
-        <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-[#F97316]/10" />
-        <div className="absolute bottom-0 left-0 h-24 w-24 rounded-tr-full bg-[#0EA5E9]/10" />
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+      <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#252A2D] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
+        <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-[#7F1D1D]/14" />
+        <div className="absolute bottom-0 left-0 h-24 w-24 rounded-tr-full bg-[#FFD166]/10" />
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
           <div className="relative">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#F6B79A] bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#7F1D1D] shadow-sm">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#7F1D1D]/30 bg-[#7F1D1D]/12 px-4 py-1.5 text-sm font-black uppercase tracking-[0.16em] text-[#7F1D1D] shadow-sm">
               <BarChart3 size={14} />
               View Reports
             </div>
-            <h1 className="text-3xl font-black text-stone-950">
+            <h1 className="text-4xl font-black leading-tight text-white">
               Restaurant performance
             </h1>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-stone-500">
+            <p className="mt-3 max-w-2xl text-base font-semibold leading-7 text-white/68">
               {restaurant?.name || "This manager's restaurant"}
               {restaurant?.id ? ` · Restaurant #${restaurant.id}` : ""} · live sales,
               orders, and best sellers.
             </p>
           </div>
 
-          <div className="relative flex flex-col gap-3 md:flex-row md:items-end">
+          {isAdmin && (
+            <div className="relative min-w-[min(100%,520px)] rounded-[24px] border border-[#FFD166]/30 bg-[#11181B]/78 p-4 shadow-[0_18px_38px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04]">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
+                  <Building2 size={21} />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+                    Admin dashboard view
+                  </p>
+                  <h3 className="text-lg font-black text-white">
+                    Open any manager dashboard
+                  </h3>
+                </div>
+              </div>
+
+              {restaurants.length > 0 ? (
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {restaurants.map((item) => {
+                    const active = String(selectedRestaurantId) === String(item.id);
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedRestaurantId(item.id);
+                          setRestaurant(item);
+                          setSummary(null);
+                          setTopFoods([]);
+                          setDailyRevenue([]);
+                          setDailyOrders([]);
+                        }}
+                        className={`shrink-0 rounded-2xl border px-4 py-2 text-sm font-black transition ${
+                          active
+                            ? "border-[#FFD166]/80 bg-[#FFD166]/18 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
+                            : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/40 hover:bg-[#FFD166]/10 hover:text-white"
+                        }`}
+                      >
+                        #{item.id} {item.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-2xl border border-white/10 bg-black/16 px-4 py-3 text-sm font-bold text-white/55">
+                  Loading restaurants...
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="relative rounded-[24px] border border-white/10 bg-black/18 p-4">
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-[#FFD166]">
+              Report date range
+            </p>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end">
             <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase text-stone-500">
-                From
+              <span className="mb-2 block text-sm font-black uppercase text-white/70">
+                From date
               </span>
               <input
                 type="date"
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
-                className="h-11 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                className="h-14 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-base font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase text-stone-500">
-                To
+              <span className="mb-2 block text-sm font-black uppercase text-white/70">
+                To date
               </span>
               <input
                 type="date"
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
-                className="h-11 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                className="h-14 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-base font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
               />
             </label>
             <button
               type="button"
               onClick={loadReports}
               disabled={isLoading}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/15 transition hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-stone-300"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-base font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40"
             >
               {isLoading ? (
                 <Loader2 size={17} className="animate-spin" />
@@ -475,6 +587,7 @@ export default function ManagerDashboard() {
               )}
               Refresh
             </button>
+            </div>
           </div>
         </div>
       </section>
@@ -486,9 +599,9 @@ export default function ManagerDashboard() {
         </div>
       )}
 
-      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_520px]">
+        <div className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
             <StatCard
               title="Revenue"
               value={isLoading ? "..." : money(revenue.total)}
@@ -519,25 +632,25 @@ export default function ManagerDashboard() {
             />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <article className="overflow-hidden rounded-lg border border-[#F6C8AA] bg-white shadow-sm">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
               <div
-                className="border-b border-[#E8D8D2] bg-[#FFF8F7] p-5 text-stone-950"
+                className="border-b border-white/10 p-5 text-white"
                 style={{
                   background:
-                    "linear-gradient(90deg, #FFF8F7 0%, #FFFFFF 100%)",
+                    "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
                 }}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
+                    <p className="text-sm font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
                       Daily Revenue
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-stone-950">
+                    <h2 className="mt-1 text-2xl font-black text-white">
                       Revenue pulse
                     </h2>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-lg bg-[#F9ECEC] text-[#7F1D1D]">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D]/18 text-[#7F1D1D]">
                     <DollarSign size={22} />
                   </div>
                 </div>
@@ -554,14 +667,14 @@ export default function ManagerDashboard() {
                         key: "date",
                         label: "Date",
                         render: (row) => (
-                          <span className="text-lg font-black text-stone-950">{row.date}</span>
+                          <span className="text-lg font-black text-white">{row.date}</span>
                         ),
                       },
                       {
                         key: "revenue",
                         label: "Revenue",
                         render: (row) => (
-                          <span className="rounded-full bg-emerald-50 px-4 py-1.5 text-base font-black text-emerald-700">
+                          <span className="rounded-full bg-emerald-400/12 px-4 py-1.5 text-base font-black text-emerald-300">
                             {money(row.revenue)}
                           </span>
                         ),
@@ -574,24 +687,24 @@ export default function ManagerDashboard() {
               </div>
             </article>
 
-            <article className="overflow-hidden rounded-lg border border-[#BAE6FD] bg-white shadow-sm">
+            <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
               <div
-                className="border-b border-[#D6E6EF] bg-[#F1F7FB] p-5 text-stone-950"
+                className="border-b border-white/10 p-5 text-white"
                 style={{
                   background:
-                    "linear-gradient(90deg, #F1F7FB 0%, #FFFFFF 100%)",
+                    "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
                 }}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#2E6F8F]">
+                    <p className="text-sm font-black uppercase tracking-[0.14em] text-sky-300">
                       Daily Orders
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-stone-950">
+                    <h2 className="mt-1 text-2xl font-black text-white">
                       Order flow
                     </h2>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-lg bg-sky-50 text-sky-700">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-300/14 text-sky-300">
                     <ClipboardList size={22} />
                   </div>
                 </div>
@@ -608,14 +721,14 @@ export default function ManagerDashboard() {
                         key: "date",
                         label: "Date",
                         render: (row) => (
-                          <span className="text-lg font-black text-stone-950">{row.date}</span>
+                          <span className="text-lg font-black text-white">{row.date}</span>
                         ),
                       },
                       {
                         key: "total_orders",
                         label: "Total",
                         render: (row) => (
-                          <span className="rounded-full bg-sky-50 px-4 py-1.5 text-base font-black text-sky-700">
+                          <span className="rounded-full bg-sky-300/12 px-4 py-1.5 text-base font-black text-sky-300">
                             {row.total_orders ?? 0}
                           </span>
                         ),
@@ -624,21 +737,21 @@ export default function ManagerDashboard() {
                         key: "completed_orders",
                         label: "Done",
                         render: (row) => (
-                          <span className="text-lg font-black text-emerald-700">{row.completed_orders ?? 0}</span>
+                          <span className="text-lg font-black text-emerald-300">{row.completed_orders ?? 0}</span>
                         ),
                       },
                       {
                         key: "cancelled_orders",
                         label: "Cancel",
                         render: (row) => (
-                          <span className="text-lg font-black text-red-700">{row.cancelled_orders ?? 0}</span>
+                          <span className="text-lg font-black text-[#7F1D1D]">{row.cancelled_orders ?? 0}</span>
                         ),
                       },
                       {
                         key: "active_orders",
                         label: "Active",
                         render: (row) => (
-                          <span className="text-lg font-black text-amber-700">{row.active_orders ?? 0}</span>
+                          <span className="text-lg font-black text-[#FFD166]">{row.active_orders ?? 0}</span>
                         ),
                       },
                     ]}
@@ -651,37 +764,37 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
-        <article className="overflow-hidden rounded-lg border border-[#E9C6BF] bg-white shadow-sm">
+        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
           <div
-            className="border-b border-[#E8D8D2] bg-[#FFF8F7] p-5 text-stone-950"
+            className="border-b border-white/10 p-5 text-white"
             style={{
               background:
-                "linear-gradient(90deg, #FFF8F7 0%, #FFFFFF 100%)",
+                "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
             }}
           >
             <div className="mb-6 flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
                   Top Foods
                 </p>
-                <h2 className="mt-1 text-2xl font-black text-stone-950">
+                <h2 className="mt-1 text-3xl font-black text-white">
                   Best sellers
                 </h2>
               </div>
-              <div className="grid h-12 w-12 place-items-center rounded-lg bg-[#F9ECEC] text-[#7F1D1D]">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D]/18 text-[#7F1D1D]">
                 <ChefHat size={24} />
               </div>
             </div>
 
             {topFoods[0] && !isLoading ? (
-              <div className="rounded-lg border border-[#E8D8D2] bg-white p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+              <div className="rounded-2xl border border-white/10 bg-black/16 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
                   Leader
                 </p>
-                <h3 className="mt-2 text-2xl font-black leading-tight text-stone-950">
+                <h3 className="mt-2 text-2xl font-black leading-tight text-white">
                   {topFoods[0].food_name || `Food #${topFoods[0].food_id}`}
                 </h3>
-                <p className="mt-2 text-sm font-bold text-stone-500">
+                <p className="mt-2 text-sm font-bold text-white/55">
                   {Number(topFoods[0].total_sold || 0)} sold in this range
                 </p>
               </div>
@@ -700,7 +813,7 @@ export default function ManagerDashboard() {
                     key: "rank",
                     label: "#",
                     render: (_row, index) => (
-                      <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#7F1D1D] text-base font-black text-white">
+                      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#7F1D1D] text-base font-black text-white">
                         {index + 1}
                       </span>
                     ),
@@ -709,7 +822,7 @@ export default function ManagerDashboard() {
                     key: "food_name",
                     label: "Food",
                     render: (row) => (
-                      <span className="text-lg font-black text-stone-950">
+                      <span className="text-lg font-black text-white">
                         {row.food_name || `Food #${row.food_id}`}
                       </span>
                     ),
@@ -718,7 +831,7 @@ export default function ManagerDashboard() {
                     key: "total_sold",
                     label: "Sold",
                     render: (row) => (
-                      <span className="rounded-full bg-[#FFF1E7] px-4 py-1.5 text-base font-black text-[#7F1D1D]">
+                      <span className="rounded-full bg-[#FFD166]/14 px-4 py-1.5 text-base font-black text-[#FFD166]">
                         {row.total_sold ?? 0}
                       </span>
                     ),

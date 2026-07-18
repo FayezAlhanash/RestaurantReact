@@ -29,9 +29,26 @@ import DineInOrder from "./components/Customer/DineInOrder";
 import WaiterDashboard from "./components/Waiter/WaiterDashboard";
 import WaiterLayout from "./components/Waiter/WaiterLayout";
 import WaiterHomeRedirect from "./components/Waiter/WaiterHomeRedirect";
+import NoTasks from "./components/Shared/NoTasks";
+import { ThemeProvider } from "./context/ThemeContext";
+
+const OPERATIONS_WORKSPACE_PERMISSIONS = [
+  "manage_menu",
+  "view_recipes",
+  "manage_recipes",
+  "monitor_inventory",
+  "manage_takeaway_orders",
+  "manage_kitchen_orders",
+  "serve_dine_in_orders",
+  "process_payments",
+  "manage_tables",
+  "manage_restaurants",
+  "view_reports",
+];
 
 function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter >
 
       <Routes>
@@ -44,12 +61,14 @@ function App() {
         <Route path="/dine-in/:tableId" element={<DineInOrder />} />
 
         {/* Cashier */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.CASHIER]} />}>
-          <Route path="/cashier" element={<Cashier />} />
+        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.CASHIER]} allowedPermissions={["manage_takeaway_orders"]} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/cashier" element={<Cashier />} />
+          </Route>
         </Route>
 
         {/* Waiter */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAITER]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAITER]} allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
           <Route element={<WaiterLayout />}>
             <Route path="/waiter" element={<WaiterHomeRedirect />} />
             <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
@@ -70,7 +89,7 @@ function App() {
         </Route>
 
         {/* Warehouse */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAREHOUSE_MANAGER]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAREHOUSE_MANAGER]} allowedPermissions={OPERATIONS_WORKSPACE_PERMISSIONS} />}>
           <Route element={<WarehouseLayout />}>
             <Route path="/warehouse" element={<Navigate to="/warehouse/dashboard" replace />} />
             <Route path="/warehouse/dashboard" element={<Warehouse />} />
@@ -102,13 +121,18 @@ function App() {
         </Route>
 
         {/* Admin */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} />}>
+        <Route element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
-            <Route path="/dashboard" element={<MainContent />} />
-            <Route element={<ProtectedRoute allowedPermissions={["manage_restaurants"]} />}>
-              <Route path="/restaurants" element={<RestaurantsManagements />} />
+            <Route path="/no-tasks" element={<NoTasks />} />
+            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} />}>
+              <Route path="/dashboard" element={<MainContent />} />
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["manage_users"]} />}>
+            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} />}>
+              <Route element={<ProtectedRoute allowedPermissions={["manage_restaurants"]} />}>
+                <Route path="/restaurants" element={<RestaurantsManagements />} />
+              </Route>
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_users", "manage_restaurant_staff"]} />}>
               <Route path="/employees" element={<EmployeesManagements />} />
               <Route path="/employee" element={<Employee />} />
             </Route>
@@ -118,10 +142,19 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["manage_roles", "manage_permissions"]} />}>
               <Route path="/roles" element={<RolesPermission />} />
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["manage_tables"]} />}>
-              <Route path="/tables" element={<TablesManagements />} />
+            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} />}>
+              <Route element={<ProtectedRoute allowedPermissions={["manage_tables"]} />}>
+                <Route path="/tables" element={<TablesManagements />} />
+              </Route>
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["monitor_inventory"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_menu"]} />}>
+              <Route path="/add-menu" element={<AddMenu />} />
+              <Route path="/add-food" element={<AddFood />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["view_recipes", "manage_recipes"]} />}>
+              <Route path="/ingredients" element={<Ingredients />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["monitor_inventory", "manage_inventory"]} />}>
               <Route path="/inventory" element={<Warehouse />} />
               <Route path="/stock-actions" element={<StockActions />} />
               <Route path="/low-stock" element={<LowStock />} />
@@ -129,8 +162,14 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["manage_takeaway_orders"]} />}>
               <Route path="/takeaway-orders" element={<CashierDashboard embedded />} />
             </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_kitchen_orders"]} />}>
+              <Route path="/kitchen-orders" element={<KitchenDashboard />} />
+            </Route>
             <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
               <Route path="/dine-in-service" element={<WaiterDashboard embedded />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["view_reports", "view_global_reports"]} />}>
+              <Route path="/reports" element={<ManagerDashboard />} />
             </Route>
           </Route>
         </Route>
@@ -139,6 +178,7 @@ function App() {
     element={
         <ProtectedRoute
             allowedRoles={[ROLE_IDS.KITCHEN]}
+            allowedPermissions={OPERATIONS_WORKSPACE_PERMISSIONS}
         />
     }
 >
@@ -216,7 +256,7 @@ function App() {
     </Route>
 </Route>
         {/* Manager */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.MANAGER]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.MANAGER]} allowedPermissions={OPERATIONS_WORKSPACE_PERMISSIONS} />}>
           <Route element={<ManagerLayout />}>
 
             <Route
@@ -304,6 +344,7 @@ function App() {
       </Routes>
 
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

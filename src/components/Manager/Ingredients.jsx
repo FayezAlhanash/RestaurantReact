@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
   AlertTriangle,
+  Check,
+  ChevronDown,
   Link,
   Loader2,
   Package,
@@ -36,6 +38,8 @@ export default function Ingredients() {
   const [recipeQuantity, setRecipeQuantity] = useState("");
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
+  const [isFoodPickerOpen, setIsFoodPickerOpen] = useState(false);
+  const [isIngredientPickerOpen, setIsIngredientPickerOpen] = useState(false);
 
   const fetchIngredients = async () => {
     try {
@@ -171,6 +175,9 @@ export default function Ingredients() {
 
   const normalizedSearch = search.trim().toLowerCase();
   const selectedFood = foods.find((food) => String(food.id) === String(selectedFoodId));
+  const selectedIngredient = ingredients.find(
+    (ingredient) => String(ingredient.id) === String(selectedIngredientId)
+  );
   const recipeIngredientIds = new Set(
     foodIngredients.map((item) => String(getFoodIngredientId(item)))
   );
@@ -185,24 +192,26 @@ export default function Ingredients() {
   }, [foods, normalizedSearch]);
 
   const fieldClass =
-    "w-full rounded-lg border border-stone-200 bg-white p-3 text-sm font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10";
+    "w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3.5 text-sm font-bold text-white outline-none transition duration-200 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10";
+  const pickerButtonClass =
+    "flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3.5 text-left transition duration-200 hover:border-[#FFD166]/35 focus:outline-none focus:ring-4 focus:ring-[#FFD166]/10";
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+    <div className="space-y-6 p-4 text-white sm:p-6">
+      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#f4e7dc] text-[#7F1D1D]">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D] shadow-[0_14px_30px_rgba(127,29,29,0.12)]">
               <Link size={22} />
             </div>
             <div>
-              <p className="text-sm font-black uppercase tracking-wide text-[#7F1D1D]">
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FFD166]">
                 Food Ingredients
               </p>
-              <h1 className="mt-1 text-3xl font-black text-stone-950">
+              <h1 className="mt-1 text-3xl font-black text-white sm:text-4xl">
                 Link ingredients to foods
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
                 Select a food item to view its ingredients. Recipe changes require
                 manage_recipes permission.
               </p>
@@ -210,17 +219,17 @@ export default function Ingredients() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
-            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
-              <p className="text-xs font-black uppercase text-sky-700">Foods</p>
-              <strong className="mt-2 block text-3xl font-black text-sky-950">
+            <div className="rounded-2xl border border-sky-400/35 bg-sky-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Foods</p>
+              <strong className="mt-2 block text-3xl font-black text-white">
                 {foods.length}
               </strong>
             </div>
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-xs font-black uppercase text-emerald-700">
+            <div className="rounded-2xl border border-emerald-400/35 bg-emerald-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
                 Ingredients
               </p>
-              <strong className="mt-2 block text-3xl font-black text-emerald-950">
+              <strong className="mt-2 block text-3xl font-black text-white">
                 {ingredients.length}
               </strong>
             </div>
@@ -228,18 +237,18 @@ export default function Ingredients() {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[380px_1fr]">
-        <div className="rounded-lg border border-stone-200 bg-white shadow-sm">
-          <div className="border-b border-stone-200 bg-stone-50 p-5">
+      <section className="grid gap-4 xl:grid-cols-[420px_1fr]">
+        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(31,43,46,0.94),rgba(19,28,31,0.9))] shadow-[0_22px_55px_rgba(0,0,0,0.25)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+          <div className="border-b border-white/[0.08] bg-[radial-gradient(circle_at_92%_0%,rgba(127,29,29,0.18),transparent_34%),rgba(255,255,255,0.03)] p-5">
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-lg bg-white text-[#7F1D1D] shadow-sm">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/12 text-[#7F1D1D]">
                 <UtensilsCrossed size={21} />
               </div>
               <div>
-                <p className="text-sm font-bold text-stone-500">
+                <p className="text-sm font-bold text-white/45">
                   Recipe setup
                 </p>
-                <h2 className="text-xl font-black text-stone-950">
+                <h2 className="text-xl font-black text-white">
                   Attach existing ingredient
                 </h2>
               </div>
@@ -248,15 +257,24 @@ export default function Ingredients() {
 
           <div className="space-y-4 p-5">
             {!canManageRecipes && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-bold text-amber-800">
-                <AlertTriangle size={17} className="mt-0.5 shrink-0" />
-                You can view recipes, but you do not have permission to add or
-                update ingredients.
+              <div className="rounded-[24px] border border-[#FFD166]/45 bg-[linear-gradient(145deg,rgba(255,209,102,0.2),rgba(255,209,102,0.07))] p-4 shadow-[0_14px_32px_rgba(255,209,102,0.08)]">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166]">
+                    <AlertTriangle size={22} />
+                  </span>
+                  <div>
+                    <p className="text-lg font-black text-[#FFD166]">View only mode</p>
+                    <p className="mt-1.5 text-sm font-extrabold leading-6 text-white/70">
+                      You can view recipes, but you do not have permission to add or
+                      update ingredients.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
             {normalizedSearch && (
-              <div className="flex items-center gap-2 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-sm font-bold text-sky-800">
+              <div className="flex items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm font-bold text-sky-200">
                 <Search size={16} />
                 {filteredFoods.length} food result
                 {filteredFoods.length === 1 ? "" : "s"}
@@ -264,53 +282,172 @@ export default function Ingredients() {
             )}
 
             <label className="block">
-              <span className="mb-2 block text-sm font-black text-stone-700">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Food
               </span>
-              <select
-                value={selectedFoodId}
-                onChange={(event) => setSelectedFoodId(event.target.value)}
-                className={fieldClass}
-              >
-                <option value="">
-                  {filteredFoods.length ? "Select food" : "No foods found"}
-                </option>
-                {filteredFoods.map((food) => (
-                  <option key={food.id} value={food.id}>
-                    {food.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsFoodPickerOpen((value) => !value)}
+                  className={`${pickerButtonClass} ${
+                    isFoodPickerOpen
+                      ? "border-[#FFD166]/65 ring-4 ring-[#FFD166]/10"
+                      : ""
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">
+                      {selectedFood?.name ||
+                        (filteredFoods.length ? "Select food" : "No foods found")}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-white/35">
+                      {filteredFoods.length} foods available
+                    </p>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-[#FFD166] transition ${
+                      isFoodPickerOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isFoodPickerOpen && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-[22px] border border-[#3A4448] bg-[#0D1214] shadow-[0_24px_56px_rgba(0,0,0,0.45)]">
+                    <div className="cashier-scroll max-h-72 overflow-y-auto p-2">
+                      {filteredFoods.length ? (
+                        filteredFoods.map((food) => {
+                          const isSelected = String(food.id) === String(selectedFoodId);
+
+                          return (
+                            <button
+                              key={food.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedFoodId(food.id);
+                                setIsFoodPickerOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition ${
+                                isSelected
+                                  ? "bg-[#FFD166]/14 text-[#FFD166]"
+                                  : "text-white hover:bg-white/[0.06]"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-black">
+                                  {food.name}
+                                </p>
+                                {food.category?.name && (
+                                  <p className="mt-0.5 truncate text-xs font-bold text-white/35">
+                                    {food.category.name}
+                                  </p>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Check size={17} className="shrink-0 text-[#FFD166]" />
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="px-3 py-8 text-center text-sm font-bold text-white/40">
+                          No foods found
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-black text-stone-700">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Ingredient
               </span>
-              <select
-                value={selectedIngredientId}
-                onChange={(event) => setSelectedIngredientId(event.target.value)}
-                disabled={!selectedFoodId || !canManageRecipes}
-                className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-400`}
-              >
-                <option value="">
-                  {!selectedFoodId
-                    ? "Select food first"
-                    : canManageRecipes
-                      ? "Select ingredient"
-                      : "No permission to edit"}
-                </option>
-                {ingredients.map((ingredient) => (
-                  <option key={ingredient.id} value={ingredient.id}>
-                    {ingredient.name}
-                    {recipeIngredientIds.has(String(ingredient.id)) ? " (linked)" : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedFoodId || !canManageRecipes) return;
+                    setIsIngredientPickerOpen((value) => !value);
+                  }}
+                  disabled={!selectedFoodId || !canManageRecipes}
+                  className={`${pickerButtonClass} disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-white/30 ${
+                    isIngredientPickerOpen
+                      ? "border-[#FFD166]/65 ring-4 ring-[#FFD166]/10"
+                      : ""
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white disabled:text-white/30">
+                      {selectedIngredient?.name ||
+                        (!selectedFoodId
+                          ? "Select food first"
+                          : canManageRecipes
+                            ? "Select ingredient"
+                            : "No permission to edit")}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-white/35">
+                      {ingredients.length} ingredients available
+                    </p>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-[#FFD166] transition ${
+                      isIngredientPickerOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isIngredientPickerOpen && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-[22px] border border-[#3A4448] bg-[#0D1214] shadow-[0_24px_56px_rgba(0,0,0,0.45)]">
+                    <div className="cashier-scroll max-h-72 overflow-y-auto p-2">
+                      {ingredients.map((ingredient) => {
+                        const isSelected =
+                          String(ingredient.id) === String(selectedIngredientId);
+                        const isLinked = recipeIngredientIds.has(String(ingredient.id));
+
+                        return (
+                          <button
+                            key={ingredient.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedIngredientId(ingredient.id);
+                              setIsIngredientPickerOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition ${
+                              isSelected
+                                ? "bg-[#FFD166]/14 text-[#FFD166]"
+                                : "text-white hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black">
+                                {ingredient.name}
+                              </p>
+                              <p className="mt-0.5 text-xs font-bold text-white/35">
+                                {ingredient.current_quantity ?? 0} {ingredient.unit}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              {isLinked && (
+                                <span className="rounded-full border border-emerald-400/35 bg-emerald-400/10 px-2 py-1 text-[11px] font-black uppercase text-emerald-300">
+                                  Linked
+                                </span>
+                              )}
+                              {isSelected && <Check size={17} className="text-[#FFD166]" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-black text-stone-700">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Quantity
               </span>
               <input
@@ -320,7 +457,7 @@ export default function Ingredients() {
                 value={recipeQuantity}
                 onChange={(event) => setRecipeQuantity(event.target.value)}
                 disabled={!selectedFoodId || !canManageRecipes}
-                className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-400`}
+                className={`${fieldClass} disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-white/30`}
                 placeholder="2"
               />
             </label>
@@ -335,7 +472,7 @@ export default function Ingredients() {
                 !canManageRecipes ||
                 isSavingRecipe
               }
-              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/15 transition duration-200 hover:-translate-y-0.5 hover:bg-[#651717] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3.5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#7F1D1D]/45 disabled:text-white/65 disabled:shadow-none disabled:hover:translate-y-0"
             >
               {isSavingRecipe ? (
                 <Loader2 size={17} className="animate-spin" />
@@ -347,29 +484,29 @@ export default function Ingredients() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-stone-50 p-5">
+        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(28,39,42,0.94),rgba(18,27,30,0.9))] shadow-[0_22px_55px_rgba(0,0,0,0.25)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(52,211,153,0.14),transparent_32%),rgba(255,255,255,0.03)] p-5">
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-emerald-400/35 bg-emerald-400/10 text-emerald-300">
                 <Package size={21} />
               </div>
               <div>
-                <p className="text-sm font-bold text-stone-500">
+                <p className="text-sm font-bold text-white/45">
                   {selectedFood ? selectedFood.name : "No food selected"}
                 </p>
-                <h2 className="text-2xl font-black text-stone-950">
+                <h2 className="text-2xl font-black text-white">
                   Linked Ingredients
                 </h2>
               </div>
             </div>
             {loadingRecipe && (
-              <Loader2 size={22} className="animate-spin text-[#7F1D1D]" />
+              <Loader2 size={22} className="animate-spin text-[#FFD166]" />
             )}
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
-              <thead className="bg-stone-100 text-sm font-black uppercase tracking-wide text-stone-600">
+              <thead className="bg-[#0D1214]/80 text-sm font-black uppercase tracking-[0.14em] text-white/55">
                 <tr>
                   <th className="px-5 py-4 text-left">Ingredient</th>
                   <th className="px-5 py-4 text-left">Quantity</th>
@@ -377,21 +514,41 @@ export default function Ingredients() {
                   <th className="px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-white/[0.07]">
                 {!selectedFoodId || foodIngredients.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-5 py-16 text-center">
-                      <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-[#f4e7dc] text-[#7F1D1D]">
-                        <Link size={24} />
+                    <td colSpan="4" className="px-5 py-14 text-center">
+                      <div className="mx-auto max-w-md rounded-[28px] border border-white/10 bg-[#0D1214]/72 p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166] shadow-[0_14px_30px_rgba(255,209,102,0.1)]">
+                          <Link size={24} />
+                        </div>
+                        <h3 className="mt-4 text-2xl font-black text-white">
+                          {selectedFoodId ? "No ingredients linked" : "Select a food"}
+                        </h3>
+                        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/50">
+                          {selectedFoodId
+                            ? "This recipe is empty. Pick an ingredient from the left panel and set the amount used."
+                            : "Choose a food from the left panel to view its recipe ingredients here."}
+                        </p>
+                        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                          <div className="rounded-2xl border border-sky-400/20 bg-sky-400/8 px-3 py-3 text-left">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">
+                              Foods
+                            </p>
+                            <p className="mt-1 text-lg font-black text-white">
+                              {foods.length}
+                            </p>
+                          </div>
+                          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/8 px-3 py-3 text-left">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
+                              Ingredients
+                            </p>
+                            <p className="mt-1 text-lg font-black text-white">
+                              {ingredients.length}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <h3 className="mt-4 text-lg font-black text-stone-950">
-                        {selectedFoodId ? "No ingredients linked" : "Select a food"}
-                      </h3>
-                      <p className="mt-2 text-sm text-stone-500">
-                        {selectedFoodId
-                          ? "Attach the first ingredient to this food."
-                          : "Choose a food to view and edit its linked ingredients."}
-                      </p>
                     </td>
                   </tr>
                 ) : (
@@ -406,13 +563,13 @@ export default function Ingredients() {
                     return (
                       <tr
                         key={ingredientId}
-                        className="transition duration-200 hover:bg-stone-50"
+                        className="transition duration-200 hover:bg-white/[0.035]"
                       >
                         <td className="px-5 py-5">
-                          <p className="text-lg font-black text-stone-900">
+                          <p className="text-lg font-black text-white">
                             {ingredient.name}
                           </p>
-                          <p className="text-sm font-bold text-stone-400">
+                          <p className="text-sm font-bold text-white/35">
                             ID #{ingredientId}
                           </p>
                         </td>
@@ -426,14 +583,14 @@ export default function Ingredients() {
                               handleEditRecipeQuantity(ingredientId, event.target.value)
                             }
                             readOnly={!canManageRecipes}
-                            className={`w-28 rounded-lg border border-stone-200 px-3 py-2 text-sm font-black outline-none focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10 ${
+                            className={`w-28 rounded-xl border px-3 py-2 text-sm font-black outline-none transition focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10 ${
                               canManageRecipes
-                                ? "bg-white"
-                                : "cursor-not-allowed bg-stone-50 text-stone-500"
+                                ? "border-white/10 bg-[#0D1214] text-[#FFD166]"
+                                : "cursor-not-allowed border-white/5 bg-white/[0.03] text-white/35"
                             }`}
                           />
                         </td>
-                        <td className="px-5 py-5 text-base font-bold text-stone-500">
+                        <td className="px-5 py-5 text-base font-bold text-white/55">
                           {unit}
                         </td>
                         <td className="px-5 py-5">
@@ -443,7 +600,7 @@ export default function Ingredients() {
                               title="Remove from food"
                               onClick={() => handleDeleteRecipeIngredient(ingredientId)}
                               disabled={!canManageRecipes}
-                              className="grid h-9 w-9 place-items-center rounded-lg border border-stone-200 bg-white text-rose-500 shadow-sm transition duration-200 hover:scale-110 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:scale-100 disabled:hover:border-stone-200 disabled:hover:bg-white disabled:hover:text-rose-500"
+                              className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] transition duration-200 hover:scale-110 hover:border-[#7F1D1D]/65 hover:bg-[#7F1D1D]/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:scale-100"
                             >
                               <Unlink size={16} />
                             </button>

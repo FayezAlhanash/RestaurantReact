@@ -2,30 +2,30 @@ import { Bell, Search, ShoppingBag } from "lucide-react";
 
 function TopBar({ search, setSearch, cartCount }) {
     return (
-        <header className="sticky top-0 z-20 border-b border-[#E9DED8]/80 bg-[#F5F1EB]/90 px-4 py-4 backdrop-blur-xl sm:px-6 xl:px-8">
+        <header className="sticky top-0 z-20 border-b border-white/10 bg-[#101517]/82 px-4 py-4 backdrop-blur-xl sm:px-6 xl:px-8">
             <div className="flex items-center gap-3 sm:gap-5">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-xs font-black text-white shadow-sm lg:hidden">B4</div>
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#FFD166] text-xs font-black text-[#151A1D] shadow-sm lg:hidden">B4</div>
 
                 <div className="relative min-w-0 flex-1">
-                    <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#9A8B85]" />
+                    <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#FFD166]" />
                     <input
                         type="search"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search dishes, drinks..."
-                        className="h-12 w-full rounded-2xl border border-[#E5D8D2] bg-white pl-12 pr-4 text-sm font-medium shadow-sm outline-none transition focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10 sm:h-14 sm:text-base"
+                        className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.07] pl-12 pr-4 text-sm font-medium text-white shadow-sm outline-none transition placeholder:text-white/42 focus:border-[#FFD166]/45 focus:ring-4 focus:ring-[#FFD166]/10 sm:h-14 sm:text-base"
                     />
                 </div>
 
-                <button aria-label="Notifications" className="hidden h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#E5D8D2] bg-white text-[#655650] transition hover:border-[#7F1D1D] hover:text-[#7F1D1D] sm:grid">
+                <button aria-label="Notifications" className="hidden h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.07] text-white/65 transition hover:border-[#FFD166]/35 hover:text-[#FFD166] sm:grid">
                     <Bell size={21} />
                 </button>
 
-                <div className="hidden items-center gap-3 border-l border-[#DCCFC9] pl-5 xl:flex">
+                <div className="hidden items-center gap-3 border-l border-white/10 pl-5 xl:flex">
                     <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D] font-bold text-white">FA</div>
                     <div>
                         <p className="text-sm font-bold">Fayez Ahmad</p>
-                        <p className="text-xs text-[#8C7D77]">Cashier · Shift A</p>
+                        <p className="text-xs text-white/50">Cashier · Shift A</p>
                     </div>
                 </div>
 

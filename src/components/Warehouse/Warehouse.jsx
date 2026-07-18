@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import api from "../../API/axios";
+import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import WarehouseList from "./WarehouseList";
@@ -11,19 +12,36 @@ function Warehouse() {
     const [openModal, setOpenModal] = useState(false);
     const [deleteIngredient, setDeleteIngredient] = useState(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
     const [inventory, setInventory] = useState([]);
+    const [restaurants, setRestaurants] = useState([]);
+    const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
     const [permissionMessage, setPermissionMessage] = useState("");
     const outletContext = useOutletContext() || {};
     const search = outletContext.search || "";
     const permissions = getUserPermissions();
     const canManageInventory = permissions.includes("manage_inventory");
+    const user = getStoredUser();
+    const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
 
     const denyManageInventory = () => {
         setPermissionMessage("You do not have permission to manage inventory.");
     };
 
-    const getIngredients = async () => {
-        const restaurantId = await ensureCurrentRestaurantId();
+    const getActiveRestaurantId = useCallback(async () => {
+        if (isAdmin) return selectedRestaurantId || null;
+
+        return ensureCurrentRestaurantId();
+    }, [isAdmin, selectedRestaurantId]);
+
+    const getIngredientRestaurantId = async (ingredient) =>
+        ingredient?.restaurant_id ??
+        ingredient?.restaurant?.id ??
+        (await getActiveRestaurantId());
+
+    const getIngredients = useCallback(async () => {
+        const restaurantId = await getActiveRestaurantId();
         if (!restaurantId) {
             setInventory([]);
             return;
@@ -31,12 +49,32 @@ function Warehouse() {
 
         const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
         setInventory(res.data.data);
-    };
+    }, [getActiveRestaurantId]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         getIngredients();
-    }, []);
+    }, [getIngredients]);
+
+    useEffect(() => {
+        if (!isAdmin) return undefined;
+
+        const fetchRestaurants = async () => {
+            try {
+                const res = await api.get("/restaurants");
+                const restaurantList = res.data.restaurants || res.data.data || [];
+
+                setRestaurants(restaurantList);
+                setSelectedRestaurantId((current) =>
+                    current || restaurantList[0]?.id || ""
+                );
+            } catch (error) {
+                console.log(error.response?.data || error);
+            }
+        };
+
+        fetchRestaurants();
+    }, [isAdmin]);
 
     const addIngredient = async (ingredient) => {
         if (!canManageInventory) {
@@ -45,7 +83,7 @@ function Warehouse() {
         }
 
         try {
-            const restaurantId = await ensureCurrentRestaurantId();
+            const restaurantId = await getActiveRestaurantId();
             if (!restaurantId) return;
 
             await api.post(`/restaurants/${restaurantId}/ingredients`, ingredient);
@@ -64,7 +102,7 @@ function Warehouse() {
         }
 
         try {
-            const restaurantId = await ensureCurrentRestaurantId();
+            const restaurantId = await getActiveRestaurantId();
             if (!restaurantId) return;
 
             await api.patch(`/restaurants/${restaurantId}/ingredients/${ingredient.id}`, {
@@ -99,8 +137,14 @@ function Warehouse() {
             return;
         }
 
+        if (!deleteIngredient?.id || isDeleting) return;
+
+        setIsDeleting(true);
+        setPermissionMessage("");
+        setDeleteError("");
+
         try {
-            const restaurantId = await ensureCurrentRestaurantId();
+            const restaurantId = await getIngredientRestaurantId(deleteIngredient);
             if (!restaurantId) return;
 
             await api.delete(`/restaurants/${restaurantId}/ingredients/${deleteIngredient.id}`);
@@ -110,6 +154,20 @@ function Warehouse() {
             setDeleteIngredient(null);
         } catch (error) {
             console.log(error.response?.data || error);
+            const message = String(error.response?.data?.message || "");
+            const isLinkedToRecipes =
+                error.response?.status === 500 &&
+                (message.includes("food_ingredient") ||
+                    message.includes("Foreign key violation") ||
+                    message.includes("SQLSTATE[23503]"));
+
+            setDeleteError(
+                isLinkedToRecipes
+                    ? "This ingredient is used in recipes. Remove it from recipes first, then delete it."
+                    : message || "Ingredient could not be deleted from the dashboard."
+            );
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -142,6 +200,14 @@ function Warehouse() {
                 inventory={filteredInventory}
                 stats={stats}
                 search={search}
+                isAdmin={isAdmin}
+                restaurants={restaurants}
+                selectedRestaurantId={selectedRestaurantId}
+                onRestaurantChange={(restaurantId) => {
+                    setSelectedRestaurantId(restaurantId);
+                    setSelectedIngredient(null);
+                    setOpenModal(false);
+                }}
                 onAdd={() => {
                     if (!canManageInventory) {
                         denyManageInventory();
@@ -158,18 +224,19 @@ function Warehouse() {
                         return;
                     }
 
+                    setDeleteError("");
                     setDeleteIngredient(ingredient);
                     setIsDeleteOpen(true);
                 }}
             />
 
             {permissionMessage && (
-                <div className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-center text-sm font-extrabold text-red-700 shadow-xl">
+                <div className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-5 py-4 text-center text-sm font-extrabold text-[#7F1D1D] shadow-xl backdrop-blur-md">
                     {permissionMessage}
                     <button
                         type="button"
                         onClick={() => setPermissionMessage("")}
-                        className="ml-3 text-red-900 underline"
+                        className="ml-3 text-white underline"
                     >
                         Close
                     </button>
@@ -187,37 +254,47 @@ function Warehouse() {
             />
 
             {isDeleteOpen && deleteIngredient && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-[420px] rounded-[28px] bg-white p-6 shadow-2xl">
-                        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-red-600">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
+                    <div className="w-full max-w-[420px] rounded-[28px] border border-white/10 bg-[#12191C] p-6 text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]">
+                        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#7F1D1D]/14 text-[#7F1D1D]">
                             !
                         </div>
 
-                        <h2 className="text-center text-2xl font-extrabold">
+                        <h2 className="text-center text-2xl font-extrabold text-white">
                             Delete Ingredient
                         </h2>
 
-                        <p className="mt-3 text-center text-gray-600">
+                        <p className="mt-3 text-center text-white/55">
                             Are you sure you want to delete
                         </p>
 
-                        <p className="mt-2 text-center text-lg font-bold">
+                        <p className="mt-2 text-center text-lg font-bold text-[#FFD166]">
                             {deleteIngredient.name}?
                         </p>
 
+                        {deleteError && (
+                            <p className="mt-4 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-3 text-center text-sm font-bold text-[#7F1D1D]">
+                                {deleteError}
+                            </p>
+                        )}
+
                         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row">
                             <button
-                                onClick={() => setIsDeleteOpen(false)}
-                                className="flex-1 rounded-2xl border border-gray-200 py-3 font-bold transition hover:bg-gray-50"
+                                onClick={() => {
+                                    setIsDeleteOpen(false);
+                                    setDeleteError("");
+                                }}
+                                className="flex-1 rounded-2xl border border-white/10 py-3 font-bold text-white/70 transition hover:bg-white/[0.07] hover:text-white"
                             >
                                 Cancel
                             </button>
 
                             <button
                                 onClick={handleDelete}
-                                className="flex-1 rounded-2xl bg-red-600 py-3 font-bold text-white transition hover:bg-red-700"
+                                disabled={isDeleting}
+                                className="flex-1 rounded-2xl bg-[#7F1D1D] py-3 font-bold text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40"
                             >
-                                Delete
+                                {isDeleting ? "Deleting..." : "Delete"}
                             </button>
                         </div>
                     </div>

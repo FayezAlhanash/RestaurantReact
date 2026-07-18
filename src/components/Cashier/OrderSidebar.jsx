@@ -152,74 +152,74 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
     };
 
     return (
-        <div className="flex h-full min-h-[520px] flex-col bg-white">
-            <div className="flex items-center justify-between border-b border-[#EEE5E1] px-5 py-5 sm:px-6">
+        <div className="flex h-full min-h-[520px] flex-col bg-[#0F1517] text-white">
+            <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#11191B]/88 px-5 py-4 sm:px-6">
                 <div>
                     <div className="flex items-center gap-2">
                         <ShoppingBag size={20} className="text-[#7F1D1D]" />
-                        <h2 className="text-xl font-extrabold">Current order</h2>
+                        <h2 className="text-2xl font-black tracking-tight">Current order</h2>
                     </div>
-                    <p className="mt-1 text-xs font-medium text-[#94837D]">Takeaway · Order #1029</p>
+                    <p className="mt-1 text-sm font-medium text-white/45">Takeaway · Order #1029</p>
                 </div>
-                <span className="rounded-full bg-[#F9ECEC] px-3 py-1.5 text-xs font-bold text-[#7F1D1D]">{itemCount} items</span>
+                <span className="rounded-full bg-[#7F1D1D]/14 px-3 py-1.5 text-sm font-black text-[#7F1D1D]">{itemCount} items</span>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+            <div className="cashier-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
                 {cartItems.length === 0 ? (
                     <div className="flex h-full min-h-52 flex-col items-center justify-center text-center">
-                        <div className="grid h-16 w-16 place-items-center rounded-[22px] bg-[#F8F3EF] text-[#B29F97]">
+                        <div className="grid h-16 w-16 place-items-center rounded-[22px] border border-white/10 bg-white/[0.07] text-[#FFD166]">
                             <Receipt size={28} />
                         </div>
                         <h3 className="mt-4 font-extrabold">Your order is empty</h3>
-                        <p className="mt-1 max-w-52 text-sm leading-5 text-[#978780]">Choose an item from the menu to start a new order.</p>
+                        <p className="mt-1 max-w-52 text-sm leading-5 text-white/48">Choose an item from the menu to start a new order.</p>
                     </div>
                 ) : (
                     cartItems.map((item, index) => (
-                        <div key={`${item.id}-${item.size}-${index}`} className="rounded-[20px] border border-[#EEE5E1] bg-[#FCFAF8] p-3">
+                        <div key={`${item.id}-${item.size}-${index}`} className="rounded-[22px] border border-white/[0.08] bg-[#1B2225]/95 p-3 shadow-[0_12px_26px_rgba(0,0,0,0.16)]">
                             <div className="flex gap-3">
-                                <img src={`${item.image}?auto=format&fit=crop&w=180&q=70`} alt={item.title} className="h-16 w-16 shrink-0 rounded-2xl object-cover" />
+                                <img src={`${item.image}?auto=format&fit=crop&w=180&q=70`} alt={item.title} className="h-[70px] w-[70px] shrink-0 rounded-[18px] object-cover ring-1 ring-white/10" />
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
-                                            <h3 className="truncate text-sm font-extrabold">{item.title}</h3>
-                                            <p className="mt-0.5 text-xs capitalize text-[#9A8982]">{item.size}</p>
+                                            <h3 className="truncate text-base font-extrabold">{item.title}</h3>
+                                            <p className="mt-0.5 text-sm capitalize text-white/50">{item.size}</p>
                                         </div>
-                                        <button onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`} className="text-[#B7A8A2] transition hover:text-[#7F1D1D]">
+                                        <button onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white/35 transition hover:bg-[#7F1D1D]/12 hover:text-[#7F1D1D]">
                                             <Trash2 size={17} />
                                         </button>
                                     </div>
 
                                     <div className="mt-3 flex items-center justify-between">
-                                        <div className="flex items-center rounded-xl border border-[#E5D8D2] bg-white p-0.5">
-                                            <button onClick={() => changeQuantity(index, -1)} aria-label="Decrease quantity" className="grid h-7 w-7 place-items-center rounded-lg text-[#7F1D1D] hover:bg-[#F9ECEC]"><Minus size={14} /></button>
-                                            <span className="w-7 text-center text-xs font-extrabold">{item.quantity}</span>
-                                            <button onClick={() => changeQuantity(index, 1)} aria-label="Increase quantity" className="grid h-7 w-7 place-items-center rounded-lg text-[#7F1D1D] hover:bg-[#F9ECEC]"><Plus size={14} /></button>
+                                        <div className="flex items-center rounded-xl border border-white/[0.08] bg-[#0F1517] p-0.5">
+                                            <button onClick={() => changeQuantity(index, -1)} aria-label="Decrease quantity" className="grid h-8 w-8 place-items-center rounded-lg text-[#FFD166] hover:bg-white/10"><Minus size={15} /></button>
+                                            <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
+                                            <button onClick={() => changeQuantity(index, 1)} aria-label="Increase quantity" className="grid h-8 w-8 place-items-center rounded-lg text-[#FFD166] hover:bg-white/10"><Plus size={15} /></button>
                                         </div>
-                                        <span className="text-sm font-extrabold text-[#7F1D1D]">${(item.price * item.quantity).toFixed(2)}</span>
+                                        <span className="text-base font-black text-[#FFD166]">${(item.price * item.quantity).toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>
-                            {item.notes && <p className="mt-2 rounded-xl bg-white px-3 py-2 text-xs italic text-[#82716B]">“{item.notes}”</p>}
+                            {item.notes && <p className="mt-2 rounded-2xl bg-[#0F1517] px-3 py-2 text-sm italic leading-5 text-white/66">"{item.notes}"</p>}
                         </div>
                     ))
                 )}
             </div>
 
-            <div className="border-t border-[#EEE5E1] bg-white px-5 py-5 sm:px-6">
-                <div className="space-y-2.5 text-sm">
-                    <div className="flex justify-between text-[#82716B]"><span>Subtotal</span><span className="font-bold text-[#443936]">${subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between text-[#82716B]"><span>Tax (5%)</span><span className="font-bold text-[#443936]">${tax.toFixed(2)}</span></div>
+            <div className="border-t border-white/[0.08] bg-[linear-gradient(180deg,#11191B_0%,#0D1214_100%)] px-5 py-3.5 shadow-[0_-18px_36px_rgba(0,0,0,0.26)] sm:px-6">
+                <div className="space-y-1.5 text-base">
+                    <div className="flex justify-between text-white/55"><span>Subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-white/55"><span>Tax (5%)</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
                 </div>
-                <div className="my-4 border-t border-dashed border-[#DCCFC9]" />
-                <div className="mb-5 flex items-end justify-between">
-                    <span className="font-extrabold">Total</span>
-                    <span className="text-2xl font-black text-[#7F1D1D]">${total.toFixed(2)}</span>
+                <div className="my-2.5 border-t border-dashed border-white/15" />
+                <div className="mb-3 flex items-end justify-between">
+                    <span className="text-lg font-black">Total</span>
+                    <span className="text-3xl font-black text-[#FFD166]">${total.toFixed(2)}</span>
                 </div>
-                <div className="mb-4">
-                    <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[#9A8982]">
+                <div className="mb-3">
+                    <p className="mb-1.5 text-xs font-extrabold uppercase tracking-wide text-white/45">
                         Payment
                     </p>
-                    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#E5D8D2] bg-[#FCFAF8] p-1">
+                    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.055] p-1">
                         {[
                             { id: "cash", label: "Cash" },
                             { id: "stripe", label: "Stripe" },
@@ -228,10 +228,10 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                 key={method.id}
                                 type="button"
                                 onClick={() => setPaymentMethod(method.id)}
-                                className={`rounded-xl px-3 py-2.5 text-sm font-extrabold transition ${
+                                className={`rounded-xl px-3 py-2 text-base font-extrabold transition ${
                                     paymentMethod === method.id
-                                        ? "bg-[#7F1D1D] text-white shadow-sm"
-                                        : "text-[#8A7972] hover:bg-white"
+                                        ? "bg-[#7F1D1D] text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)]"
+                                        : "text-white/58 hover:bg-white/10 hover:text-white"
                                 }`}
                             >
                                 {method.label}
@@ -240,13 +240,13 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                     </div>
                 </div>
                 {paymentMethod === "stripe" && (
-                    <div className="mb-4 rounded-2xl border border-[#E5D8D2] bg-[#FCFAF8] p-3">
-                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[#9A8982]">
+                    <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3">
+                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-white/45">
                             Card
                         </p>
                         <div
                             ref={stripeCardContainerRef}
-                            className="rounded-xl border border-[#E5D8D2] bg-white px-3 py-3"
+                            className="rounded-xl border border-white/10 bg-white px-3 py-3"
                         />
                         {stripeCardMessage && (
                             <p className="mt-2 text-xs font-bold text-red-700">
@@ -256,25 +256,25 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                     </div>
                 )}
                 {successMessage && (
-                    <p className="mb-3 rounded-2xl bg-green-50 px-4 py-3 text-center text-sm font-extrabold text-green-700">
+                    <p className="mb-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-center text-sm font-extrabold text-emerald-300">
                         {successMessage}
                     </p>
                 )}
                 {errorMessage && (
-                    <p className="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-center text-xs font-extrabold text-red-700">
+                    <p className="mb-2 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-2.5 text-center text-sm font-extrabold text-[#7F1D1D]">
                         {errorMessage}
                     </p>
                 )}
                 {!canProcessPayments && (
-                    <p className="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-center text-xs font-extrabold text-red-700">
+                    <p className="mb-2 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-2.5 text-center text-sm font-extrabold text-[#7F1D1D]">
                         Payment is unavailable for this account.
                     </p>
                 )}
-                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-4 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-[#C9BAB5] disabled:shadow-none">
+                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3.5 text-base font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35 disabled:shadow-none">
                     {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${total.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
-                    <button onClick={() => setCartItems([])} className="mt-2.5 w-full py-2 text-xs font-bold text-[#9A8982] transition hover:text-[#7F1D1D]">Clear order</button>
+                    <button onClick={() => setCartItems([])} className="mt-1.5 w-full py-1 text-sm font-bold text-white/45 transition hover:text-[#7F1D1D]">Clear order</button>
                 )}
             </div>
         </div>

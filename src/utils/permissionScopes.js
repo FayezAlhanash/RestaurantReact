@@ -60,6 +60,7 @@ export function isRestaurantRole(role) {
         .toLowerCase();
 
     return (
+        Boolean(role?.requires_restaurant) ||
         Boolean(restaurantId) ||
         RESTAURANT_ROLE_IDS.includes(roleId) ||
         RESTAURANT_ROLE_NAMES.includes(roleName)

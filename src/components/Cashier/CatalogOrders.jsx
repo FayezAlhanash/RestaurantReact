@@ -388,13 +388,13 @@ function CatalogOrders() {
         <section className="px-4 pb-10 sm:px-6 xl:px-8">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#9A7A70]">
+                    <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#FFD166]">
                         Kitchen catalog
                     </p>
-                    <h1 className="text-2xl font-extrabold sm:text-3xl">
+                    <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
                         Active kitchen orders
                     </h1>
-                    <p className="mt-2 text-sm font-medium text-[#806F69]">
+                    <p className="mt-2 text-sm font-medium text-white/58">
                         {visibleOrders.length} active orders
                     </p>
                 </div>
@@ -403,7 +403,7 @@ function CatalogOrders() {
                     type="button"
                     onClick={() => loadOrders({ showLoader: true })}
                     disabled={isLoading}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition hover:bg-[#681718] disabled:bg-[#C9BAB5]"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
                 >
                     <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
                     Refresh
@@ -411,19 +411,19 @@ function CatalogOrders() {
             </div>
 
             {message && (
-                <p className="mb-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-extrabold text-green-700">
+                <p className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-extrabold text-emerald-300">
                     {message}
                 </p>
             )}
 
             {errorMessage && (
-                <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-extrabold text-red-700">
+                <p className="mb-4 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-3 text-sm font-extrabold text-[#7F1D1D]">
                     {errorMessage}
                 </p>
             )}
 
             {isLoading ? (
-                <div className="rounded-[28px] border border-[#E7DCD6] bg-white/70 px-6 py-16 text-center">
+                <div className="rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
                     <h2 className="text-xl font-bold">Loading orders...</h2>
                 </div>
             ) : visibleOrders.length ? (
@@ -431,24 +431,24 @@ function CatalogOrders() {
                     {visibleOrders.map((order) => (
                         <article
                             key={order.id}
-                            className="flex h-[620px] min-h-0 flex-col overflow-hidden rounded-[24px] border border-[#EEE5E1] bg-white shadow-sm"
+                            className="flex h-[620px] min-h-0 flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]"
                         >
-                            <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[#EEE5E1] px-5 py-5">
+                            <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-5 py-5">
                                 <div>
-                                    <p className="text-xs font-black uppercase tracking-wide text-[#9A7A70]">
+                                    <p className="text-xs font-black uppercase tracking-wide text-white/50">
                                         Order
                                     </p>
                                     <div className="mt-1 flex items-center gap-3">
-                                        <h2 className="text-3xl font-black text-[#7F1D1D]">
+                                        <h2 className="text-3xl font-black text-[#FFD166]">
                                             #{order.number}
                                         </h2>
-                                        <span className="rounded-full bg-[#F9ECEC] px-3 py-1 text-xs font-black uppercase text-[#7F1D1D]">
+                                        <span className="rounded-full bg-[#7F1D1D]/14 px-3 py-1 text-xs font-black uppercase text-[#7F1D1D]">
                                             {statusLabels[order.status] || order.status}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 text-sm font-bold text-[#8A7972]">
+                                <div className="flex items-center gap-2 text-sm font-bold text-white/55">
                                     <Clock3 size={16} />
                                     <span>{formatTime(order.createdAt) || "Now"}</span>
                                 </div>
@@ -458,18 +458,18 @@ function CatalogOrders() {
                                 {order.restaurantOrders.map((group, groupIndex) => (
                                     <div
                                         key={`${group.id || group.restaurantId || groupIndex}`}
-                                        className="rounded-2xl border border-[#EEE5E1] bg-[#FCFAF8] p-4"
+                                        className="rounded-2xl border border-white/10 bg-white/[0.06] p-4"
                                     >
                                         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-[#7F1D1D]">
+                                                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#FFD166]/14 text-[#FFD166]">
                                                     <Store size={18} />
                                                 </span>
                                                 <div>
                                                     <h3 className="font-extrabold">
                                                         {group.restaurantName}
                                                     </h3>
-                                                    <p className="text-xs font-bold text-[#9A8982]">
+                                                    <p className="text-xs font-bold text-white/45">
                                                         {group.items.length} items
                                                     </p>
                                                 </div>
@@ -485,7 +485,7 @@ function CatalogOrders() {
                                                         submittingKey ===
                                                         `restaurant:${group.id}`
                                                     }
-                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 text-xs font-black text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-3 text-xs font-black text-[#7F1D1D] transition hover:bg-[#7F1D1D]/20 disabled:opacity-60"
                                                 >
                                                     <Ban size={15} />
                                                     {submittingKey ===
@@ -500,20 +500,20 @@ function CatalogOrders() {
                                             {group.items.map((item) => (
                                                 <div
                                                     key={`${item.id}-${item.foodId}`}
-                                                    className="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-white px-4 py-3"
+                                                    className="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-[#12181B] px-4 py-3"
                                                 >
                                                     <div className="min-w-0">
                                                         <p className="font-extrabold">
                                                             {item.name}
                                                         </p>
                                                         {item.notes && (
-                                                            <p className="mt-1 text-xs font-medium text-[#8A7972]">
+                                                            <p className="mt-1 text-xs font-medium text-white/50">
                                                                 {item.notes}
                                                             </p>
                                                         )}
                                                     </div>
                                                     <div className="flex shrink-0 items-center gap-2">
-                                                        <span className="rounded-xl bg-[#F9ECEC] px-3 py-2 text-sm font-black text-[#7F1D1D]">
+                                                        <span className="rounded-xl bg-[#FFD166]/14 px-3 py-2 text-sm font-black text-[#FFD166]">
                                                             {item.quantity}x
                                                         </span>
                                                         <button
@@ -523,7 +523,7 @@ function CatalogOrders() {
                                                                 submittingKey ===
                                                                 `item-delete:${item.id}`
                                                             }
-                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-red-100 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 text-[#7F1D1D] transition hover:bg-[#7F1D1D]/20 disabled:opacity-60"
                                                             aria-label={`Delete ${item.name}`}
                                                         >
                                                             <Trash2 size={16} />
@@ -536,8 +536,8 @@ function CatalogOrders() {
                                 ))}
                             </div>
 
-                            <footer className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-[#EEE5E1] bg-[#FFFCFA] px-5 py-4">
-                                <div className="flex items-center gap-2 text-sm font-bold text-[#8A7972]">
+                            <footer className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-[#12181B] px-5 py-4">
+                                <div className="flex items-center gap-2 text-sm font-bold text-white/55">
                                     <ShoppingBag size={17} />
                                     <span>{getOrderItemCount(order)} items</span>
                                     <Utensils size={17} />
@@ -548,7 +548,7 @@ function CatalogOrders() {
                                     type="button"
                                     onClick={() => cancelOrder(order.id)}
                                     disabled={submittingKey === `order:${order.id}`}
-                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-sm transition hover:bg-[#681718] disabled:bg-[#C9BAB5]"
+                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-sm transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
                                 >
                                     <Trash2 size={16} />
                                     {submittingKey === `order:${order.id}`
@@ -560,9 +560,9 @@ function CatalogOrders() {
                     ))}
                 </div>
             ) : (
-                <div className="rounded-[28px] border border-dashed border-[#D8C8C1] bg-white/70 px-6 py-16 text-center">
+                <div className="rounded-[28px] border border-dashed border-white/15 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
                     <h2 className="text-xl font-bold">No active kitchen orders</h2>
-                    <p className="mt-2 text-[#806F69]">
+                    <p className="mt-2 text-white/58">
                         New orders will appear here after they are sent.
                     </p>
                 </div>

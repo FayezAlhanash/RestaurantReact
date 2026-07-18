@@ -1,14 +1,25 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../API/axios";
+import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import WarehouseList from "./WarehouseList";
 
 function LowStock() {
     const [inventory, setInventory] = useState([]);
+    const [restaurants, setRestaurants] = useState([]);
+    const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+    const user = getStoredUser();
+    const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
 
-    const getLowStock = async () => {
+    const getActiveRestaurantId = useCallback(async () => {
+        if (isAdmin) return selectedRestaurantId || null;
+
+        return ensureCurrentRestaurantId();
+    }, [isAdmin, selectedRestaurantId]);
+
+    const getLowStock = useCallback(async () => {
         try {
-            const restaurantId = await ensureCurrentRestaurantId();
+            const restaurantId = await getActiveRestaurantId();
             if (!restaurantId) {
                 setInventory([]);
                 return;
@@ -24,28 +35,45 @@ function LowStock() {
             console.log(error.response?.data || error);
             setInventory([]);
         }
-    };
+    }, [getActiveRestaurantId]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         getLowStock();
-    }, []);
+    }, [getLowStock]);
+
+    useEffect(() => {
+        if (!isAdmin) return undefined;
+
+        const fetchRestaurants = async () => {
+            try {
+                const res = await api.get("/restaurants");
+                const restaurantList = res.data.restaurants || res.data.data || [];
+
+                setRestaurants(restaurantList);
+                setSelectedRestaurantId((current) =>
+                    current || restaurantList[0]?.id || ""
+                );
+            } catch (error) {
+                console.log(error.response?.data || error);
+            }
+        };
+
+        fetchRestaurants();
+    }, [isAdmin]);
 
     return (
-        <div className="flex flex-col bg-[#F8F5F1] min-h-screen lg:flex-row">
-
-         
-            <div className="min-w-0 flex-1">
-
-                
-
-                <WarehouseList
-                    inventory={inventory}
-                    readOnly={true}
-                />
-
-            </div>
-
+        <div className="min-h-full">
+            <WarehouseList
+                inventory={inventory}
+                readOnly={true}
+                isAdmin={isAdmin}
+                restaurants={restaurants}
+                selectedRestaurantId={selectedRestaurantId}
+                onRestaurantChange={(restaurantId) => {
+                    setSelectedRestaurantId(restaurantId);
+                }}
+            />
         </div>
     );
 }

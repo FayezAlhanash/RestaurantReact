@@ -238,6 +238,28 @@ export default function AddFood() {
   });
   const hasActiveFilters =
     categoryFilter !== "all" || statusFilter !== "all" || dietFilter !== "all";
+  const activeFilterCount = [categoryFilter, statusFilter, dietFilter].filter(
+    (value) => value !== "all"
+  ).length;
+  const getCategoryCount = (optionId) =>
+    optionId === "all"
+      ? foods.length
+      : foods.filter((food) => String(food.category_id ?? food.category?.id) === optionId)
+          .length;
+  const availabilityFilterOptions = [
+    { id: "all", label: "All", count: foods.length },
+    { id: "available", label: "Available", count: availableCount },
+    {
+      id: "unavailable",
+      label: "Unavailable",
+      count: foods.length - availableCount,
+    },
+  ];
+  const dietFilterOptions = [
+    { id: "all", label: "All", count: foods.length },
+    { id: "diet", label: "Diet", count: dietCount },
+    { id: "regular", label: "Regular", count: foods.length - dietCount },
+  ];
 
   const clearFilters = () => {
     setCategoryFilter("all");
@@ -246,109 +268,139 @@ export default function AddFood() {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
+    <div className="space-y-6 p-4 text-white sm:p-6">
+      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+        <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:items-center">
         <div>
-          <p className="text-sm font-black uppercase tracking-wide text-[#7F1D1D]">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FFD166]">
             Food Library
           </p>
-          <h1 className="mt-2 text-3xl font-black text-stone-950">
+          <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">
             Manage dishes and recipes
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-500">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
             Add dishes, connect them to categories, keep pricing visible, and
             prepare recipe ingredients right after creation.
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md">
-            <p className="text-xs font-black uppercase text-sky-700">Total</p>
-            <strong className="mt-3 block text-3xl font-black text-sky-950">
+          <div className="rounded-2xl border border-sky-400/35 bg-sky-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/60">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Total</p>
+            <strong className="mt-3 block text-3xl font-black text-white">
               {foods.length}
             </strong>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
-            <p className="text-xs font-black uppercase text-emerald-700">
+          <div className="rounded-2xl border border-emerald-400/35 bg-emerald-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/60">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
               Available
             </p>
-            <strong className="mt-3 block text-3xl font-black text-emerald-950">
+            <strong className="mt-3 block text-3xl font-black text-white">
               {availableCount}
             </strong>
           </div>
-          <div className="rounded-lg border border-lime-200 bg-lime-50 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-lime-300 hover:shadow-md">
-            <p className="text-xs font-black uppercase text-lime-700">Diet</p>
-            <strong className="mt-3 block text-3xl font-black text-lime-950">
+          <div className="rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-[#FFD166]/60">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">Diet</p>
+            <strong className="mt-3 block text-3xl font-black text-white">
               {dietCount}
             </strong>
           </div>
         </div>
+        </div>
       </section>
 
-      <section className="rounded-lg border border-stone-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-stone-200 p-5 md:flex-row md:items-center md:justify-between">
+      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(30,42,45,0.96),rgba(22,31,34,0.94))] shadow-[0_22px_55px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+        <div className="flex flex-col gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.14),transparent_34%),rgba(255,255,255,0.03)] p-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-lg bg-[#f4e7dc] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D] hover:text-white">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D] transition duration-200 hover:scale-110">
               <UtensilsCrossed size={23} />
             </div>
             <div>
-            <p className="text-sm font-bold text-stone-500">
+            <p className="text-sm font-bold text-white/45">
                 {normalizedSearch
                   ? `${filteredFoods.length} result${filteredFoods.length === 1 ? "" : "s"} for "${search}"`
                   : "Dishes ready for the menu"}
               </p>
-              <h2 className="text-2xl font-black text-stone-950">Foods</h2>
+              <h2 className="text-2xl font-black text-white">Foods</h2>
             </div>
           </div>
 
           <button
             onClick={handleOpenAddFood}
-            className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:-translate-y-0.5 hover:scale-105 hover:bg-[#651717] hover:shadow-xl active:translate-y-0 active:scale-100"
+            className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
           >
             <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
             Add Food
           </button>
         </div>
 
-        <div className="space-y-4 border-b border-stone-200 bg-gradient-to-r from-sky-50 via-white to-lime-50 p-5">
+        <div className="space-y-5 border-b border-white/[0.08] bg-[#172124] p-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-2 text-sm font-black text-stone-800">
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-sky-100 text-sky-700">
+            <div className="flex items-center gap-3 text-base font-black text-white">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-sky-400/35 bg-sky-400/12 text-sky-300">
                 <ListFilter size={18} />
               </div>
-              Filters
+              <div>
+                <p className="text-2xl font-black text-white">Filters</p>
+                <p className="mt-1 text-sm font-extrabold text-white/55">
+                  Showing {filteredFoods.length} of {foods.length} dishes
+                </p>
+              </div>
+              {activeFilterCount > 0 && (
+                <span className="rounded-full border border-[#FFD166]/35 bg-[#FFD166]/12 px-3 py-1.5 text-sm font-black text-[#FFD166]">
+                  {activeFilterCount} active
+                </span>
+              )}
             </div>
 
             <button
               type="button"
               onClick={clearFilters}
               disabled={!hasActiveFilters}
-              className="w-fit rounded-lg border border-stone-200 bg-white px-4 py-2 text-sm font-black text-stone-600 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:text-stone-950 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+              className="w-fit rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-base font-black text-white/70 transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0"
             >
               Clear filters
             </button>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-black uppercase tracking-wide text-sky-700">
-              Category
-            </p>
+          <div className="rounded-[24px] border border-white/10 bg-[#202B2F] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-sky-300">
+                  Category
+                </p>
+                <p className="mt-1 text-sm font-extrabold text-white/50">
+                  Pick a menu group
+                </p>
+              </div>
+              <span className="rounded-full bg-[#0D1214]/70 px-3 py-1.5 text-sm font-black text-sky-200">
+                {categoryFilterOptions.length} groups
+              </span>
+            </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {categoryFilterOptions.map((option) => {
                 const isActive = categoryFilter === option.id;
+                const count = getCategoryCount(option.id);
 
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => setCategoryFilter(option.id)}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                    className={`flex shrink-0 items-center gap-2 rounded-2xl border px-5 py-3.5 text-base font-black transition duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
                       isActive
-                        ? "border-sky-500 bg-sky-600 text-white shadow-sky-200"
-                        : "border-sky-200 bg-white text-sky-800 hover:border-sky-300 hover:bg-sky-50"
+                        ? "border-sky-300/70 bg-sky-400/20 text-white shadow-[0_14px_30px_rgba(56,189,248,0.14)]"
+                        : "border-white/10 bg-[#162023] text-white/68 hover:border-sky-400/35 hover:bg-[#1C2A2F] hover:text-white"
                     }`}
                   >
-                    {option.label}
+                    <span>{option.label}</span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-sm ${
+                        isActive ? "bg-white/18 text-white" : "bg-white/[0.07] text-white/45"
+                      }`}
+                    >
+                      {count}
+                    </span>
                   </button>
                 );
               })}
@@ -356,53 +408,57 @@ export default function AddFood() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Availability
-              </p>
-              <div className="grid gap-2 rounded-lg border border-emerald-200 bg-white p-1 shadow-sm sm:grid-cols-3">
-                {[
-                  { id: "all", label: "All" },
-                  { id: "available", label: "Available" },
-                  { id: "unavailable", label: "Unavailable" },
-                ].map((option) => (
+            <div className="rounded-[24px] border border-white/10 bg-[#202B2F] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="mb-3">
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-emerald-300">
+                  Availability
+                </p>
+                <p className="mt-1 text-sm font-extrabold text-white/50">
+                  Sellable or hidden items
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {availabilityFilterOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => setStatusFilter(option.id)}
-                    className={`rounded-md px-3 py-2 text-sm font-black transition duration-200 hover:scale-[1.02] active:scale-95 ${
+                    className={`rounded-2xl border px-4 py-4 text-center transition duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
                       statusFilter === option.id
-                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
-                        : "text-emerald-800 hover:bg-emerald-50"
+                        ? "border-emerald-300/65 bg-emerald-400/18 text-white shadow-[0_14px_30px_rgba(52,211,153,0.14)]"
+                        : "border-white/10 bg-[#162023] text-white/68 hover:border-emerald-400/35 hover:bg-[#1C2A2F] hover:text-white"
                     }`}
                   >
-                    {option.label}
+                    <span className="block text-base font-black">{option.label}</span>
+                    <span className="mt-1 block text-xl font-black">{option.count}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-black uppercase tracking-wide text-lime-700">
-                Type
-              </p>
-              <div className="grid gap-2 rounded-lg border border-lime-200 bg-white p-1 shadow-sm sm:grid-cols-3">
-                {[
-                  { id: "all", label: "All" },
-                  { id: "diet", label: "Diet" },
-                  { id: "regular", label: "Regular" },
-                ].map((option) => (
+            <div className="rounded-[24px] border border-white/10 bg-[#202B2F] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="mb-3">
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                  Type
+                </p>
+                <p className="mt-1 text-sm font-extrabold text-white/50">
+                  Diet-friendly or regular dishes
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {dietFilterOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => setDietFilter(option.id)}
-                    className={`rounded-md px-3 py-2 text-sm font-black transition duration-200 hover:scale-[1.02] active:scale-95 ${
+                    className={`rounded-2xl border px-4 py-4 text-center transition duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
                       dietFilter === option.id
-                        ? "bg-lime-600 text-white shadow-md shadow-lime-200"
-                        : "text-lime-800 hover:bg-lime-50"
+                        ? "border-[#FFD166]/65 bg-[#FFD166]/18 text-white shadow-[0_14px_30px_rgba(255,209,102,0.12)]"
+                        : "border-white/10 bg-[#162023] text-white/68 hover:border-[#FFD166]/35 hover:bg-[#1C2A2F] hover:text-white"
                     }`}
                   >
-                    {option.label}
+                    <span className="block text-base font-black">{option.label}</span>
+                    <span className="mt-1 block text-xl font-black">{option.count}</span>
                   </button>
                 ))}
               </div>
@@ -412,14 +468,14 @@ export default function AddFood() {
 
         <div className="p-5">
           {filteredFoods.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 px-5 py-16 text-center">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-[#f4e7dc] text-[#7F1D1D]">
+            <div className="rounded-[28px] border border-dashed border-white/14 bg-[#0D1214]/72 px-5 py-16 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
                 <PackagePlus size={24} />
               </div>
-              <h3 className="mt-4 text-lg font-black text-stone-950">
+              <h3 className="mt-4 text-2xl font-black text-white">
                 {normalizedSearch ? "No matching foods" : "No foods found"}
               </h3>
-              <p className="mt-2 text-sm text-stone-500">
+              <p className="mt-2 text-sm text-white/50">
                 {normalizedSearch
                   ? "Try another food name, category, status, description, or filter."
                   : "Add the first dish and then attach its ingredients."}
@@ -433,9 +489,9 @@ export default function AddFood() {
                 return (
                   <article
                     key={food.id}
-                    className="group overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-[#7F1D1D]/25 hover:shadow-xl"
+                    className="group overflow-hidden rounded-[24px] border border-white/10 bg-[#202B2F] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:border-[#7F1D1D]/35 hover:shadow-[0_24px_58px_rgba(0,0,0,0.3)]"
                   >
-                    <div className="relative h-36 overflow-hidden bg-stone-100">
+                    <div className="relative h-40 overflow-hidden bg-[#0D1214]">
                       {imageUrl ? (
                         <img
                           src={imageUrl}
@@ -449,7 +505,7 @@ export default function AddFood() {
                       ) : null}
 
                       <div
-                        className={`grid h-full w-full place-items-center bg-gradient-to-br from-stone-100 to-stone-200 text-stone-400 ${
+                        className={`grid h-full w-full place-items-center bg-[linear-gradient(145deg,rgba(255,209,102,0.12),rgba(127,29,29,0.08))] text-white/35 ${
                           imageUrl ? "hidden" : ""
                         }`}
                       >
@@ -460,14 +516,14 @@ export default function AddFood() {
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-black backdrop-blur ${
                             food.is_available
-                              ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
-                              : "bg-rose-500 text-white shadow-lg shadow-rose-500/25"
+                              ? "border border-emerald-300/35 bg-emerald-400/80 text-white shadow-lg shadow-emerald-500/25"
+                              : "border border-[#7F1D1D]/35 bg-[#7F1D1D]/85 text-white shadow-lg shadow-[#7F1D1D]/25"
                           }`}
                         >
                           {food.is_available ? "Available" : "Unavailable"}
                         </span>
                         {food.is_diet && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-lime-500 px-3 py-1 text-xs font-black text-white shadow-lg shadow-lime-500/25">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#FFD166]/35 bg-[#FFD166]/85 px-3 py-1 text-xs font-black text-[#1b1510] shadow-lg shadow-[#FFD166]/20">
                             <Salad size={13} />
                             Diet
                           </span>
@@ -478,14 +534,14 @@ export default function AddFood() {
                         <button
                           onClick={() => handleOpenEditFood(food)}
                           title="Edit food"
-                          className="grid h-10 w-10 place-items-center rounded-lg bg-white/95 text-amber-700 shadow-lg backdrop-blur transition duration-200 hover:scale-110 hover:bg-amber-50 active:scale-95"
+                          className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/35 bg-[#0D1214]/85 text-[#FFD166] shadow-lg backdrop-blur transition duration-200 hover:scale-110 hover:bg-[#FFD166]/12 active:scale-95"
                         >
                           <Edit3 size={17} />
                         </button>
                         <button
                           onClick={() => setDeleteFood(food)}
                           title="Delete food"
-                          className="grid h-10 w-10 place-items-center rounded-lg bg-white/95 text-rose-600 shadow-lg backdrop-blur transition duration-200 hover:scale-110 hover:bg-rose-50 active:scale-95"
+                          className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#0D1214]/85 text-[#7F1D1D] shadow-lg backdrop-blur transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
                         >
                           <Trash2 size={17} />
                         </button>
@@ -495,32 +551,32 @@ export default function AddFood() {
                     <div className="space-y-3 p-3">
                       <div>
                         <div className="mb-2 flex items-start justify-between gap-3">
-                          <h3 className="text-base font-black leading-tight text-stone-950">
+                          <h3 className="text-base font-black leading-tight text-white">
                             {food.name}
                           </h3>
-                          <span className="shrink-0 rounded-full bg-sky-50 px-3 py-1 text-sm font-black text-sky-800">
+                          <span className="shrink-0 rounded-full border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 py-1 text-sm font-black text-[#FFD166]">
                             ${food.price}
                           </span>
                         </div>
-                        <p className="line-clamp-2 min-h-[38px] text-xs leading-5 text-stone-500">
+                        <p className="line-clamp-2 min-h-[38px] text-xs leading-5 text-white/48">
                           {food.description || "No description"}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg bg-stone-50 p-3">
-                          <p className="text-[11px] font-black uppercase text-stone-400">
+                        <div className="rounded-2xl border border-white/8 bg-[#172124] p-3">
+                          <p className="text-[11px] font-black uppercase tracking-[0.1em] text-white/35">
                             Category
                           </p>
-                          <p className="mt-1 truncate text-xs font-black text-stone-800">
+                          <p className="mt-1 truncate text-xs font-black text-white/80">
                             {food.category?.name ?? "-"}
                           </p>
                         </div>
-                        <div className="rounded-lg bg-amber-50 p-3">
-                          <p className="text-[11px] font-black uppercase text-amber-600">
+                        <div className="rounded-2xl border border-[#FFD166]/18 bg-[#FFD166]/10 p-3">
+                          <p className="text-[11px] font-black uppercase tracking-[0.1em] text-[#FFD166]/75">
                             Prep
                           </p>
-                          <p className="mt-1 text-xs font-black text-amber-900">
+                          <p className="mt-1 text-xs font-black text-white/80">
                             {food.preparation_time
                               ? `${food.preparation_time} min`
                               : "-"}
@@ -552,20 +608,20 @@ export default function AddFood() {
       />
 
       {deleteFood && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-2xl">
+        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="modal-panel-enter w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
             <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-600">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D]">
                 <AlertTriangle size={24} />
               </div>
 
               <div>
-                <h3 className="text-xl font-black text-stone-950">
+                <h3 className="text-xl font-black text-white">
                   Delete food?
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-stone-500">
+                <p className="mt-2 text-sm leading-6 text-white/55">
                   Are you sure you want to delete{" "}
-                  <span className="font-black text-stone-900">
+                  <span className="font-black text-white">
                     {deleteFood.name}
                   </span>
                   ? This action cannot be undone.
@@ -577,14 +633,14 @@ export default function AddFood() {
               <button
                 type="button"
                 onClick={() => setDeleteFood(null)}
-                className="rounded-lg border border-stone-200 px-5 py-3 text-sm font-black text-stone-600 transition duration-200 hover:-translate-y-0.5 hover:border-stone-300 hover:bg-stone-50 hover:text-stone-950 hover:shadow-sm active:translate-y-0"
+                className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:text-white active:translate-y-0"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteFood}
-                className="group inline-flex items-center gap-2 rounded-lg bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-rose-600/20 transition duration-200 hover:-translate-y-0.5 hover:scale-105 hover:bg-rose-700 hover:shadow-xl hover:shadow-rose-600/25 active:translate-y-0 active:scale-100"
+                className="group inline-flex items-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
               >
                 <Trash2
                   size={17}
@@ -598,15 +654,15 @@ export default function AddFood() {
       )}
 
       {isSavingFood && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-lg border border-white/10 bg-white p-6 text-center shadow-2xl">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/25">
+        <div className="modal-backdrop-enter fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="modal-panel-enter w-full max-w-sm rounded-[28px] border border-white/10 bg-[#182124] p-6 text-center text-white shadow-2xl">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)]">
               <Loader2 size={28} className="animate-spin" />
             </div>
-            <h3 className="mt-4 text-xl font-black text-stone-950">
+            <h3 className="mt-4 text-xl font-black text-white">
               Please wait
             </h3>
-            <p className="mt-2 text-sm leading-6 text-stone-500">
+            <p className="mt-2 text-sm leading-6 text-white/55">
               Saving the food item and preparing ingredients setup...
             </p>
           </div>

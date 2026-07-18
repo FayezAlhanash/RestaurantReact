@@ -54,21 +54,21 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
   };
 
   const fieldClass =
-    "w-full rounded-lg border border-stone-200 bg-white p-3 text-sm font-semibold outline-none transition duration-200 hover:border-[#7F1D1D]/30 focus:scale-[1.01] focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10";
+    "w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-lg bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-stone-200 bg-stone-50 px-5 py-4">
+    <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="modal-panel-enter max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-[28px] border border-white/10 bg-[#182124] text-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.16),transparent_34%),rgba(255,255,255,0.03)] px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#7F1D1D] text-white">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D]">
               <UtensilsCrossed size={19} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-wide text-[#7F1D1D]">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
                 Food item
               </p>
-              <h2 className="text-xl font-black text-stone-950">
+              <h2 className="text-xl font-black text-white">
                 {food ? "Edit Food" : "Add Food"}
               </h2>
             </div>
@@ -76,7 +76,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-lg text-stone-500 transition duration-200 hover:scale-110 hover:bg-white hover:text-stone-950 hover:shadow-sm active:scale-95"
+            className="grid h-9 w-9 place-items-center rounded-xl text-white/55 transition duration-200 hover:scale-110 hover:bg-white/[0.06] hover:text-white active:scale-95"
           >
             <X size={19} />
           </button>
@@ -85,7 +85,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
         <form onSubmit={handleSubmit} className="max-h-[calc(92vh-73px)] overflow-y-auto p-5">
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-black text-stone-700">
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Food Name
               </label>
               <input
@@ -99,7 +99,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-black text-stone-700">
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Category
               </label>
               <select
@@ -119,7 +119,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-black text-stone-700">
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Price
               </label>
               <input
@@ -133,7 +133,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-black text-stone-700">
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
                 Preparation Time
               </label>
               <input
@@ -148,7 +148,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
           </div>
 
           <div className="mt-5">
-            <label className="mb-2 block text-sm font-black text-stone-700">
+            <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
               Description
             </label>
             <textarea
@@ -175,15 +175,15 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             ))}
           </div>
 
-          <label className="mt-5 flex cursor-pointer items-center gap-4 rounded-lg border border-dashed border-sky-300 bg-sky-50 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-sky-400 hover:bg-white hover:shadow-sm">
-            <div className="grid h-12 w-12 place-items-center rounded-lg bg-white text-sky-700 transition duration-200 group-hover:scale-110">
+          <label className="mt-5 flex cursor-pointer items-center gap-4 rounded-2xl border border-dashed border-sky-400/35 bg-sky-400/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-sky-400/60 hover:bg-sky-400/14">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl border border-sky-400/30 bg-[#0D1214] text-sky-300 transition duration-200 group-hover:scale-110">
               <ImagePlus size={22} />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="block text-sm font-black text-stone-900">
+              <span className="block text-sm font-black text-white">
                 Food Image
               </span>
-              <span className="block truncate text-sm text-stone-500">
+              <span className="block truncate text-sm text-white/45">
                 {form.image?.name || (food?.image ? "Keep current photo" : "Upload a dish photo")}
               </span>
             </div>
@@ -196,12 +196,12 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
           </label>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <label className="flex cursor-pointer items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-white hover:shadow-sm">
+            <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#166534]/30 bg-[#166534]/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/55">
               <span>
-                <span className="block text-sm font-black text-emerald-950">
+                <span className="block text-sm font-black text-[#166534]">
                   Available
                 </span>
-                <span className="text-sm text-emerald-700">
+                <span className="text-sm text-white/45">
                   Cashiers can sell this item.
                 </span>
               </span>
@@ -214,12 +214,12 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
               />
             </label>
 
-            <label className="flex cursor-pointer items-center justify-between rounded-lg border border-lime-200 bg-lime-50 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-lime-300 hover:bg-white hover:shadow-sm">
+            <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#FFD166]/50">
               <span>
-                <span className="block text-sm font-black text-lime-950">
+                <span className="block text-sm font-black text-[#FFD166]">
                   Diet Food
                 </span>
-                <span className="text-sm text-lime-700">
+                <span className="text-sm text-white/45">
                   Mark it for diet-friendly filtering.
                 </span>
               </span>
@@ -233,17 +233,17 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </label>
           </div>
 
-          <div className="mt-6 flex justify-end gap-3 border-t border-stone-100 pt-5">
+          <div className="mt-6 flex justify-end gap-3 border-t border-white/[0.08] pt-5">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-stone-200 px-5 py-3 text-sm font-black text-stone-600 transition duration-200 hover:-translate-y-0.5 hover:bg-stone-50 hover:text-stone-950 hover:shadow-sm active:translate-y-0"
+              className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:text-white active:translate-y-0"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="group inline-flex items-center gap-2 rounded-lg bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition duration-200 hover:-translate-y-0.5 hover:scale-105 hover:bg-[#651717] hover:shadow-xl active:translate-y-0 active:scale-100"
+              className="group inline-flex items-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Save size={17} className="transition duration-200 group-hover:-rotate-6" />
               {food ? "Update Food" : "Save Food"}

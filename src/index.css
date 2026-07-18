@@ -18,6 +18,34 @@ html, body, #root {
     min-height: 100%;
 }
 
+html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 209, 102, 0.62) #12191c;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #12191c;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ffd166 0%, #7f1d1d 100%);
+    border: 2px solid #12191c;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ffe08f 0%, #681718 100%);
+}
+
+::-webkit-scrollbar-corner {
+    background: #12191c;
+}
+
 body {
     margin: 0;
     overflow-x: hidden;
@@ -37,7 +65,7 @@ img, svg {
 
 .kitchen-order-scroll {
     scrollbar-width: thin;
-    scrollbar-color: #9d8d74 #eadfce;
+    scrollbar-color: rgba(255, 209, 102, 0.62) rgba(18, 25, 28, 0.92);
     scrollbar-gutter: stable;
 }
 
@@ -46,11 +74,438 @@ img, svg {
 }
 
 .kitchen-order-scroll::-webkit-scrollbar-track {
-    background: #eadfce;
+    background: rgba(18, 25, 28, 0.92);
     border-radius: 999px;
 }
 
 .kitchen-order-scroll::-webkit-scrollbar-thumb {
-    background: #9d8d74;
+    background: linear-gradient(180deg, #ffd166 0%, #7f1d1d 100%);
+    border: 2px solid rgba(18, 25, 28, 0.92);
     border-radius: 999px;
+}
+
+.customer-order-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 209, 102, 0.62) rgba(18, 25, 28, 0.72);
+}
+
+.customer-order-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.customer-order-scroll::-webkit-scrollbar-track {
+    background: rgba(18, 25, 28, 0.72);
+    border-radius: 999px;
+}
+
+.customer-order-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ffd166 0%, #7f1d1d 100%);
+    border: 2px solid rgba(18, 25, 28, 0.72);
+    border-radius: 999px;
+}
+
+.product-modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 209, 102, 0.62) rgba(18, 25, 28, 0.72);
+}
+
+.product-modal-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.product-modal-scroll::-webkit-scrollbar-track {
+    background: rgba(18, 25, 28, 0.72);
+    border-radius: 999px;
+}
+
+.product-modal-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ffd166 0%, #7f1d1d 100%);
+    border: 2px solid rgba(18, 25, 28, 0.72);
+    border-radius: 999px;
+}
+
+.cashier-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 209, 102, 0.62) rgba(18, 25, 28, 0.72);
+}
+
+.cashier-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.cashier-scroll::-webkit-scrollbar-track {
+    background: rgba(18, 25, 28, 0.72);
+    border-radius: 999px;
+}
+
+.cashier-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ffd166 0%, #7f1d1d 100%);
+    border: 2px solid rgba(18, 25, 28, 0.72);
+    border-radius: 999px;
+}
+
+.cashier-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ffe08f 0%, #681718 100%);
+}
+
+.admin-dashboard-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 209, 102, 0.68) rgba(18, 25, 28, 0.76);
+    scrollbar-gutter: stable;
+}
+
+.admin-dashboard-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.admin-dashboard-scroll::-webkit-scrollbar-track {
+    background: rgba(18, 25, 28, 0.76);
+    border-radius: 999px;
+}
+
+.admin-dashboard-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ffd166 0%, #7f1d1d 100%);
+    border: 2px solid rgba(18, 25, 28, 0.76);
+    border-radius: 999px;
+}
+
+.admin-dashboard-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ffe08f 0%, #681718 100%);
+}
+
+@keyframes modal-backdrop-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modal-panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-backdrop-enter {
+    animation: modal-backdrop-in 180ms ease-out both;
+}
+
+.modal-panel-enter {
+    animation: modal-panel-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transform-origin: center;
+}
+
+[data-theme="light"] {
+    color-scheme: light;
+}
+
+[data-theme="light"] body {
+    background: #f8f5ef;
+    color: #1f1614;
+}
+
+[data-theme="light"] .app-shell {
+    background: #f8f5ef !important;
+}
+
+[data-theme="light"] .app-content {
+    background:
+        radial-gradient(circle at 86% 10%, rgba(127, 29, 29, 0.10), transparent 30%),
+        radial-gradient(circle at 18% 22%, rgba(255, 209, 102, 0.22), transparent 26%),
+        linear-gradient(145deg, #f8f5ef 0%, #fffaf3 52%, #f3e5d9 100%) !important;
+}
+
+[data-theme="light"] [class*="bg-[radial-gradient"],
+[data-theme="light"] [class*="bg-[linear-gradient(145deg"],
+[data-theme="light"] [class*="bg-gradient-to-br"] {
+    background:
+        radial-gradient(circle at top right, rgba(127, 29, 29, 0.08), transparent 34%),
+        linear-gradient(145deg, #fffaf3 0%, #f8f5ef 56%, #f1dfd2 100%) !important;
+}
+
+[data-theme="light"] aside,
+[data-theme="light"] [class*="bg-[#101517"],
+[data-theme="light"] [class*="bg-[#0D1214"],
+[data-theme="light"] [class*="bg-[#0F1517"],
+[data-theme="light"] [class*="bg-[#11181B"],
+[data-theme="light"] [class*="bg-[#11191B"],
+[data-theme="light"] [class*="bg-[#12181B"],
+[data-theme="light"] [class*="bg-[#12191C"],
+[data-theme="light"] [class*="bg-[#162225"],
+[data-theme="light"] [class*="bg-[#172124"],
+[data-theme="light"] [class*="bg-[#182124"],
+[data-theme="light"] [class*="bg-[#1B2225"],
+[data-theme="light"] [class*="bg-[#1B282C"],
+[data-theme="light"] [class*="bg-[#101A1D"],
+[data-theme="light"] [class*="bg-[#162023"],
+[data-theme="light"] [class*="bg-[#202B2F"],
+[data-theme="light"] [class*="bg-[#20292D"],
+[data-theme="light"] [class*="bg-[#252A2D"] {
+    background-color: rgba(255, 250, 243, 0.92) !important;
+    background-image: none !important;
+}
+
+[data-theme="light"] [class*="bg-[#0A1012"],
+[data-theme="light"] [class*="bg-[#151A1D"],
+[data-theme="light"] [class*="bg-[#171D20"],
+[data-theme="light"] [class*="bg-[#1C2A2F"],
+[data-theme="light"] [class*="bg-[#243135"],
+[data-theme="light"] [class*="bg-[#253236"] {
+    background-color: rgba(248, 245, 239, 0.94) !important;
+    background-image: none !important;
+}
+
+[data-theme="light"] [class*="bg-white/"],
+[data-theme="light"] [class*="bg-white["],
+[data-theme="light"] [class*="bg-black/"] {
+    background-color: rgba(255, 255, 255, 0.58) !important;
+}
+
+[data-theme="light"] [class*="border-white/"],
+[data-theme="light"] [class*="border-[#3A4448"],
+[data-theme="light"] [class*="border-[#465155"] {
+    border-color: rgba(127, 29, 29, 0.14) !important;
+}
+
+[data-theme="light"] [class*="text-white"] {
+    color: #221815 !important;
+}
+
+[data-theme="light"] [class*="text-white/"] {
+    color: rgba(34, 24, 21, 0.62) !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+    color: #221815 !important;
+    background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+    color: rgba(34, 24, 21, 0.42) !important;
+}
+
+[data-theme="light"] [class*="bg-[#7F1D1D"],
+[data-theme="light"] [class*="bg-[linear-gradient(135deg,#9B2C2C"],
+[data-theme="light"] [class*="bg-rose"],
+[data-theme="light"] [class*="bg-red"] {
+    color: #ffffff !important;
+}
+
+[data-theme="light"] [class*="text-[#7F1D1D"],
+[data-theme="light"] [class*="text-[#7F1D1D"] {
+    color: #7F1D1D !important;
+}
+
+[data-theme="light"] [class*="text-[#FFD166"] {
+    color: #8f5f00 !important;
+}
+
+[data-theme="light"] [class*="bg-sky-400/"],
+[data-theme="light"] [class*="bg-emerald-400/"],
+[data-theme="light"] [class*="bg-[#FFD166]/"],
+[data-theme="light"] [class*="bg-[#7F1D1D]/"] {
+    background-image: none !important;
+}
+
+[data-theme="light"] .group[class*="rounded-[24px]"] {
+    background-color: rgba(255, 250, 243, 0.96) !important;
+}
+
+[data-theme="light"] .group[class*="rounded-[24px]"] [class*="bg-[#0D1214]/85"] {
+    background-color: rgba(255, 250, 243, 0.92) !important;
+}
+
+[data-theme="light"] .group[class*="rounded-[24px]"] [class*="bg-[#FFD166]/10"],
+[data-theme="light"] .group[class*="rounded-[24px]"] [class*="bg-[#172124"] {
+    background-color: rgba(255, 255, 255, 0.74) !important;
+}
+
+[data-theme="light"] .cashier-dashboard {
+    background:
+        radial-gradient(circle at 86% 12%, rgba(127, 29, 29, 0.08), transparent 30%),
+        radial-gradient(circle at 16% 22%, rgba(255, 209, 102, 0.18), transparent 26%),
+        linear-gradient(145deg, #fffaf3 0%, #f8f1eb 54%, #f1dfd2 100%) !important;
+    color: #211715 !important;
+}
+
+[data-theme="light"] .cashier-dashboard .cashier-order-panel {
+    background-color: #fffaf3 !important;
+    border-color: rgba(127, 29, 29, 0.16) !important;
+}
+
+[data-theme="light"] .cashier-dashboard .cashier-order-panel > div {
+    background-color: #fffaf3 !important;
+    color: #211715 !important;
+}
+
+[data-theme="light"] .cashier-dashboard .cashier-order-panel [class*="bg-[linear-gradient"] {
+    background: linear-gradient(180deg, #fffaf3 0%, #f3e5d9 100%) !important;
+}
+
+[data-theme="light"] .cashier-dashboard .cashier-order-panel [class*="bg-white/15"] {
+    background-color: #d8cdc6 !important;
+}
+
+[data-theme="light"] .cashier-dashboard .cashier-order-panel button:disabled {
+    color: rgba(34, 24, 21, 0.48) !important;
+}
+
+[data-theme="light"] button:disabled[class*="disabled:bg-white/15"] {
+    background-color: #E5D7CE !important;
+    color: rgba(34, 24, 21, 0.52) !important;
+}
+
+[data-theme="light"] [class*="shadow-"],
+[data-theme="light"] [class*="shadow_"] {
+    box-shadow: 0 18px 42px rgba(127, 29, 29, 0.10) !important;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+    background: #efe3d6;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    border-color: #efe3d6;
+}
+
+[data-theme="light"] .customer-experience [class*="text-white"] {
+    color: #241815 !important;
+}
+
+[data-theme="light"] .customer-experience [class*="text-white/85"] {
+    color: rgba(36, 24, 21, 0.85) !important;
+}
+
+[data-theme="light"] .customer-experience [class*="text-white/82"] {
+    color: rgba(36, 24, 21, 0.82) !important;
+}
+
+[data-theme="light"] .customer-experience [class*="text-white/70"] {
+    color: rgba(36, 24, 21, 0.70) !important;
+}
+
+[data-theme="light"] .customer-experience [class*="text-white/62"],
+[data-theme="light"] .customer-experience [class*="text-white/60"] {
+    color: rgba(36, 24, 21, 0.62) !important;
+}
+
+[data-theme="light"] .customer-experience [class*="text-white/55"],
+[data-theme="light"] .customer-experience [class*="text-white/45"] {
+    color: rgba(36, 24, 21, 0.55) !important;
+}
+
+[data-theme="light"] .customer-experience [class*="bg-white/"] {
+    background-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+[data-theme="light"] .customer-experience [class*="bg-[#7F1D1D"][class*="text-white"],
+[data-theme="light"] .customer-experience [class*="bg-[#7F1D1D"] [class*="text-white"] {
+    color: #ffffff !important;
+}
+
+[data-theme="light"] .customer-experience .customer-image-text,
+[data-theme="light"] .customer-experience .customer-image-text [class*="text-white"],
+[data-theme="light"] .customer-experience .drop-shadow {
+    color: #ffffff !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-card {
+    background-color: rgba(255, 250, 243, 0.96) !important;
+    color: #241815 !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-card h2[class*="text-white"] {
+    color: #241815 !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-card p[class*="text-white/62"] {
+    color: rgba(36, 24, 21, 0.66) !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-card span[class*="text-white/45"] {
+    color: rgba(36, 24, 21, 0.50) !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-card [class*="bg-[#7F1D1D"],
+[data-theme="light"] .customer-experience .customer-food-card [class*="bg-[#7F1D1D"] [class*="text-white"] {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .customer-experience {
+    background: #101517 !important;
+    color: #ffffff !important;
+    color-scheme: dark;
+}
+
+[data-theme="dark"] .customer-experience.customer-experience {
+    background-color: #101517 !important;
+    background-image: none !important;
+}
+
+[data-theme="dark"] .customer-experience .customer-dark-overlay {
+    background:
+        radial-gradient(circle at 80% 12%, rgba(127, 29, 29, 0.24), transparent 30%),
+        radial-gradient(circle at 12% 20%, rgba(255, 209, 102, 0.13), transparent 24%),
+        linear-gradient(145deg, #101517 0%, #171D20 48%, #26181B 100%) !important;
+}
+
+[data-theme="dark"] .customer-experience .customer-dark-header {
+    background-color: rgba(16, 21, 23, 0.82) !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-[#101517"],
+[data-theme="dark"] .customer-experience [class*="bg-[#111719"],
+[data-theme="dark"] .customer-experience [class*="bg-[#12181B"],
+[data-theme="dark"] .customer-experience [class*="bg-[#140F0D"],
+[data-theme="dark"] .customer-experience [class*="bg-[#151A1D"] {
+    background-color: rgba(16, 21, 23, 0.96) !important;
+    background-image: none !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-white/[0.04"] {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-white/[0.06"] {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-white/[0.07"] {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-white/10"],
+[data-theme="dark"] .customer-experience [class*="bg-white/[0.10"] {
+    background-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-black/18"] {
+    background-color: rgba(0, 0, 0, 0.18) !important;
+}
+
+[data-theme="dark"] .customer-experience [class*="bg-black/25"] {
+    background-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-theme="light"] .customer-experience .product-modal-scroll {
+    scrollbar-color: rgba(127, 29, 29, 0.42) #efe3d6;
+}
+
+[data-theme="light"] .customer-experience .product-modal-scroll::-webkit-scrollbar-track {
+    background: #efe3d6;
+}
+
+[data-theme="light"] .customer-experience .product-modal-scroll::-webkit-scrollbar-thumb {
+    border-color: #efe3d6;
 }

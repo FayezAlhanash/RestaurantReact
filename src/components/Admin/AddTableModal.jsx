@@ -18,6 +18,7 @@ const getCreatedTable = (data) =>
     null;
 
 function AddTableModal({ isOpen, onClose, refresh, editData }) {
+    const [isVisible, setIsVisible] = useState(false);
     const [tableNumber, setTableNumber] = useState("");
     const [isActive, setIsActive] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -27,18 +28,31 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
         /* eslint-disable react-hooks/set-state-in-effect */
         if (!isOpen) return;
 
+        setIsVisible(false);
+        const frameId = window.requestAnimationFrame(() => {
+            setIsVisible(true);
+        });
+
         if (!editData) {
             setTableNumber("");
             setIsActive(true);
             setError("");
-            return;
+        } else {
+            setTableNumber(editData.table_number || "");
+            setIsActive(normalizeActiveValue(editData.is_active));
+            setError("");
         }
-
-        setTableNumber(editData.table_number || "");
-        setIsActive(normalizeActiveValue(editData.is_active));
-        setError("");
         /* eslint-enable react-hooks/set-state-in-effect */
+
+        return () => window.cancelAnimationFrame(frameId);
     }, [isOpen, editData]);
+
+    const closeSmoothly = () => {
+        if (isSaving) return;
+
+        setIsVisible(false);
+        window.setTimeout(onClose, 160);
+    };
 
     const handleSubmit = async () => {
         if (isSaving) return;
@@ -86,7 +100,8 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
             }
 
             await refresh();
-            onClose();
+            setIsVisible(false);
+            window.setTimeout(onClose, 160);
 
         } catch (error) {
             setError(error.response?.data?.message || "Table could not be saved.");
@@ -99,18 +114,28 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#241F1D]/45 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-2xl shadow-stone-950/20">
-                <div className="flex items-center justify-between border-b border-[#EFE3DD] bg-gradient-to-r from-[#FFF7F2] via-white to-[#F8F1EC] px-5 py-5 sm:px-6">
+        <div
+            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out ${
+                isVisible ? "opacity-100" : "opacity-0"
+            }`}
+        >
+            <div
+                className={`w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/10 bg-[#182124] text-white shadow-2xl transition duration-200 ease-out will-change-transform ${
+                    isVisible
+                        ? "translate-y-0 scale-100 opacity-100"
+                        : "translate-y-4 scale-[0.98] opacity-0"
+                }`}
+            >
+                <div className="flex items-center justify-between border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.16),transparent_34%),rgba(255,255,255,0.03)] px-5 py-5 sm:px-6">
                     <div className="flex items-center gap-3">
-                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_12px_28px_rgba(127,29,29,0.18)]">
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] text-white shadow-[0_12px_28px_rgba(127,29,29,0.22)]">
                             <Table2 size={24} />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9A7A70]">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
                                 Floor plan
                             </p>
-                            <h2 className="text-2xl font-black text-[#241F1D]">
+                            <h2 className="text-2xl font-black text-white">
                                 {editData ? "Edit Table" : "Add New Table"}
                             </h2>
                         </div>
@@ -118,31 +143,37 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
 
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="grid h-10 w-10 place-items-center rounded-2xl text-[#7A6A64] transition hover:bg-[#F9ECEC] hover:text-[#7F1D1D]"
+                        onClick={closeSmoothly}
+                        className="grid h-10 w-10 place-items-center rounded-2xl text-white/55 transition hover:bg-white/[0.06] hover:text-white"
                     >
                         <XCircle size={22} />
                     </button>
                 </div>
 
                 <div className="grid gap-0 md:grid-cols-[240px_1fr]">
-                    <div className="border-b border-[#EFE3DD] bg-[#F8F5F1] p-5 md:border-b-0 md:border-r">
-                        <div className={`relative flex h-64 flex-col items-center justify-center rounded-[26px] border-4 bg-white shadow-sm ${
-                            isActive ? "border-emerald-400" : "border-rose-300"
+                    <div className="border-b border-white/[0.08] bg-[#0D1214]/45 p-5 md:border-b-0 md:border-r md:border-white/[0.08]">
+                        <div className={`relative flex h-64 flex-col items-center justify-center rounded-[26px] border bg-[#101A1D] shadow-sm ${
+                            isActive ? "border-emerald-400/40" : "border-[#7F1D1D]/40"
                         }`}>
-                            <span className={`absolute right-0 top-0 rounded-bl-2xl rounded-tr-[21px] px-3 py-1 text-xs font-black text-white ${
-                                isActive ? "bg-emerald-600" : "bg-rose-600"
+                            <span className={`absolute right-4 top-4 rounded-full border px-3 py-1 text-xs font-black ${
+                                isActive
+                                    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                                    : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                             }`}>
                                 {isActive ? "Active" : "Not Active"}
                             </span>
 
-                            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F1EEE9] text-[#241F1D]">
+                            <div className={`grid h-20 w-20 place-items-center rounded-[24px] border ${
+                                isActive
+                                    ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                                    : "border-[#7F1D1D]/25 bg-[#7F1D1D]/10 text-[#7F1D1D]"
+                            }`}>
                                 <Table2 size={38} />
                             </div>
-                            <p className="mt-6 text-3xl font-black text-[#241F1D]">
+                            <p className="mt-6 text-3xl font-black text-white">
                                 Table {tableNumber || "--"}
                             </p>
-                            <p className="mt-2 text-sm font-semibold text-[#8C7B74]">
+                            <p className="mt-2 text-sm font-semibold text-white/42">
                                 Live preview
                             </p>
                         </div>
@@ -150,28 +181,28 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
 
                     <div className="p-5 sm:p-6">
                         {error && (
-                            <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                            <p className="mb-4 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
                                 {error}
                             </p>
                         )}
 
                         <label className="block">
-                            <span className="mb-2 block text-sm font-black text-[#4A403D]">
+                            <span className="mb-2 block text-sm font-black text-white/65">
                                 Table Number
                             </span>
-                            <div className="flex items-center gap-3 rounded-2xl border border-[#E4D6CF] bg-white px-4 py-3 shadow-sm transition focus-within:border-[#7F1D1D] focus-within:ring-4 focus-within:ring-[#7F1D1D]/10">
-                                <Hash size={19} className="shrink-0 text-[#A08980]" />
+                            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 shadow-inner transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
+                                <Hash size={19} className="shrink-0 text-[#FFD166]" />
                                 <input
                                     value={tableNumber}
                                     onChange={(e) => setTableNumber(e.target.value)}
-                                    className="min-w-0 flex-1 bg-transparent text-base font-bold text-[#241F1D] outline-none placeholder:text-[#B39D93]"
+                                    className="min-w-0 flex-1 bg-transparent text-base font-bold text-white outline-none placeholder:text-white/30"
                                     placeholder="Example: 12"
                                 />
                             </div>
                         </label>
 
                         <div className="mt-5">
-                            <p className="mb-2 text-sm font-black text-[#4A403D]">
+                            <p className="mb-2 text-sm font-black text-white/65">
                                 Table Status
                             </p>
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -180,8 +211,8 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     onClick={() => setIsActive(true)}
                                     className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
                                         isActive
-                                            ? "border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm"
-                                            : "border-[#E4D6CF] bg-white text-[#6D5D56] hover:bg-[#F8F5F1]"
+                                            ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-300 shadow-sm"
+                                            : "border-white/10 bg-[#0D1214] text-white/55 hover:bg-white/[0.04] hover:text-white"
                                     }`}
                                 >
                                     <CheckCircle2 size={22} />
@@ -198,8 +229,8 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     onClick={() => setIsActive(false)}
                                     className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
                                         !isActive
-                                            ? "border-rose-300 bg-rose-50 text-rose-900 shadow-sm"
-                                            : "border-[#E4D6CF] bg-white text-[#6D5D56] hover:bg-[#F8F5F1]"
+                                            ? "border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] shadow-sm"
+                                            : "border-white/10 bg-[#0D1214] text-white/55 hover:bg-white/[0.04] hover:text-white"
                                     }`}
                                 >
                                     <XCircle size={22} />
@@ -213,11 +244,11 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                             </div>
                         </div>
 
-                        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                        <div className="mt-7 flex flex-col-reverse gap-3 border-t border-white/[0.08] pt-5 sm:flex-row sm:justify-end">
                             <button
                                 type="button"
-                                onClick={onClose}
-                                className="rounded-2xl border border-[#E4D6CF] bg-white px-5 py-3 text-sm font-black text-[#6D5D56] transition hover:bg-[#F8F5F1] hover:text-[#241F1D]"
+                                onClick={closeSmoothly}
+                                className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition hover:bg-white/[0.05] hover:text-white"
                             >
                                 Cancel
                             </button>
@@ -226,7 +257,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={isSaving}
-                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_rgba(127,29,29,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {isSaving ? (
                                     <Loader2 size={18} className="animate-spin" />

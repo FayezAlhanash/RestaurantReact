@@ -1,44 +1,52 @@
 import { Package, Pencil, Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 function WarehouseCard({ item, onEdit, onDelete }) {
+    const { isLight } = useTheme();
     const current = Number(item.current_quantity || 0);
     const minimum = Number(item.min_quantity || 0);
     const isLow = current <= minimum;
     const progress = minimum > 0 ? Math.min((current / minimum) * 100, 160) : 100;
 
     return (
-        <article className="rounded-[24px] border border-[#E8D9D3] bg-[#FDFBF9] p-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(83,53,42,0.08)] sm:p-5">
+        <article className={`rounded-[24px] border p-4 shadow-[0_16px_34px_rgba(0,0,0,0.20)] ring-1 transition hover:-translate-y-0.5 sm:p-5 ${
+            isLight
+                ? "border-[#E4CFC3] bg-[#FFF9F2] text-[#241815] ring-[#7F1D1D]/5 hover:border-[#D8B8AA] hover:bg-white hover:shadow-[0_24px_48px_rgba(127,29,29,0.12)]"
+                : "border-[#3C484C] bg-[#222C30] text-white ring-white/[0.045] hover:border-[#FFD166]/32 hover:bg-[#273236] hover:shadow-[0_24px_48px_rgba(0,0,0,0.28)]"
+        }`}>
             <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-4">
-                    <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${isLow ? "bg-[#FFF6D8] text-[#84630A]" : "bg-[#F9ECEC] text-[#7F1D1D]"}`}>
+                    <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${isLow ? "bg-[#7F1D1D]/14 text-[#7F1D1D]" : "bg-emerald-400/12 text-emerald-300"}`}>
                         <Package size={26} />
                     </div>
 
                     <div className="min-w-0">
-                        <h3 className="truncate text-lg font-black text-[#2B2320]">
+                        <h3 className={`truncate text-lg font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
                             {item.name}
                         </h3>
-                        <p className="mt-1 text-sm font-medium text-[#8C7B74]">
+                        <p className={`mt-1 text-sm font-medium ${isLight ? "text-[#7A6A64]" : "text-white/50"}`}>
                             Minimum: {minimum} {item.unit}
                         </p>
                     </div>
                 </div>
 
-                <span className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-extrabold ${isLow ? "bg-[#FFF6D8] text-[#84630A]" : "bg-[#EEF9EA] text-[#2E7D32]"}`}>
-                    {isLow ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                <span className={`flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-base font-black shadow-sm ${isLow ? "border-[#7F1D1D]/45 bg-[#7F1D1D]/16 text-[#7F1D1D]" : "border-emerald-400/45 bg-emerald-400/14 text-emerald-300"}`}>
+                    {isLow ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
                     {isLow ? "Low" : "Good"}
                 </span>
             </div>
 
-            <div className="mt-5 rounded-2xl bg-white p-4">
+            <div className={`mt-5 rounded-2xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${
+                isLight ? "border-[#E7DCD6] bg-[#FBF4EC]" : "border-[#3A4448] bg-[#162022]"
+            }`}>
                 <div className="flex items-end justify-between gap-4">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A08980]">
+                        <p className={`text-xs font-bold uppercase tracking-[0.16em] ${isLight ? "text-[#8A7972]" : "text-white/45"}`}>
                             Available
                         </p>
-                        <p className="mt-1 text-3xl font-black text-[#7F1D1D]">
+                        <p className="mt-1 text-3xl font-black text-[#FFD166]">
                             {current}
-                            <span className="ml-1 text-sm font-bold text-[#8C7B74]">
+                            <span className={`ml-1 text-sm font-bold ${isLight ? "text-[#7A6A64]" : "text-white/50"}`}>
                                 {item.unit}
                             </span>
                         </p>
@@ -50,7 +58,7 @@ function WarehouseCard({ item, onEdit, onDelete }) {
                                 <button
                                     onClick={() => onEdit(item)}
                                     aria-label={`Edit ${item.name}`}
-                                    className="grid h-10 w-10 place-items-center rounded-xl border border-yellow-300 text-yellow-600 transition hover:bg-yellow-400 hover:text-white"
+                                    className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/35 text-[#FFD166] transition hover:bg-[#FFD166] hover:text-[#151A1D]"
                                 >
                                     <Pencil size={17} />
                                 </button>
@@ -60,7 +68,7 @@ function WarehouseCard({ item, onEdit, onDelete }) {
                                 <button
                                     onClick={() => onDelete(item)}
                                     aria-label={`Delete ${item.name}`}
-                                    className="grid h-10 w-10 place-items-center rounded-xl border border-red-200 text-red-600 transition hover:bg-red-600 hover:text-white"
+                                    className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/35 text-[#7F1D1D] transition hover:bg-[#7F1D1D] hover:text-white"
                                 >
                                     <Trash2 size={17} />
                                 </button>
@@ -69,9 +77,9 @@ function WarehouseCard({ item, onEdit, onDelete }) {
                     )}
                 </div>
 
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#EFE5E1]">
+                <div className={`mt-4 h-2.5 overflow-hidden rounded-full ${isLight ? "bg-[#EADBD2]" : "bg-[#2E393D]"}`}>
                     <div
-                        className={`h-full rounded-full ${isLow ? "bg-[#F7C948]" : "bg-[#7F1D1D]"}`}
+                        className={`h-full rounded-full ${isLow ? "bg-[#7F1D1D]" : "bg-emerald-400"}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                 </div>

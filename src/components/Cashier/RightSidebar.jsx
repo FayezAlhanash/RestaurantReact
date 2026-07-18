@@ -32,8 +32,8 @@ function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
     };
 
     return (
-        <div className="flex h-dvh w-[92px] flex-col items-center border-r border-[#E9DED8] bg-white px-3 py-5">
-            <div className="grid h-14 w-14 place-items-center rounded-[20px] bg-[#7F1D1D] text-lg font-black text-white shadow-[0_10px_24px_rgba(127,29,29,0.2)]">
+        <div className="flex h-dvh w-[92px] flex-col items-center border-r border-white/10 bg-[#101517] px-3 py-5 text-white">
+            <div className="grid h-14 w-14 place-items-center rounded-[20px] bg-[#FFD166] text-lg font-black text-[#151A1D] shadow-[0_10px_24px_rgba(255,209,102,0.16)]">
                 B4
             </div>
 
@@ -47,8 +47,8 @@ function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
                             onClick={() => onViewChange?.(item.id)}
                             className={`group flex w-full flex-col items-center gap-1 rounded-2xl py-3 text-[10px] font-bold transition ${
                                 activeView === item.id
-                                    ? "bg-[#F9ECEC] text-[#7F1D1D]"
-                                    : "text-[#9A8982] hover:bg-[#F8F4F1] hover:text-[#7F1D1D]"
+                                    ? "bg-[#7F1D1D] text-white shadow-[0_12px_24px_rgba(127,29,29,0.18)]"
+                                    : "text-white/45 hover:bg-white/[0.07] hover:text-white"
                             }`}
                         >
                             <Icon size={22} strokeWidth={activeView === item.id ? 2.5 : 2} />
@@ -58,11 +58,11 @@ function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
                 })}
             </nav>
 
-            <div className="flex w-full flex-col gap-2 border-t border-[#EEE5E1] pt-4">
-                <button title="Support" className="grid h-11 w-full place-items-center rounded-2xl text-[#8F7E77] transition hover:bg-[#F8F4F1] hover:text-[#7F1D1D]">
+            <div className="flex w-full flex-col gap-2 border-t border-white/10 pt-4">
+                <button title="Support" className="grid h-11 w-full place-items-center rounded-2xl text-white/45 transition hover:bg-white/[0.07] hover:text-[#FFD166]">
                     <Headset size={22} />
                 </button>
-                <button onClick={handleLogout} title="Logout" className="grid h-11 w-full place-items-center rounded-2xl text-[#7F1D1D] transition hover:bg-[#F9ECEC]">
+                <button onClick={handleLogout} title="Logout" className="grid h-11 w-full place-items-center rounded-2xl text-[#7F1D1D] transition hover:bg-[#7F1D1D]/12">
                     <LogOut size={22} />
                 </button>
             </div>
