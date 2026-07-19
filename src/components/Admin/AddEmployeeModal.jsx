@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import api from "../../API/axios";
 import { isRestaurantRole } from "../../utils/permissionScopes";
@@ -10,6 +11,21 @@ const getList = (data, key) => {
     if (Array.isArray(data?.data)) return data.data;
     return [];
 };
+
+const EXCLUDED_ROLE_NAMES = ["admin", "customer"];
+
+const normalizeRoleName = (name) =>
+    String(name ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+const formatRoleLabel = (role) =>
+    String(role?.name ?? "")
+        .replace(/[_-]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
     const [role, setRole] = useState("");
@@ -25,12 +41,20 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
     const [phoneNumber, setPhoneNumber] = useState("");
     const [gender, setGender] = useState("");
     const [nationalNumber, setNationalNumber] = useState("");
+    const [jobTitle, setJobTitle] = useState("");
+    const [image, setImage] = useState(null);
     const [modalRoles, setModalRoles] = useState([]);
     const [submitError, setSubmitError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const roleOptions = (roles.length ? roles : modalRoles).filter(
-        (item) => String(item.name ?? "").toLowerCase() !== "customer"
-    );
+    const roleOptions = (roles.length ? roles : modalRoles)
+        .filter((item) => {
+            const roleName = normalizeRoleName(item.name);
+
+            return Number(item.id) !== 1 && !EXCLUDED_ROLE_NAMES.includes(roleName);
+        })
+        .sort((firstRole, secondRole) =>
+            formatRoleLabel(firstRole).localeCompare(formatRoleLabel(secondRole))
+        );
     const selectedRole = roleOptions.find((item) => String(item.id) === role);
     const needsRestaurant = isRestaurantRole(selectedRole);
 
@@ -64,6 +88,8 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
         setPhoneNumber("");
         setGender("male");
         setNationalNumber("");
+        setJobTitle("");
+        setImage(null);
         setEmail("");
         setPassword("");
         setPasswordConfirmation("");
@@ -71,6 +97,11 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
         setRestaurantId("");
         setDateOfBirth(null);
         setSubmitError("");
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose();
     };
 
     if (!isOpen) return null;
@@ -125,6 +156,12 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
             formData.append("role_id", role);
             formData.append("national_number", nationalNumber.trim());
             formData.append("gender", gender);
+            if (jobTitle.trim()) {
+                formData.append("job_title", jobTitle.trim());
+            }
+            if (image) {
+                formData.append("image", image);
+            }
             if (dateOfBirth) {
                 formData.append(
                     "date_of_birth",
@@ -140,8 +177,7 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                 formData
             );
 
-            resetForm();
-            onClose();
+            handleClose();
         } catch (error) {
             setSubmitError(getErrorMessage(error));
             console.log(error.response?.data || error);
@@ -156,9 +192,13 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                     <h2 className="text-2xl font-bold text-center">
                         Add Employee
                     </h2>
-                    <button onClick={onClose}
-                        className="absolute right-5 top-1/2 -translate-y-1/2 text-2xl" >
-                        ✕
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        aria-label="Close add employee"
+                        className="absolute right-5 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition duration-200 hover:rotate-90 hover:border-[#FFD166]/35 hover:bg-[#FFD166]/12 hover:text-[#FFD166] active:scale-95"
+                    >
+                        <X size={20} />
                     </button>
                 </div>
                 <div className="bg-[#182124] p-6">
@@ -242,6 +282,31 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                                 value={nationalNumber}
                                 onChange={(e) => setNationalNumber(e.target.value)}
                                 className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                                Job Title <span className="normal-case tracking-normal text-white/35">(optional)</span>
+                            </label>
+
+                            <input
+                                type="text"
+                                value={jobTitle}
+                                onChange={(e) => setJobTitle(e.target.value)}
+                                placeholder="Cashier, shift lead..."
+                                className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                                Photo <span className="normal-case tracking-normal text-white/35">(optional)</span>
+                            </label>
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setImage(e.target.files?.[0] || null)}
+                                className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm text-white file:mr-4 file:rounded-xl file:border-0 file:bg-[#FFD166] file:px-4 file:py-2 file:text-sm file:font-black file:text-[#151A1D]"
                             />
                         </div>
                     </div>
@@ -337,19 +402,27 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
 
                             <select
                                 value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-white transition-all focus:ring-2 focus:ring-[#FFD166]/10"
+                                onChange={(e) => {
+                                    setRole(e.target.value);
+                                    setRestaurantId("");
+                                }}
+                                className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 font-bold text-white outline-none transition-all focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
 
                             >
                                 <option className="text-gray-400" value="" disabled>
-
+                                    Select role
                                 </option>
                                 {roleOptions.map((item) => (
                                     <option key={item.id} value={item.id}>
-                                        {item.name}
+                                        {formatRoleLabel(item)}
                                     </option>
                                 ))}
                             </select>
+                            {!roleOptions.length && (
+                                <p className="mt-2 text-xs font-bold text-[#FFD166]/75">
+                                    No assignable roles available.
+                                </p>
+                            )}
                             {needsRestaurant && (
                                 <>
                                     <div>
@@ -389,7 +462,7 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                         )}
 
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="rounded-2xl border border-white/10 px-6 py-3 text-white/65 hover:bg-white/[0.05] hover:text-white"
                         >
                             Cancel

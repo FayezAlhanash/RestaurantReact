@@ -174,12 +174,12 @@ function ReportTable({ columns, rows, emptyText }) {
   if (!rows.length) return <EmptyState text={emptyText} />;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#12181B]">
-      <table className="w-full border-collapse text-left text-base">
+    <div className="cashier-scroll max-w-full overflow-x-auto rounded-2xl border border-white/10 bg-[#12181B]">
+      <table className="min-w-full border-collapse text-left text-base">
         <thead className="bg-white/[0.06] text-sm font-black uppercase tracking-[0.12em] text-white/48">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-5 py-4">
+              <th key={column.key} className="whitespace-nowrap px-4 py-4 sm:px-5">
                 {column.label}
               </th>
             ))}
@@ -189,7 +189,7 @@ function ReportTable({ columns, rows, emptyText }) {
           {rows.map((row, index) => (
             <tr key={row.id ?? row.date ?? row.food_id ?? index} className="transition hover:bg-white/[0.05]">
               {columns.map((column) => (
-                <td key={column.key} className="px-5 py-4 text-base font-bold text-white/72">
+                <td key={column.key} className="whitespace-nowrap px-4 py-4 text-base font-bold text-white/72 sm:px-5">
                   {column.render ? column.render(row, index) : row[column.key]}
                 </td>
               ))}
@@ -633,7 +633,7 @@ export default function ManagerDashboard() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
+            <article className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
               <div
                 className="border-b border-white/10 p-5 text-white"
                 style={{
@@ -687,7 +687,7 @@ export default function ManagerDashboard() {
               </div>
             </article>
 
-            <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
+            <article className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
               <div
                 className="border-b border-white/10 p-5 text-white"
                 style={{

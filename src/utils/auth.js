@@ -63,7 +63,7 @@ export function getPermissionHomePath(user = {}) {
     if (can("manage_users", "manage_restaurant_staff")) return "/employee";
     if (can("manage_roles", "manage_permissions")) return "/roles";
     if (isAdmin && can("manage_restaurants", "monitor_restaurant")) return "/restaurants";
-    if (isAdmin && can("manage_tables")) return "/tables";
+    if (can("manage_tables")) return "/tables";
     if (can("monitor_inventory", "manage_inventory")) return "/inventory";
     if (can("manage_takeaway_orders")) return "/takeaway-orders";
     if (can("manage_kitchen_orders")) return "/kitchen-orders";

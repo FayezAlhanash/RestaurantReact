@@ -167,7 +167,7 @@ function WarehouseSideBar({ onAdd, stats, permissions = [] }) {
                             }
                         >
                             <ReceiptText size={20} />
-                            Takeaway Orders
+                            Cashier Dashboard
                         </NavLink>
                     )}
 

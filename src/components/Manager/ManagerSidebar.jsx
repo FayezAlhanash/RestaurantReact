@@ -67,7 +67,7 @@ const navItems = [
   },
   {
     to: "/manager/takeaway-orders",
-    label: "Takeaway Orders",
+    label: "Cashier Dashboard",
     description: "Menu, catalog, orders",
     icon: ReceiptText,
     permissions: ["manage_takeaway_orders"],

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import KitchenLayout from "./components/Kitchen/KitchenLayout";
 import KitchenDashboard from "./components/Kitchen/KitchenDashboard";
 import Login from "./pages/Login";
@@ -31,6 +32,8 @@ import WaiterLayout from "./components/Waiter/WaiterLayout";
 import WaiterHomeRedirect from "./components/Waiter/WaiterHomeRedirect";
 import NoTasks from "./components/Shared/NoTasks";
 import { ThemeProvider } from "./context/ThemeContext";
+import api from "./API/axios";
+import { getStoredToken } from "./utils/auth";
 
 const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "manage_menu",
@@ -46,10 +49,50 @@ const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "view_reports",
 ];
 
+const SESSION_CHECK_INTERVAL_MS = 15000;
+
+function SessionWatcher() {
+  useEffect(() => {
+    const isPublicPage = () =>
+      window.location.pathname === "/" ||
+      window.location.pathname.startsWith("/table/") ||
+      window.location.pathname.startsWith("/tables/") ||
+      window.location.pathname.startsWith("/dine-in/");
+
+    const checkSession = () => {
+      if (!getStoredToken() || isPublicPage()) return;
+
+      api.get("/profile/permissions").catch(() => {
+        // The axios response interceptor handles 401 by signing out.
+      });
+    };
+
+    checkSession();
+
+    const intervalId = window.setInterval(checkSession, SESSION_CHECK_INTERVAL_MS);
+    const handleFocus = () => checkSession();
+    const handleVisibilityChange = () => {
+      if (!document.hidden) checkSession();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
     <BrowserRouter >
+      <SessionWatcher />
 
       <Routes>
 
@@ -136,16 +179,14 @@ function App() {
               <Route path="/employees" element={<EmployeesManagements />} />
               <Route path="/employee" element={<Employee />} />
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["manage_users", "manage_permissions"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_permissions"]} />}>
               <Route path="/user-permissions" element={<UserPermission />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["manage_roles", "manage_permissions"]} />}>
               <Route path="/roles" element={<RolesPermission />} />
             </Route>
-            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} />}>
-              <Route element={<ProtectedRoute allowedPermissions={["manage_tables"]} />}>
-                <Route path="/tables" element={<TablesManagements />} />
-              </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_tables"]} />}>
+              <Route path="/tables" element={<TablesManagements />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["manage_menu"]} />}>
               <Route path="/add-menu" element={<AddMenu />} />

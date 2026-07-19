@@ -210,7 +210,7 @@ function MenuItemCard({ item, onOpen }) {
         : Number(item.price ?? 0);
 
     return (
-        <article className="group flex min-h-[300px] flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1B2225]/92 shadow-[0_16px_34px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.025] transition duration-300 hover:-translate-y-1 hover:border-[#FFD166]/22 hover:bg-[#20282B] hover:shadow-[0_24px_48px_rgba(0,0,0,0.26)] sm:min-h-[326px]">
+        <article className="group flex min-h-[350px] flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1B2225]/92 shadow-[0_16px_34px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.025] transition duration-300 hover:-translate-y-1 hover:border-[#FFD166]/22 hover:bg-[#20282B] hover:shadow-[0_24px_48px_rgba(0,0,0,0.26)] sm:min-h-[372px]">
             <div className="relative m-2 overflow-hidden rounded-[18px] bg-[#101517]">
                 <img
                     src={imageUrl}
@@ -226,20 +226,26 @@ function MenuItemCard({ item, onOpen }) {
                 </span>
             </div>
 
-            <div className="flex flex-1 flex-col px-4 pb-4 pt-1">
-                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                    <div className="min-w-0 flex-1">
-                        <h2 className="truncate text-lg font-extrabold text-white">{item.title}</h2>
-                        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-white/52">{item.description}</p>
-                    </div>
-                    <p className="shrink-0 text-xl font-black text-[#FFD166]">
+            <div className="flex flex-1 flex-col px-4 pb-4 pt-2">
+                <h2 className="line-clamp-2 min-h-[3.35rem] text-[23px] font-black leading-[1.16] text-white">
+                    {item.title}
+                </h2>
+
+                <p className={`mt-2 line-clamp-2 min-h-[3rem] text-[16px] font-semibold leading-[1.45] ${
+                    item.description ? "text-white/70" : "text-white/38"
+                }`}>
+                    {item.description || "No description"}
+                </p>
+
+                <div className="mt-auto pt-3">
+                    <p className="text-[27px] font-black leading-none tracking-normal text-[#9A6400] dark:text-[#FFD166]">
                         {hasSizePrices ? "From " : ""}${displayPrice.toFixed(2)}
                     </p>
                 </div>
 
                 <button
                     onClick={onOpen}
-                    className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.98] sm:mt-5"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-[15px] font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.98]"
                 >
                     <Plus size={18} />
                     Add to order

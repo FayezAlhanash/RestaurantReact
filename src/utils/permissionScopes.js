@@ -1,19 +1,26 @@
-export const RESTAURANT_ROLE_IDS = [3, 6, 7];
+export const RESTAURANT_ROLE_IDS = [3, 4, 5, 6, 7, 8];
 const RESTAURANT_ROLE_NAMES = [
     "manager",
+    "cashier",
+    "delivery",
     "chef",
     "kitchen",
     "warehouse manager",
     "warehouse",
+    "waiter",
+    "server",
 ];
 
 const ADMIN_ONLY_PERMISSION_KEYS = [
     "manage_restaurants",
-    "manage_users",
     "manage_roles",
     "force_cancel_orders",
-    "manage_tables",
     "manage_permissions",
+];
+
+const DYNAMIC_PERMISSION_KEYS = [
+    "manage_users",
+    "manage_tables",
 ];
 
 function getPermissionKey(permission = {}) {
@@ -31,6 +38,57 @@ function normalizePermissionKey(value) {
 function isAdminOnlyPermission(permission) {
     return ADMIN_ONLY_PERMISSION_KEYS.includes(
         normalizePermissionKey(getPermissionKey(permission))
+    );
+}
+
+function isDynamicPermission(permission) {
+    return DYNAMIC_PERMISSION_KEYS.includes(
+        normalizePermissionKey(getPermissionKey(permission))
+    );
+}
+
+function getPermissionRestaurantId(permission = {}) {
+    return (
+        permission.restaurant_id ??
+        permission.restaurantId ??
+        permission.restaurant?.id ??
+        permission.pivot?.restaurant_id ??
+        permission.pivot?.restaurantId ??
+        permission.permission?.restaurant_id ??
+        permission.permission?.restaurantId ??
+        permission.permission?.restaurant?.id ??
+        null
+    );
+}
+
+function roleHasRestaurantId(role = {}) {
+    return Boolean(
+        role.restaurant_id ??
+            role.restaurantId ??
+            role.restaurant?.id ??
+            role.pivot?.restaurant_id ??
+            role.pivot?.restaurantId
+    );
+}
+
+function userHasRestaurantId(user = {}) {
+    return Boolean(
+        user.restaurant_id ??
+            user.restaurantId ??
+            user.restaurant?.id ??
+            user.manager?.restaurant_id ??
+            user.manager?.restaurantId ??
+            user.manager?.restaurant?.id ??
+            user.employee?.restaurant_id ??
+            user.employee?.restaurantId ??
+            user.employee?.restaurant?.id
+    );
+}
+
+function permissionNeedsRestaurant(permission = {}) {
+    return (
+        normalizePermissionKey(permission.scope) === "restaurant" ||
+        Boolean(getPermissionRestaurantId(permission))
     );
 }
 
@@ -72,7 +130,13 @@ export function userHasRestaurantScope(user) {
 }
 
 export function canAssignPermissionToRole(role, permission) {
+    if (!role || !permission) return false;
     if (isAdminOnlyPermission(permission)) return isAdminRole(role);
+    if (isDynamicPermission(permission)) return true;
+
+    if (permissionNeedsRestaurant(permission)) {
+        return roleHasRestaurantId(role);
+    }
 
     return (
         permission?.scope === "global" ||
@@ -83,6 +147,11 @@ export function canAssignPermissionToRole(role, permission) {
 export function canAssignPermissionToUser(user, permission) {
     if (!user || !permission) return false;
     if (isAdminOnlyPermission(permission)) return isAdminUser(user);
+    if (isDynamicPermission(permission)) return true;
+
+    if (permissionNeedsRestaurant(permission)) {
+        return userHasRestaurantId(user);
+    }
 
     return (
         permission.scope === "global" ||

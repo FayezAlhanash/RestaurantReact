@@ -117,7 +117,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             icon: UserCog,
             title: "User Permissions",
             path: "/user-permissions",
-            permissions: ["manage_permissions", "manage_users"],
+            permissions: ["manage_permissions"],
         },
         {
             icon: ShieldCheck,
@@ -130,7 +130,6 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             title: "Tables",
             path: "/tables",
             permissions: ["manage_tables"],
-            adminOnly: true,
         },
         {
             icon: Package,
@@ -152,7 +151,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
         },
         {
             icon: ReceiptText,
-            title: "Takeaway Orders",
+            title: "Cashier Dashboard",
             path: "/takeaway-orders",
             permissions: ["manage_takeaway_orders"],
         },
@@ -398,7 +397,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className={`flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/10 text-sm font-black text-[#7F1D1D] transition hover:-translate-y-0.5 hover:border-[#7F1D1D]/45 hover:bg-[#7F1D1D]/16 hover:shadow-sm active:scale-[0.99] ${isLight ? "hover:text-[#7F1D1D]" : "hover:text-white"} ${isCollapsed ? "lg:px-0" : ""}`}
+                        className={`flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-red-400/65 bg-[#7F1D1D] text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-[#9B2C2C] hover:shadow-[0_16px_32px_rgba(127,29,29,0.38)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
                         title={isCollapsed ? "Logout" : undefined}
                     >
                         <LogOut size={18} />

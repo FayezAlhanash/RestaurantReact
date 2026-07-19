@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  Pencil,
   Loader2,
   Plus,
+  Save,
   Search,
   ShieldCheck,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -66,6 +69,15 @@ export default function RolesPermission() {
   });
   const [createRoleError, setCreateRoleError] = useState("");
   const [isCreatingRole, setIsCreatingRole] = useState(false);
+  const [isEditingRole, setIsEditingRole] = useState(false);
+  const [editRoleForm, setEditRoleForm] = useState({
+    name: "",
+    description: "",
+    requires_restaurant: false,
+  });
+  const [editRoleError, setEditRoleError] = useState("");
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [isDeletingRole, setIsDeletingRole] = useState(false);
 
   const refreshCurrentUserPermissions = async () => {
     const currentUser = getStoredUser();
@@ -114,6 +126,8 @@ export default function RolesPermission() {
         .map((p) => String(p.id))
     );
     setPermissionError("");
+    setIsEditingRole(false);
+    setEditRoleError("");
   };
 
   const handleCreateRoleChange = (event) => {
@@ -133,6 +147,112 @@ export default function RolesPermission() {
       requires_restaurant: false,
     });
     setCreateRoleError("");
+  };
+
+  const startEditRole = () => {
+    if (!selectedRole) return;
+
+    setEditRoleForm({
+      name: selectedRole.name ?? "",
+      description: selectedRole.description ?? "",
+      requires_restaurant: Boolean(
+        selectedRole.requires_restaurant ?? selectedRole.restaurant_required
+      ),
+    });
+    setEditRoleError("");
+    setIsEditingRole(true);
+  };
+
+  const handleEditRoleChange = (event) => {
+    const { name, type, checked, value } = event.target;
+
+    setEditRoleForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    setEditRoleError("");
+  };
+
+  const handleUpdateRole = async (event) => {
+    event.preventDefault();
+    if (!selectedRole) return;
+
+    const roleName = editRoleForm.name.trim();
+
+    if (!roleName) {
+      setEditRoleError("Role name is required.");
+      return;
+    }
+
+    setIsUpdatingRole(true);
+    setEditRoleError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("name", roleName);
+      formData.append("description", editRoleForm.description.trim());
+      formData.append(
+        "requires_restaurant",
+        editRoleForm.requires_restaurant ? "1" : "0"
+      );
+
+      const res = await api.post(`/admin/roles/${selectedRole.id}`, formData);
+      const updatedRole = getResponseRole(res.data);
+      const rolesRes = await api.get("/admin/roles");
+      const rolesList = getList(rolesRes.data, "roles");
+      const nextSelectedRole =
+        rolesList.find((role) => role.id === (updatedRole?.id ?? selectedRole.id)) ??
+        updatedRole;
+
+      setRoles(rolesList);
+
+      if (nextSelectedRole) {
+        handleSelectRole(nextSelectedRole);
+      }
+
+      setIsEditingRole(false);
+    } catch (error) {
+      setEditRoleError(
+        error.response?.data?.message ||
+          "Role could not be updated. Please try again."
+      );
+      console.log(error.response?.data || error);
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
+
+  const handleDeleteRole = async () => {
+    if (!selectedRole || isDeletingRole) return;
+
+    const confirmed = window.confirm(
+      `Delete role "${selectedRole.name}"? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeletingRole(true);
+    setPermissionError("");
+    setEditRoleError("");
+
+    try {
+      await api.delete(`/admin/roles/${selectedRole.id}`);
+      const rolesRes = await api.get("/admin/roles");
+
+      setRoles(getList(rolesRes.data, "roles"));
+      setSelectedRole(null);
+      setRolePermissions([]);
+      setIsEditingRole(false);
+      await refreshCurrentUserPermissions();
+    } catch (error) {
+      setPermissionError(
+        error.response?.data?.message ||
+          "Role could not be deleted. Please try again."
+      );
+      console.log(error.response?.data || error);
+    } finally {
+      setIsDeletingRole(false);
+    }
   };
 
   const handleCreateRole = async (event) => {
@@ -447,7 +567,7 @@ export default function RolesPermission() {
                   setShowCreateRole((prev) => !prev);
                   setCreateRoleError("");
                 }}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] shadow-sm transition hover:border-[#7F1D1D]/55 hover:bg-[#7F1D1D]/18 active:scale-95"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#FFD166]/75 bg-[#FFD166] text-[#151A1D] shadow-[0_10px_22px_rgba(255,209,102,0.28)] transition hover:border-[#FFE08F] hover:bg-[#FFE08F] hover:shadow-[0_14px_28px_rgba(255,209,102,0.38)] active:scale-95"
                 aria-label={showCreateRole ? "Close add role form" : "Add role"}
                 title={showCreateRole ? "Close" : "Add role"}
               >
@@ -500,7 +620,7 @@ export default function RolesPermission() {
                   <button
                     type="submit"
                     disabled={isCreatingRole}
-                    className="flex h-10 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] px-4 text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.18)] transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FFD166]/75 bg-[#FFD166] px-4 text-sm font-black text-[#151A1D] shadow-[0_12px_26px_rgba(255,209,102,0.28)] transition hover:border-[#FFE08F] hover:bg-[#FFE08F] hover:shadow-[0_16px_32px_rgba(255,209,102,0.38)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isCreatingRole ? (
                       <Loader2 size={17} className="animate-spin" />
@@ -543,7 +663,7 @@ export default function RolesPermission() {
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-black capitalize">
+                    <span className="line-clamp-2 text-[clamp(0.82rem,0.72rem+0.22vw,0.95rem)] font-black capitalize leading-tight">
                       {role.name}
                     </span>
                     <span
@@ -570,7 +690,7 @@ export default function RolesPermission() {
         <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]">
           <div className="border-b border-white/[0.08] bg-white/[0.025] p-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]/80">
                   Permissions
                 </p>
@@ -579,16 +699,104 @@ export default function RolesPermission() {
                 </h2>
               </div>
 
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D1214] px-3 py-2.5 shadow-inner lg:w-[320px]">
-                <Search size={17} className="shrink-0 text-[#FFD166]" />
-                <input
-                  value={permissionSearch}
-                  onChange={(event) => setPermissionSearch(event.target.value)}
-                  placeholder="Search permissions..."
-                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
-                />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {selectedRole && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={isEditingRole ? () => setIsEditingRole(false) : startEditRole}
+                      disabled={isUpdatingRole || isDeletingRole}
+                      className="grid h-11 w-11 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] shadow-sm transition hover:border-[#FFD166]/55 hover:bg-[#FFD166]/18 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label={isEditingRole ? "Close edit role form" : "Edit role"}
+                      title={isEditingRole ? "Close edit" : "Edit role"}
+                    >
+                      {isEditingRole ? <X size={18} /> : <Pencil size={18} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteRole}
+                      disabled={isUpdatingRole || isDeletingRole}
+                      className="grid h-11 w-11 place-items-center rounded-xl border border-red-400/70 bg-[#7F1D1D] text-white shadow-[0_12px_24px_rgba(127,29,29,0.32)] transition hover:border-red-300 hover:bg-[#9B2C2C] hover:shadow-[0_14px_30px_rgba(127,29,29,0.42)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label="Delete role"
+                      title="Delete role"
+                    >
+                      {isDeletingRole ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D1214] px-3 py-2.5 shadow-inner lg:w-[320px]">
+                  <Search size={17} className="shrink-0 text-[#FFD166]" />
+                  <input
+                    value={permissionSearch}
+                    onChange={(event) => setPermissionSearch(event.target.value)}
+                    placeholder="Search permissions..."
+                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                  />
+                </div>
               </div>
             </div>
+
+            {selectedRole && isEditingRole && (
+              <form
+                onSubmit={handleUpdateRole}
+                className="mt-4 rounded-2xl border border-white/10 bg-[#111A1D] p-3 shadow-sm"
+              >
+                <div className="grid gap-3 lg:grid-cols-[1fr_1.4fr_auto] lg:items-start">
+                  <input
+                    name="name"
+                    value={editRoleForm.name}
+                    onChange={handleEditRoleChange}
+                    placeholder="Role name"
+                    className="w-full rounded-xl border border-white/10 bg-[#0D1214] px-3 py-2.5 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                    disabled={isUpdatingRole}
+                  />
+                  <textarea
+                    name="description"
+                    value={editRoleForm.description}
+                    onChange={handleEditRoleChange}
+                    placeholder="Description"
+                    rows={1}
+                    className="w-full resize-none rounded-xl border border-white/10 bg-[#0D1214] px-3 py-2.5 text-sm font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                    disabled={isUpdatingRole}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isUpdatingRole}
+                    className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] px-4 text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.18)] transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isUpdatingRole ? (
+                      <Loader2 size={17} className="animate-spin" />
+                    ) : (
+                      <Save size={17} />
+                    )}
+                    Save
+                  </button>
+                </div>
+                <label className="mt-3 flex items-center gap-2 rounded-xl border border-[#FFD166]/20 bg-[#FFD166]/10 px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#FFD166]">
+                  <input
+                    type="checkbox"
+                    name="requires_restaurant"
+                    checked={editRoleForm.requires_restaurant}
+                    onChange={handleEditRoleChange}
+                    className="h-4 w-4 accent-[#7F1D1D]"
+                    disabled={isUpdatingRole}
+                  />
+                  Requires restaurant
+                </label>
+
+                {editRoleError && (
+                  <p className="mt-3 flex items-start gap-2 rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-bold text-[#7F1D1D]">
+                    <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                    <span>{editRoleError}</span>
+                  </p>
+                )}
+              </form>
+            )}
 
             {permissionError && (
               <p className="mt-4 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
@@ -612,7 +820,7 @@ export default function RolesPermission() {
               </div>
             </div>
           ) : (
-            <div className="admin-dashboard-scroll grid max-h-[620px] gap-3 overflow-y-auto p-4 md:grid-cols-2">
+            <div className="admin-dashboard-scroll grid max-h-[620px] gap-3 overflow-y-auto p-4 2xl:grid-cols-2">
               {visiblePermissions.map((perm) => {
                 const checked = rolePermissions.includes(String(perm.id));
                 const isUpdating = updatingPermissionId === perm.id;
@@ -620,7 +828,7 @@ export default function RolesPermission() {
                 return (
                   <label
                     key={perm.id}
-                    className={`group flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 active:scale-[0.99] ${
+                    className={`group flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 active:scale-[0.99] ${
                       checked
                         ? "border-[#FFD166]/28 bg-[#FFD166]/10 shadow-[0_10px_24px_rgba(255,209,102,0.06)]"
                         : "border-white/10 bg-[#101A1D] hover:border-white/16 hover:bg-[#142125]"
@@ -641,10 +849,10 @@ export default function RolesPermission() {
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-black text-white">
+                      <span className="line-clamp-2 text-[clamp(0.88rem,0.72rem+0.28vw,1rem)] font-black leading-tight text-white">
                         {formatPermissionLabel(perm)}
                       </span>
-                      <span className="block truncate text-xs font-semibold text-white/42">
+                      <span className="mt-1 line-clamp-2 break-words text-[clamp(0.72rem,0.64rem+0.18vw,0.82rem)] font-semibold leading-tight text-white/42">
                         {getPermissionKey(perm)}
                       </span>
                     </span>

@@ -1,5 +1,5 @@
 import logo from "../assets/Group.svg";
-import { Loader2, Lock, User } from "lucide-react";
+import { Eye, Loader2, Lock, User } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -14,8 +14,14 @@ import {
 function Login() {
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState(() => {
+        const sessionMessage = sessionStorage.getItem("sessionMessage") || "";
+
+        sessionStorage.removeItem("sessionMessage");
+        return sessionMessage;
+    });
 
     const navigate = useNavigate();
 
@@ -145,7 +151,7 @@ function Login() {
                             <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-[#fbfaf8] px-4 py-3.5 shadow-sm transition duration-200 focus-within:border-[#7F1D1D] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#7F1D1D]/10">
                                 <Lock size={19} className="shrink-0 text-stone-400" />
                                 <input
-                                    type="password"
+                                    type={isPasswordVisible ? "text" : "password"}
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -153,6 +159,20 @@ function Login() {
                                     autoComplete="current-password"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    aria-label="Hold to show password"
+                                    title="Hold to show password"
+                                    onMouseDown={() => setIsPasswordVisible(true)}
+                                    onMouseUp={() => setIsPasswordVisible(false)}
+                                    onMouseLeave={() => setIsPasswordVisible(false)}
+                                    onTouchStart={() => setIsPasswordVisible(true)}
+                                    onTouchEnd={() => setIsPasswordVisible(false)}
+                                    onTouchCancel={() => setIsPasswordVisible(false)}
+                                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-stone-400 transition hover:bg-stone-100 hover:text-[#7F1D1D] active:scale-95"
+                                >
+                                    <Eye size={18} />
+                                </button>
                             </div>
                         </div>
 

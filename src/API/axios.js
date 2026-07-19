@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getStoredToken, getStoredUser } from "../utils/auth";
+import { clearSession, getStoredToken, getStoredUser } from "../utils/auth";
 
 const api = axios.create({
     baseURL: "https://big4.me/api",
@@ -23,5 +23,24 @@ api.interceptors.request.use((config) => {
 
     return config;
 });
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401 && getStoredToken()) {
+            clearSession();
+            sessionStorage.setItem(
+                "sessionMessage",
+                "Your account was deleted or your session expired. Please contact an admin."
+            );
+
+            if (window.location.pathname !== "/") {
+                window.location.replace("/");
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export default api;

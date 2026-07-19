@@ -3,7 +3,10 @@ const STRIPE_JS_URL = "https://js.stripe.com/v3/";
 let stripePromise;
 
 function getStripeKey() {
-    return import.meta.env.VITE_STRIPE_KEY;
+    return (
+        import.meta.env.VITE_STRIPE_KEY ||
+        import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+    );
 }
 
 function loadStripeScript() {

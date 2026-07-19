@@ -288,7 +288,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     <div className="product-modal-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
                     <p className={`text-xs font-bold uppercase tracking-[0.18em] ${isDark ? "text-[#FFD166]" : "text-[#A28F87]"}`}>Customize item</p>
                     <h2 className={`mt-2 pr-12 text-2xl font-black ${isDark ? "text-white" : "text-[#2D2421]"}`}>{item?.title}</h2>
-                    <p className={`mt-1.5 text-sm leading-6 ${isDark ? "text-white/58" : "text-[#887770]"}`}>{item?.description}</p>
+                    <p className={`mt-2 text-base font-semibold leading-7 ${isDark ? "text-white/68" : "text-[#6F5C54]"}`}>{item?.description}</p>
 
                     {hasModifiers ? (
                         <div className="mt-5 space-y-4">
