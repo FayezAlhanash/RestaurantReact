@@ -430,44 +430,71 @@ function CustomerFoodCard({ item, onOpen }) {
     );
 }
 
-function RestaurantSelectCard({ restaurant, itemCount, isActive, onSelect }) {
+function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }) {
+    if (!restaurants.length) return null;
+
+    const getItemCount = (restaurantId) =>
+        menuItems.filter((item) => String(item.restaurant_id) === String(restaurantId)).length;
+
     return (
-        <button
-            type="button"
-            onClick={onSelect}
-            className={`group overflow-hidden rounded-[26px] border text-left shadow-[0_20px_46px_rgba(0,0,0,0.24)] transition duration-300 hover:-translate-y-1 active:scale-[0.99] ${
-                isActive
-                    ? "border-[#7F1D1D] bg-[#7F1D1D]/10 ring-4 ring-[#7F1D1D]/20"
-                    : "border-white/10 bg-white/[0.06] hover:border-[#FFD166]/50 hover:bg-white/[0.09]"
-            }`}
-        >
-            <div className="relative h-40 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),transparent_58%),linear-gradient(135deg,#171D20,#0D1113)] sm:h-48">
-                <img
-                    src={getRestaurantImageUrl(restaurant)}
-                    alt={restaurant.name}
-                    className="h-full w-full object-contain p-7 opacity-90 transition duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1113] via-[#0D1113]/30 to-transparent" />
-                <span className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-xs font-black text-[#FFD166] backdrop-blur">
-                    {itemCount} items
-                </span>
-                {isActive && (
-                    <span className="absolute right-3 top-3 rounded-full bg-[#7F1D1D] px-3 py-1 text-xs font-black text-white">
-                        Selected
-                    </span>
-                )}
-                <div className="customer-image-text absolute bottom-4 left-4 right-4">
-                    <h2 className="truncate text-2xl font-black text-white drop-shadow">
-                        {restaurant.name}
+        <section className="mb-3 rounded-[24px] border border-white/10 bg-white/[0.06] p-3 text-white shadow-[0_18px_45px_rgba(0,0,0,0.20)] backdrop-blur sm:mb-4 sm:rounded-[28px] sm:p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
+                        Choose restaurant
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">
+                        Pick the kitchen you want
                     </h2>
-                    {restaurant.description && (
-                        <p className="mt-1 line-clamp-1 text-xs font-bold text-white/70">
-                            {restaurant.description}
-                        </p>
-                    )}
                 </div>
+
+                <select
+                    value={activeRestaurant}
+                    onChange={(event) => onSelect(event.target.value)}
+                    className="h-12 rounded-2xl border border-white/10 bg-[#12181B] px-4 text-sm font-black text-white outline-none focus:border-[#FFD166]/70 sm:w-[280px]"
+                >
+                    {restaurants.map((restaurant) => (
+                        <option key={restaurant.id} value={restaurant.id}>
+                            {restaurant.name}
+                        </option>
+                    ))}
+                </select>
             </div>
-        </button>
+
+            <div className="customer-order-scroll flex gap-3 overflow-x-auto pb-1">
+                {restaurants.map((restaurant) => {
+                    const active = String(activeRestaurant) === String(restaurant.id);
+
+                    return (
+                        <button
+                            key={restaurant.id}
+                            type="button"
+                            onClick={() => onSelect(String(restaurant.id))}
+                            className={`flex min-w-[230px] items-center gap-3 rounded-2xl border p-2.5 text-left transition active:scale-[0.99] sm:min-w-[270px] ${
+                                active
+                                    ? "border-[#FFD166]/65 bg-[#FFD166]/14 ring-2 ring-[#FFD166]/10"
+                                    : "border-white/10 bg-[#111719] hover:border-[#FFD166]/40 hover:bg-white/[0.08]"
+                            }`}
+                        >
+                            <img
+                                src={getRestaurantImageUrl(restaurant)}
+                                alt={restaurant.name}
+                                className="h-14 w-14 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
+                            />
+                            <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-black text-white">
+                                    {restaurant.name}
+                                </span>
+                                <span className="mt-1 block text-xs font-bold text-white/55">
+                                    {getItemCount(restaurant.id)} dishes
+                                </span>
+                            </span>
+                            {active && <CheckCircle2 size={18} className="shrink-0 text-[#FFD166]" />}
+                        </button>
+                    );
+                })}
+            </div>
+        </section>
     );
 }
 
@@ -488,7 +515,7 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
 
         const intervalId = window.setInterval(() => {
             setActiveIndex((currentIndex) => (currentIndex + 1) % featuredItems.length);
-        }, 6500);
+        }, 3000);
 
         return () => window.clearInterval(intervalId);
     }, [featuredItems.length, isSliderPaused]);
@@ -567,7 +594,7 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
                 className={`absolute inset-0 flex cursor-grab select-none ${
                     isDragging
                         ? "cursor-grabbing"
-                        : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                        : "transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 }`}
                 style={{
                     transform: `translate3d(calc(-${activeIndex * 100}% + ${dragOffset}px), 0, 0)`,
@@ -583,18 +610,18 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
                             alt=""
                             className="absolute inset-0 h-full w-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,13,14,0.92)_0%,rgba(10,13,14,0.70)_42%,rgba(10,13,14,0.18)_100%)]" />
+                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,13,14,0.86)_0%,rgba(10,13,14,0.58)_42%,rgba(10,13,14,0.10)_100%)]" />
                         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#101517] to-transparent" />
 
                         <div className="relative z-10 mx-auto grid h-full max-w-7xl items-end gap-4 px-4 py-7 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,0.95fr)_280px] lg:items-center">
-                            <div className="max-w-2xl pb-8 sm:pb-9 lg:pb-0">
+                            <div className="customer-image-text max-w-2xl pb-8 sm:pb-9 lg:pb-0">
                                 <p className="mb-2 inline-flex max-w-full rounded-full bg-[#FFD166] px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#241707] shadow-[0_12px_24px_rgba(255,209,102,0.18)] sm:mb-3 sm:px-3.5 sm:text-[11px]">
                                     Featured from {item.restaurantName}
                                 </p>
                                 <h1 className="line-clamp-2 text-3xl font-black leading-[1.02] tracking-normal text-white drop-shadow sm:text-5xl lg:text-6xl">
                                     {item.title}
                                 </h1>
-                                <p className="mt-2 line-clamp-2 max-w-xl text-xs font-semibold leading-5 text-white/72 sm:mt-3 sm:text-base sm:leading-6">
+                                <p className="customer-image-text mt-3 line-clamp-2 max-w-xl text-sm font-extrabold leading-6 !text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.95)] sm:text-base sm:leading-7">
                                     {item.description || `Freshly prepared by ${item.restaurantName}.`}
                                 </p>
 
@@ -683,7 +710,7 @@ function OrderPanel({
         <section
             className={`flex flex-col overflow-hidden border border-white/10 bg-[#151A1D]/92 text-white shadow-[0_28px_70px_rgba(0,0,0,0.30)] backdrop-blur-xl ${
                 isMobile
-                    ? "max-h-[78dvh] rounded-t-[28px]"
+                    ? "max-h-[74dvh] rounded-[28px]"
                     : "max-h-[calc(100dvh-7.5rem)] min-h-[520px] rounded-[28px]"
             }`}
         >
@@ -854,7 +881,7 @@ function OrderPanel({
                     disabled={!itemCount || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                     className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
                 >
-                    {isSubmitting ? "Sending..." : "Send"}
+                    {isSubmitting ? "Sending..." : "Confirm order"}
                 </button>
             </div>
             </div>
@@ -879,13 +906,32 @@ function MobileOrderBar({
     onOpen,
     onClose,
 }) {
+    const [isClosing, setIsClosing] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) setIsClosing(false);
+    }, [isOpen]);
+
+    const closeBill = () => {
+        if (isClosing) return;
+
+        setIsClosing(true);
+        window.setTimeout(onClose, 180);
+    };
+
     if (!itemCount) return null;
 
     return (
-        <div className="lg:hidden">
+        <div>
             {isOpen && (
-                <div className="fixed inset-0 z-40 flex items-end bg-black/35 backdrop-blur-[2px]">
-                    <div className="w-full">
+                <div
+                    className={`${isClosing ? "order-backdrop-exit" : "order-backdrop-enter"} fixed inset-0 z-40 flex items-end justify-center bg-black/35 p-3 backdrop-blur-[2px] sm:p-5`}
+                    onClick={closeBill}
+                >
+                    <div
+                        className={`${isClosing ? "order-sheet-exit" : "order-sheet-enter"} w-[min(92vw,380px)] sm:w-[min(84vw,420px)]`}
+                        onClick={(event) => event.stopPropagation()}
+                    >
                         <OrderPanel
                             cartItems={cartItems}
                             itemCount={itemCount}
@@ -900,31 +946,34 @@ function MobileOrderBar({
                             stripeCardMessage={stripeCardMessage}
                             stripeCardContainerRef={stripeCardContainerRef}
                             layout="mobile"
-                            onClose={onClose}
+                            onClose={closeBill}
                         />
                     </div>
                 </div>
             )}
 
-            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#101517]/92 px-2.5 py-2.5 shadow-[0_-18px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:px-3 sm:py-3">
-                <div className="mx-auto flex max-w-5xl items-center gap-2 sm:gap-3">
+            <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 py-3">
+                <div className="pointer-events-auto mx-auto flex max-w-[760px] items-center gap-2.5 rounded-[26px] border border-[#E8D2C7]/80 bg-[#FFF8EF]/92 p-2 shadow-[0_-10px_36px_rgba(127,29,29,0.13)] backdrop-blur-xl dark:border-white/10 dark:bg-[#101517]/92 dark:shadow-[0_-18px_40px_rgba(0,0,0,0.28)] sm:gap-3 sm:p-2.5">
                     <button
                         type="button"
-                        onClick={onOpen}
-                        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2.5 text-left text-white shadow-sm transition active:scale-[0.99] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3"
+                        onClick={() => {
+                            setIsClosing(false);
+                            onOpen();
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border border-[#E6CFC2] bg-white/92 px-3 py-2.5 text-left text-[#251918] shadow-[0_14px_34px_rgba(127,29,29,0.10)] transition hover:border-[#D7B9A8] active:scale-[0.99] dark:border-white/10 dark:bg-white/[0.07] dark:text-white sm:gap-3 sm:px-4 sm:py-3"
                     >
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#7F1D1D] text-white sm:h-10 sm:w-10">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#7F1D1D] text-white shadow-[0_12px_24px_rgba(127,29,29,0.22)] sm:h-10 sm:w-10">
                             <ShoppingBag size={18} />
                         </span>
                         <span className="min-w-0">
                             <span className="block truncate text-sm font-black">
                                 {itemCount} items
                             </span>
-                            <span className="block text-xs font-bold text-white/65">
+                            <span className="block text-xs font-bold text-[#7B6A63] dark:text-white/65">
                                 View bill
                             </span>
                         </span>
-                        <span className="ml-auto shrink-0 text-base font-black text-[#FFD166] sm:text-lg">
+                        <span className="ml-auto shrink-0 rounded-xl bg-[#FFF1CF] px-3 py-1.5 text-base font-black text-[#9A6400] dark:bg-white/10 dark:text-[#FFD166] sm:text-lg">
                             ${subtotal.toFixed(2)}
                         </span>
                     </button>
@@ -933,10 +982,112 @@ function MobileOrderBar({
                         type="button"
                         onClick={onSubmit}
                         disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
-                        className="h-12 shrink-0 rounded-xl bg-[#7F1D1D] px-4 text-xs font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.25)] transition active:scale-95 disabled:opacity-60 sm:h-14 sm:rounded-2xl sm:px-5 sm:text-sm"
+                        className="h-12 shrink-0 rounded-2xl bg-[#7F1D1D] px-5 text-xs font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] active:scale-95 disabled:opacity-60 sm:h-14 sm:px-6 sm:text-sm"
                     >
-                        {isSubmitting ? "Sending..." : paymentMethod === "cash" ? "Cash" : "Stripe"}
+                        {isSubmitting ? "Sending..." : "Confirm"}
                     </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ConfirmOrderModal({
+    cartItems,
+    subtotal,
+    paymentMethod,
+    isSubmitting,
+    onCancel,
+    onConfirm,
+}) {
+    const itemCount = cartItems.reduce(
+        (total, item) => total + Number(item.quantity ?? 1),
+        0
+    );
+
+    return (
+        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
+            <div className="modal-panel-enter w-full max-w-[520px] overflow-hidden rounded-[28px] border border-white/10 bg-[#151A1D] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]">
+                <div className="border-b border-white/10 bg-white/[0.04] p-5">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
+                                Final check
+                            </p>
+                            <h2 className="mt-1 text-2xl font-black">
+                                Confirm your order
+                            </h2>
+                            <p className="mt-1 text-sm font-bold text-white/55">
+                                {itemCount} item{itemCount === 1 ? "" : "s"} will be sent to the restaurant.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            disabled={isSubmitting}
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/10 text-white/70 transition hover:bg-white/[0.14] hover:text-white disabled:opacity-50"
+                            aria-label="Close confirmation"
+                        >
+                            <X size={19} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="customer-order-scroll max-h-[45dvh] space-y-3 overflow-y-auto p-4">
+                    {cartItems.map((item, index) => (
+                        <div
+                            key={`${item.id}-${item.notes}-${index}`}
+                            className="rounded-2xl border border-white/10 bg-white/[0.07] p-3"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="line-clamp-2 text-sm font-black text-white">
+                                        {item.title}
+                                    </p>
+                                    <p className="mt-1 text-xs font-bold text-[#FFD166]">
+                                        {item.restaurantName} · Qty {item.quantity}
+                                    </p>
+                                </div>
+                                <span className="shrink-0 text-sm font-black text-white">
+                                    ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="border-t border-white/10 p-5">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                        <div className="flex justify-between text-sm font-bold text-white/62">
+                            <span>Payment</span>
+                            <span className="capitalize text-white">{paymentMethod}</span>
+                        </div>
+                        <div className="mt-3 flex items-end justify-between border-t border-dashed border-white/20 pt-3">
+                            <span className="text-lg font-black">Total</span>
+                            <span className="text-3xl font-black text-[#FFD166]">
+                                ${subtotal.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            disabled={isSubmitting}
+                            className="h-12 rounded-2xl border border-white/10 bg-white/[0.07] text-sm font-black text-white/72 transition hover:bg-white/[0.12] hover:text-white disabled:opacity-50"
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onConfirm}
+                            disabled={isSubmitting}
+                            className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
+                        >
+                            {isSubmitting ? "Sending..." : "Place order"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1116,6 +1267,7 @@ function DineInOrder() {
     const [cartItems, setCartItems] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+    const [isConfirmOrderOpen, setIsConfirmOrderOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -1376,6 +1528,8 @@ function DineInOrder() {
             }
 
             setCartItems([]);
+            setIsConfirmOrderOpen(false);
+            setIsMobileCartOpen(false);
             setSuccessMessage(
                 paymentMethod === "cash"
                     ? "Cash payment selected. The waiter will collect it."
@@ -1387,6 +1541,7 @@ function DineInOrder() {
                 ? Object.values(validationErrors).flat().find(Boolean)
                 : "";
 
+            setIsConfirmOrderOpen(false);
             setErrorMessage(
                 firstValidationError ||
                     error.response?.data?.message ||
@@ -1414,6 +1569,20 @@ function DineInOrder() {
                 block: "start",
             });
         }, 0);
+    };
+
+    const selectRestaurant = (restaurantId) => {
+        setActiveRestaurant(String(restaurantId));
+        setActiveCategory("all");
+        setSearch("");
+    };
+
+    const openConfirmOrder = () => {
+        if (!cartItems.length) return;
+
+        setErrorMessage("");
+        setSuccessMessage("");
+        setIsConfirmOrderOpen(true);
     };
 
     if (showOnboarding) {
@@ -1473,8 +1642,8 @@ function DineInOrder() {
                 </div>
             </header>
 
-            <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 lg:grid-cols-[minmax(0,1fr)_370px] lg:items-start ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}>
-                <div className="lg:col-span-2">
+            <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28" : "pb-6 sm:pb-8"}`}>
+                <div>
                     <FeaturedDishSlider
                         featuredItems={featuredItems}
                         tableNumber={tableNumber}
@@ -1483,6 +1652,13 @@ function DineInOrder() {
                 </div>
 
                 <div className="min-w-0">
+                    <RestaurantPicker
+                        restaurants={restaurants}
+                        menuItems={menuItems}
+                        activeRestaurant={activeRestaurant}
+                        onSelect={selectRestaurant}
+                    />
+
                     {successMessage && (
                         <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
                             <CheckCircle2 size={18} />
@@ -1567,26 +1743,6 @@ function DineInOrder() {
                     </section>
                 </div>
 
-                <aside className="hidden lg:block lg:sticky lg:top-24">
-                    <OrderPanel
-                        cartItems={cartItems}
-                        itemCount={itemCount}
-                        subtotal={subtotal}
-                        onChangeQuantity={changeQuantity}
-                        onRemoveItem={(indexToRemove) =>
-                            setCartItems((items) =>
-                                items.filter((_, currentIndex) => currentIndex !== indexToRemove)
-                            )
-                        }
-                        onSubmit={submitOrder}
-                        isSubmitting={isSubmitting}
-                        paymentMethod={paymentMethod}
-                        onPaymentMethodChange={setPaymentMethod}
-                        isStripeReady={isStripeReady}
-                        stripeCardMessage={stripeCardMessage}
-                        stripeCardContainerRef={stripeCardContainerRef}
-                    />
-                </aside>
             </main>
 
             <MobileOrderBar
@@ -1599,7 +1755,7 @@ function DineInOrder() {
                         items.filter((_, currentIndex) => currentIndex !== indexToRemove)
                     )
                 }
-                onSubmit={submitOrder}
+                onSubmit={openConfirmOrder}
                 isSubmitting={isSubmitting}
                 paymentMethod={paymentMethod}
                 onPaymentMethodChange={setPaymentMethod}
@@ -1618,6 +1774,17 @@ function DineInOrder() {
                     onClose={() => setSelectedItem(null)}
                     addToCart={addToCart}
                     variant={isLight ? "light" : "dark"}
+                />
+            )}
+
+            {isConfirmOrderOpen && (
+                <ConfirmOrderModal
+                    cartItems={cartItems}
+                    subtotal={subtotal}
+                    paymentMethod={paymentMethod}
+                    isSubmitting={isSubmitting}
+                    onCancel={() => !isSubmitting && setIsConfirmOrderOpen(false)}
+                    onConfirm={submitOrder}
                 />
             )}
         </div>

@@ -24,6 +24,8 @@ function collectPermissionKeys(user = {}) {
         user.role?.role_permissions,
     ];
 
+    const revokedPermissions = collectRevokedPermissionKeys(user);
+
     return Array.from(
         new Set(
             permissionSources.flatMap((permissions) => {
@@ -49,9 +51,47 @@ function collectPermissionKeys(user = {}) {
                         permission.pivot?.permission?.name,
                     ].filter(Boolean);
                 });
-            })
+            }).filter((permission) => !revokedPermissions.includes(permission))
         )
     );
+}
+
+function collectRevokedPermissionKeys(user = {}) {
+    const revokedSources = [
+        user.revoked_permissions,
+        user.revokedPermissions,
+        user.denied_permissions,
+        user.deniedPermissions,
+        user.excluded_permissions,
+        user.excludedPermissions,
+        user.permission_overrides?.denied,
+        user.permissionOverrides?.denied,
+    ];
+
+    return revokedSources.flatMap((permissions) => {
+        if (!Array.isArray(permissions)) return [];
+
+        return permissions.flatMap((permission) => {
+            if (typeof permission === "string") return [permission];
+            if (!permission || typeof permission !== "object") return [];
+
+            return [
+                permission.key,
+                permission.slug,
+                permission.code,
+                permission.name,
+                permission.permission_key,
+                permission.permission?.key,
+                permission.permission?.slug,
+                permission.permission?.code,
+                permission.permission?.name,
+                permission.pivot?.permission?.key,
+                permission.pivot?.permission?.slug,
+                permission.pivot?.permission?.code,
+                permission.pivot?.permission?.name,
+            ].filter(Boolean);
+        });
+    });
 }
 
 export function getPermissionHomePath(user = {}) {
@@ -60,7 +100,7 @@ export function getPermissionHomePath(user = {}) {
     const can = (...requiredPermissions) =>
         requiredPermissions.some((permission) => permissions.includes(permission));
 
-    if (can("manage_users", "manage_restaurant_staff")) return "/employee";
+    if (can("manage_users")) return "/employee";
     if (can("manage_roles", "manage_permissions")) return "/roles";
     if (isAdmin && can("manage_restaurants", "monitor_restaurant")) return "/restaurants";
     if (can("manage_tables")) return "/tables";
@@ -172,6 +212,28 @@ export function storeUser(user, profile = {}) {
             user?.user_permissions ??
             user?.userPermissions ??
             user?.permissions ??
+            [],
+        revoked_permissions:
+            profileData.revoked_permissions ??
+            profileData.revokedPermissions ??
+            profileData.denied_permissions ??
+            profileData.deniedPermissions ??
+            profileData.excluded_permissions ??
+            profileData.excludedPermissions ??
+            profileData.permission_overrides?.denied ??
+            profileData.permissionOverrides?.denied ??
+            profileData.user?.revoked_permissions ??
+            profileData.user?.revokedPermissions ??
+            profileData.user?.denied_permissions ??
+            profileData.user?.deniedPermissions ??
+            profileData.user?.excluded_permissions ??
+            profileData.user?.excludedPermissions ??
+            user?.revoked_permissions ??
+            user?.revokedPermissions ??
+            user?.denied_permissions ??
+            user?.deniedPermissions ??
+            user?.excluded_permissions ??
+            user?.excludedPermissions ??
             [],
     });
 

@@ -479,16 +479,16 @@ export default function ManagerDashboard() {
       <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#252A2D] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
         <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-[#7F1D1D]/14" />
         <div className="absolute bottom-0 left-0 h-24 w-24 rounded-tr-full bg-[#FFD166]/10" />
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-          <div className="relative">
+        <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(240px,0.9fr)_minmax(280px,1.2fr)_minmax(280px,1fr)] 2xl:items-center">
+          <div className="relative min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#7F1D1D]/30 bg-[#7F1D1D]/12 px-4 py-1.5 text-sm font-black uppercase tracking-[0.16em] text-[#7F1D1D] shadow-sm">
               <BarChart3 size={14} />
               View Reports
             </div>
-            <h1 className="text-4xl font-black leading-tight text-white">
+            <h1 className="text-[clamp(2rem,1.45rem+1.15vw,3rem)] font-black leading-tight text-white">
               Restaurant performance
             </h1>
-            <p className="mt-3 max-w-2xl text-base font-semibold leading-7 text-white/68">
+            <p className="mt-3 max-w-2xl text-[clamp(0.94rem,0.82rem+0.22vw,1rem)] font-semibold leading-7 text-white/68">
               {restaurant?.name || "This manager's restaurant"}
               {restaurant?.id ? ` · Restaurant #${restaurant.id}` : ""} · live sales,
               orders, and best sellers.
@@ -496,23 +496,23 @@ export default function ManagerDashboard() {
           </div>
 
           {isAdmin && (
-            <div className="relative min-w-[min(100%,520px)] rounded-[24px] border border-[#FFD166]/30 bg-[#11181B]/78 p-4 shadow-[0_18px_38px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04]">
-              <div className="flex items-center gap-3">
+            <div className="relative min-w-0 rounded-[24px] border border-[#FFD166]/30 bg-[#11181B]/78 p-4 shadow-[0_18px_38px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04]">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
                   <Building2 size={21} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
                     Admin dashboard view
                   </p>
-                  <h3 className="text-lg font-black text-white">
+                  <h3 className="line-clamp-2 text-[clamp(1rem,0.86rem+0.28vw,1.125rem)] font-black leading-tight text-white">
                     Open any manager dashboard
                   </h3>
                 </div>
               </div>
 
               {restaurants.length > 0 ? (
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                <div className="cashier-scroll mt-4 flex gap-2 overflow-x-auto pb-1">
                   {restaurants.map((item) => {
                     const active = String(selectedRestaurantId) === String(item.id);
 
@@ -528,7 +528,7 @@ export default function ManagerDashboard() {
                           setDailyRevenue([]);
                           setDailyOrders([]);
                         }}
-                        className={`shrink-0 rounded-2xl border px-4 py-2 text-sm font-black transition ${
+                        className={`shrink-0 rounded-2xl border px-4 py-2 text-[clamp(0.78rem,0.68rem+0.2vw,0.9rem)] font-black transition ${
                           active
                             ? "border-[#FFD166]/80 bg-[#FFD166]/18 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
                             : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/40 hover:bg-[#FFD166]/10 hover:text-white"
@@ -547,12 +547,12 @@ export default function ManagerDashboard() {
             </div>
           )}
 
-          <div className="relative rounded-[24px] border border-white/10 bg-black/18 p-4">
+          <div className="relative min-w-0 rounded-[24px] border border-white/10 bg-black/18 p-4">
             <p className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-[#FFD166]">
               Report date range
             </p>
-            <div className="flex flex-col gap-3 md:flex-row md:items-end">
-            <label className="block">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+            <label className="block min-w-0">
               <span className="mb-2 block text-sm font-black uppercase text-white/70">
                 From date
               </span>
@@ -560,10 +560,10 @@ export default function ManagerDashboard() {
                 type="date"
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
-                className="h-14 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-base font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
+                className="h-14 w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-[clamp(0.9rem,0.76rem+0.28vw,1rem)] font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
               />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="mb-2 block text-sm font-black uppercase text-white/70">
                 To date
               </span>
@@ -571,14 +571,14 @@ export default function ManagerDashboard() {
                 type="date"
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
-                className="h-14 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-base font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
+                className="h-14 w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-[clamp(0.9rem,0.76rem+0.28vw,1rem)] font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
               />
             </label>
             <button
               type="button"
               onClick={loadReports}
               disabled={isLoading}
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-base font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-base font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40 sm:col-span-2 lg:col-span-1"
             >
               {isLoading ? (
                 <Loader2 size={17} className="animate-spin" />

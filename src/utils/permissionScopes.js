@@ -16,9 +16,11 @@ const ADMIN_ONLY_PERMISSION_KEYS = [
     "manage_roles",
     "force_cancel_orders",
     "manage_permissions",
+    "view_global_reports",
+    "manage_global_loyalty_settings",
 ];
 
-const DYNAMIC_PERMISSION_KEYS = [
+const RESTAURANT_ROLE_ALLOWED_ADMIN_KEYS = [
     "manage_users",
     "manage_tables",
 ];
@@ -41,8 +43,8 @@ function isAdminOnlyPermission(permission) {
     );
 }
 
-function isDynamicPermission(permission) {
-    return DYNAMIC_PERMISSION_KEYS.includes(
+function isRestaurantRoleAllowedAdminPermission(permission) {
+    return RESTAURANT_ROLE_ALLOWED_ADMIN_KEYS.includes(
         normalizePermissionKey(getPermissionKey(permission))
     );
 }
@@ -67,7 +69,9 @@ function roleHasRestaurantId(role = {}) {
             role.restaurantId ??
             role.restaurant?.id ??
             role.pivot?.restaurant_id ??
-            role.pivot?.restaurantId
+            role.pivot?.restaurantId ??
+            role.requires_restaurant ??
+            role.restaurant_required
     );
 }
 
@@ -131,11 +135,16 @@ export function userHasRestaurantScope(user) {
 
 export function canAssignPermissionToRole(role, permission) {
     if (!role || !permission) return false;
-    if (isAdminOnlyPermission(permission)) return isAdminRole(role);
-    if (isDynamicPermission(permission)) return true;
+    if (isAdminRole(role)) return true;
+
+    if (isRestaurantRoleAllowedAdminPermission(permission)) {
+        return isRestaurantRole(role);
+    }
+
+    if (isAdminOnlyPermission(permission)) return false;
 
     if (permissionNeedsRestaurant(permission)) {
-        return roleHasRestaurantId(role);
+        return roleHasRestaurantId(role) || isRestaurantRole(role);
     }
 
     return (
@@ -146,8 +155,13 @@ export function canAssignPermissionToRole(role, permission) {
 
 export function canAssignPermissionToUser(user, permission) {
     if (!user || !permission) return false;
-    if (isAdminOnlyPermission(permission)) return isAdminUser(user);
-    if (isDynamicPermission(permission)) return true;
+    if (isAdminUser(user)) return true;
+
+    if (isRestaurantRoleAllowedAdminPermission(permission)) {
+        return userHasRestaurantScope(user);
+    }
+
+    if (isAdminOnlyPermission(permission)) return false;
 
     if (permissionNeedsRestaurant(permission)) {
         return userHasRestaurantId(user);

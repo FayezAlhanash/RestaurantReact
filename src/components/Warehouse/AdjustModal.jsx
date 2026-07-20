@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import api from "../../API/axios";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 
@@ -7,6 +8,14 @@ function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRes
     const [notes, setNotes] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [isClosing, setIsClosing] = useState(false);
+
+    const closeSmoothly = (force = false) => {
+        if ((!force && isSubmitting) || isClosing) return;
+
+        setIsClosing(true);
+        window.setTimeout(onClose, 180);
+    };
 
     const handleSubmit = async () => {
         if (isSubmitting) return;
@@ -29,7 +38,7 @@ function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRes
                 }
             );
             await onSuccess();
-            onClose();
+            closeSmoothly(true);
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message ||
@@ -41,12 +50,23 @@ function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRes
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
-            <div className="w-full max-w-[400px] rounded-[24px] border border-white/10 bg-[#12191C] p-5 text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)] sm:p-6">
+        <div className={`${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"} fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md`}>
+            <div className={`${isClosing ? "modal-panel-exit" : "modal-panel-enter"} w-full max-w-[400px] rounded-[24px] border border-white/10 bg-[#12191C] p-5 text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)] sm:p-6`}>
 
-                <h2 className="mb-4 text-xl font-black">
-                    Adjust Stock
-                </h2>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="text-xl font-black">
+                        Adjust Stock
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={closeSmoothly}
+                        disabled={isSubmitting}
+                        aria-label="Close adjust stock"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#FFD166]/45 !bg-[#FFF4D8] !text-[#8f5f00] shadow-sm transition hover:border-[#FFD166]/75 hover:!bg-[#FFD166] hover:!text-[#151A1D] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
 
                 <input
                     placeholder="New Quantity"
@@ -69,9 +89,10 @@ function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRes
                 )}
 
                 <button
+                    type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full rounded-xl bg-[#FFD166] py-3 font-bold text-[#151A1D] transition hover:bg-[#ffdc82] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35"
+                    className="w-full rounded-xl !bg-[#FFD166] py-3 font-bold !text-[#151A1D] shadow-[0_14px_28px_rgba(255,209,102,0.22)] transition hover:!bg-[#ffdc82] disabled:cursor-not-allowed disabled:!bg-[#C8B889] disabled:!text-[#151A1D]/70"
                 >
                     {isSubmitting ? "Please wait..." : "Save"}
                 </button>

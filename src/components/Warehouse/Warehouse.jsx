@@ -4,6 +4,7 @@ import api from "../../API/axios";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
+import PermissionToast from "../Shared/PermissionToast";
 import WarehouseList from "./WarehouseList";
 import WarehouseModal from "./WarehouseModal";
 
@@ -230,18 +231,10 @@ function Warehouse() {
                 }}
             />
 
-            {permissionMessage && (
-                <div className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-5 py-4 text-center text-sm font-extrabold text-[#7F1D1D] shadow-xl backdrop-blur-md">
-                    {permissionMessage}
-                    <button
-                        type="button"
-                        onClick={() => setPermissionMessage("")}
-                        className="ml-3 text-white underline"
-                    >
-                        Close
-                    </button>
-                </div>
-            )}
+            <PermissionToast
+                message={permissionMessage}
+                onClose={() => setPermissionMessage("")}
+            />
 
             <WarehouseModal
                 isOpen={openModal}

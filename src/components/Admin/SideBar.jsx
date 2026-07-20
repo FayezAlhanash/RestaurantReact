@@ -111,7 +111,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             icon: Users,
             title: "Employees",
             path: "/employee",
-            permissions: ["manage_users", "manage_restaurant_staff"],
+            permissions: ["manage_users"],
         },
         {
             icon: UserCog,
@@ -195,9 +195,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                 const nextUser = getStoredUser() || user;
                 setSessionUser(nextUser);
                 setRestaurantName(getRestaurantLabel(nextUser));
-                if (nextPermissions.length) {
-                    setPermissions(nextPermissions);
-                }
+                setPermissions(nextPermissions);
             } catch (error) {
                 console.log(error.response?.data || error);
             }

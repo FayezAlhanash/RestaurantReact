@@ -6,6 +6,41 @@ const ADMIN_DEFAULT_PERMISSIONS = [
     "manage_permissions",
 ];
 
+function getRevokedPermissions(data = {}) {
+    return [
+        ...(Array.isArray(data.revoked_permissions) ? data.revoked_permissions : []),
+        ...(Array.isArray(data.revokedPermissions) ? data.revokedPermissions : []),
+        ...(Array.isArray(data.denied_permissions) ? data.denied_permissions : []),
+        ...(Array.isArray(data.deniedPermissions) ? data.deniedPermissions : []),
+        ...(Array.isArray(data.excluded_permissions) ? data.excluded_permissions : []),
+        ...(Array.isArray(data.excludedPermissions) ? data.excludedPermissions : []),
+        ...(Array.isArray(data.permission_overrides?.denied)
+            ? data.permission_overrides.denied
+            : []),
+        ...(Array.isArray(data.permissionOverrides?.denied)
+            ? data.permissionOverrides.denied
+            : []),
+        ...(Array.isArray(data.user?.revoked_permissions)
+            ? data.user.revoked_permissions
+            : []),
+        ...(Array.isArray(data.user?.revokedPermissions)
+            ? data.user.revokedPermissions
+            : []),
+        ...(Array.isArray(data.user?.denied_permissions)
+            ? data.user.denied_permissions
+            : []),
+        ...(Array.isArray(data.user?.deniedPermissions)
+            ? data.user.deniedPermissions
+            : []),
+        ...(Array.isArray(data.user?.excluded_permissions)
+            ? data.user.excluded_permissions
+            : []),
+        ...(Array.isArray(data.user?.excludedPermissions)
+            ? data.user.excludedPermissions
+            : []),
+    ];
+}
+
 export function toPermissionKeys(permissions = []) {
     if (!Array.isArray(permissions)) {
         if (permissions && typeof permissions === "object") {
@@ -83,6 +118,7 @@ export function getUserPermissions() {
 
     const roleName = String(user.role?.name ?? "").toLowerCase();
     const roleId = Number(user.role_id ?? user.role?.id);
+    const revokedPermissions = toPermissionKeys(getRevokedPermissions(user));
     const userPermissions = toPermissionKeys([
         ...(Array.isArray(user.user_permissions) ? user.user_permissions : []),
         ...(Array.isArray(user.userPermissions) ? user.userPermissions : []),
@@ -96,7 +132,13 @@ export function getUserPermissions() {
     ]);
 
     if (userPermissions.length) {
-        return Array.from(new Set(userPermissions));
+        return Array.from(
+            new Set(
+                userPermissions.filter(
+                    (permission) => !revokedPermissions.includes(permission)
+                )
+            )
+        );
     }
 
     if (roleName === "admin" || roleId === 1) {

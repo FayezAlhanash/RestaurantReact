@@ -8,6 +8,7 @@ import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import { useTheme } from "../../context/ThemeContext";
+import PermissionToast from "../Shared/PermissionToast";
 
 function StockActions() {
     const { isLight } = useTheme();
@@ -69,10 +70,10 @@ function StockActions() {
         setIsLoadingWarehouse(false);
     }, [getActiveRestaurantId]);
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsIngredientPickerOpen(false);
         setIngredientQuery("");
         setSelectedIngredient(null);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         getIngredients();
         getMovements();   // 🔥 جديد
     }, [getIngredients, getMovements]);
@@ -210,11 +211,10 @@ function StockActions() {
                 Stock Actions
             </h1>
 
-            {permissionMessage && (
-                <p className="mb-5 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-3 text-center text-sm font-extrabold text-[#7F1D1D]">
-                    {permissionMessage}
-                </p>
-            )}
+            <PermissionToast
+                message={permissionMessage}
+                onClose={() => setPermissionMessage("")}
+            />
 
             {isAdmin && (
                 <div className="mb-6 rounded-[24px] border border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] p-4 shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04]">

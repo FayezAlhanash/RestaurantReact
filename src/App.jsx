@@ -175,7 +175,7 @@ function App() {
                 <Route path="/restaurants" element={<RestaurantsManagements />} />
               </Route>
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["manage_users", "manage_restaurant_staff"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_users"]} />}>
               <Route path="/employees" element={<EmployeesManagements />} />
               <Route path="/employee" element={<Employee />} />
             </Route>

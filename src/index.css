@@ -194,6 +194,26 @@ img, svg {
     }
 }
 
+@keyframes modal-backdrop-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes modal-panel-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(10px) scale(0.97);
+    }
+}
+
 .modal-backdrop-enter {
     animation: modal-backdrop-in 180ms ease-out both;
 }
@@ -201,6 +221,88 @@ img, svg {
 .modal-panel-enter {
     animation: modal-panel-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     transform-origin: center;
+}
+
+.modal-backdrop-exit {
+    animation: modal-backdrop-out 180ms ease-in both;
+}
+
+.modal-panel-exit {
+    animation: modal-panel-out 180ms ease-in both;
+    transform-origin: center;
+}
+
+@keyframes order-backdrop-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes order-backdrop-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes order-sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes order-sheet-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(18px) scale(0.97);
+    }
+}
+
+.order-backdrop-enter {
+    animation: order-backdrop-in 180ms ease-out both;
+}
+
+.order-backdrop-exit {
+    animation: order-backdrop-out 180ms ease-in both;
+}
+
+.order-sheet-enter {
+    animation: order-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transform-origin: bottom center;
+}
+
+.order-sheet-exit {
+    animation: order-sheet-out 180ms ease-in both;
+    transform-origin: bottom center;
+}
+
+@keyframes permission-toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -14px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+.permission-toast {
+    animation: permission-toast-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 [data-theme="light"] {
