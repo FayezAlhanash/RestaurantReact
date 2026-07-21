@@ -1,16 +1,18 @@
 import { Boxes, Building2, CirclePlus, PackageCheck, TriangleAlert, Warehouse } from "lucide-react";
 import WarehouseCard from "./WarehouseCard";
+import { useTheme } from "../../context/ThemeContext";
 
 function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
+    const { isLight } = useTheme();
     const styles = {
         red: "bg-[#7F1D1D]/14 text-[#7F1D1D]",
         yellow: "bg-[#FFD166]/14 text-[#FFD166]",
-        green: "bg-emerald-400/12 text-emerald-300",
+        green: isLight ? "bg-[#EAF6EF] text-[#2F7D55]" : "bg-emerald-400/12 text-emerald-300",
     };
     const borders = {
         red: "border-[#7F1D1D]/45",
         yellow: "border-[#FFD166]/45",
-        green: "border-emerald-400/45",
+        green: isLight ? "border-[#9FD8B7]" : "border-emerald-400/45",
     };
 
     return (

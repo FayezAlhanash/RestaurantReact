@@ -27,7 +27,7 @@ function PieChart({ items = [], theme = "dark" }) {
         data: chartItems.map((item) => Math.max(Number(item.revenueValue), 0.01)),
         backgroundColor: [
           "#7F1D1D",
-          "#14B8A6",
+          "#16A34A",
           "#FFD166",
           "#38BDF8",
           "#D946EF",

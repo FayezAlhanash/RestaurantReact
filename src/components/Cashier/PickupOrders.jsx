@@ -158,10 +158,10 @@ function PickupOrders() {
                     <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#FFD166]">
                         Takeaway pickup
                     </p>
-                    <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
+                    <h1 className="text-2xl font-extrabold text-[#241815] dark:text-white sm:text-3xl">
                         Orders ready for pickup
                     </h1>
-                    <p className="mt-2 text-sm font-medium text-white/58">
+                    <p className="mt-2 text-sm font-medium text-[#6B5A52] dark:text-white/58">
                         Confirm customer pickup to complete the order.
                     </p>
                 </div>
@@ -170,7 +170,7 @@ function PickupOrders() {
                     type="button"
                     onClick={loadOrders}
                     disabled={isLoading}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 dark:disabled:!bg-[#7F1D1D] dark:disabled:!text-white"
                 >
                     <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
                     Refresh
@@ -198,11 +198,11 @@ function PickupOrders() {
                     {readyOrders.map((order) => (
                         <article
                             key={order.id}
-                            className="rounded-[24px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.20)]"
+                            className="rounded-[24px] border border-[#E4CFC3] bg-white/75 p-5 text-[#241815] shadow-[0_18px_42px_rgba(127,29,29,0.10)] dark:border-white/10 dark:bg-[#252A2D] dark:text-white dark:shadow-[0_18px_42px_rgba(0,0,0,0.20)]"
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-xs font-black uppercase tracking-wide text-white/50">
+                                    <p className="text-xs font-black uppercase tracking-wide text-[#7A6A64] dark:text-white/50">
                                         Order
                                     </p>
                                     <h2 className="mt-1 text-3xl font-black text-[#FFD166]">
@@ -215,7 +215,7 @@ function PickupOrders() {
                                 </span>
                             </div>
 
-                            <div className="mt-4 flex items-center gap-2 text-sm font-bold text-white/55">
+                            <div className="mt-4 flex items-center gap-2 text-sm font-bold text-[#6B5A52] dark:text-white/55">
                                 <Clock3 size={16} />
                                 <span>{formatTime(order.createdAt) || "Takeaway"}</span>
                             </div>
@@ -224,7 +224,7 @@ function PickupOrders() {
                                 {order.items.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3"
+                                        className="flex items-center justify-between rounded-2xl border border-[#EAD8CD] bg-[#FFF8EF] px-4 py-3 dark:border-white/10 dark:bg-white/[0.06]"
                                     >
                                         <span className="font-extrabold">{item.name}</span>
                                         <span className="rounded-xl bg-[#FFD166]/14 px-3 py-1 text-sm font-black text-[#FFD166]">
@@ -238,7 +238,7 @@ function PickupOrders() {
                                 type="button"
                                 onClick={() => handlePickedUp(order.id)}
                                 disabled={isSubmittingId === order.id}
-                                className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
+                                className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 dark:disabled:!bg-[#7F1D1D] dark:disabled:!text-white"
                             >
                                 <CheckCircle2 size={19} />
                                 {isSubmittingId === order.id
@@ -250,8 +250,8 @@ function PickupOrders() {
                 </div>
             ) : (
                 <div className="rounded-[28px] border border-dashed border-white/15 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
-                    <h2 className="text-xl font-bold">No ready takeaway orders</h2>
-                    <p className="mt-2 text-white/58">
+                    <h2 className="text-xl font-bold text-[#241815] dark:text-white">No ready takeaway orders</h2>
+                    <p className="mt-2 text-[#6B5A52] dark:text-white/58">
                         Orders appear here after the kitchen marks them ready.
                     </p>
                 </div>

@@ -437,7 +437,7 @@ function MainContent() {
             value: summaryLoading ? "Loading..." : formatCurrency(totalRevenueValue),
             helper: "Across all restaurants",
             icon: DollarSign,
-            accent: "border-emerald-400/35 bg-emerald-400/10 text-emerald-300",
+            accent: "border-[#16A34A]/35 bg-[#16A34A]/10 text-[#22C55E]",
         },
         {
             title: "Total Orders",
@@ -573,7 +573,7 @@ function MainContent() {
                                 valueKey="revenue"
                                 label="Revenue"
                                 valuePrefix="$"
-                                color="#7DD3C7"
+                                color="#22C55E"
                                 variant="line"
                                 theme={isLight ? "light" : "dark"}
                             />
@@ -595,7 +595,7 @@ function MainContent() {
                                 valueKey="totalOrders"
                                 label="Orders"
                                 valuePrefix=""
-                                color="#14B8A6"
+                                color="#22C55E"
                                 theme={isLight ? "light" : "dark"}
                             />
                         </div>
@@ -625,7 +625,7 @@ function MainContent() {
                                     Ranked by revenue
                                 </p>
                             </div>
-                            <p className="text-3xl font-black tabular-nums text-emerald-300">
+                            <p className="text-3xl font-black tabular-nums text-[#22C55E]">
                                 {formatCurrency(totalRevenueValue)}
                             </p>
                         </div>
@@ -660,7 +660,7 @@ function MainContent() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className="shrink-0 text-2xl font-black tabular-nums text-emerald-300">
+                                                <span className="shrink-0 text-2xl font-black tabular-nums text-[#22C55E]">
                                                     {item.revenue}
                                                 </span>
                                             </div>

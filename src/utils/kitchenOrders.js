@@ -2,6 +2,9 @@ import api from "../API/axios";
 import { getStoredUser, storeUser } from "./auth";
 import { confirmStripePayment, findStripeClientSecret } from "./stripePayments";
 
+const kitchenOrderDetailCache = new Map();
+let cashierOrderListPromise = null;
+
 function getList(data) {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.data)) return data.data;
@@ -12,8 +15,12 @@ function getList(data) {
     return [];
 }
 
-function normalizeOrderType(type) {
-    const value = String(type || "dine_in")
+function getRecord(data) {
+    return data?.order ?? data?.data?.order ?? data?.data ?? data;
+}
+
+function normalizeOrderType(type, fallback = "dine_in") {
+    const value = String(type || fallback)
         .toLowerCase()
         .replaceAll("-", "_")
         .replaceAll(" ", "_");
@@ -24,6 +31,136 @@ function normalizeOrderType(type) {
     }
 
     return "dine_in";
+}
+
+function hasDineInTableSignal(order, items = []) {
+    const tableValue =
+        order?.table_id ??
+        order?.table_number ??
+        order?.tableToken ??
+        order?.table_token ??
+        order?.table?.id ??
+        order?.table?.table_number ??
+        order?.order?.table_id ??
+        order?.order?.table_number ??
+        order?.order?.table?.id ??
+        order?.order?.table?.table_number ??
+        order?.cashier_order?.table_id ??
+        order?.cashier_order?.table_number ??
+        order?.cashierOrder?.table_id ??
+        order?.cashierOrder?.table_number ??
+        order?.restaurant_order?.table_id ??
+        order?.restaurant_order?.table_number ??
+        order?.restaurantOrder?.table_id ??
+        order?.restaurantOrder?.table_number;
+
+    if (tableValue) return true;
+
+    return items.some((item) => /\btable\s*#?\s*\d+/i.test(item.note || ""));
+}
+
+function hasDeliveryAddressSignal(order) {
+    const deliveryValue =
+        order?.delivery_address_id ??
+        order?.deliveryAddressId ??
+        order?.delivery_address?.id ??
+        order?.deliveryAddress?.id ??
+        order?.order?.delivery_address_id ??
+        order?.order?.deliveryAddressId ??
+        order?.order?.delivery_address?.id ??
+        order?.order?.deliveryAddress?.id ??
+        order?.cashier_order?.delivery_address_id ??
+        order?.cashier_order?.deliveryAddressId ??
+        order?.cashierOrder?.delivery_address_id ??
+        order?.cashierOrder?.deliveryAddressId ??
+        order?.restaurant_invoice?.invoice?.delivery_address_id ??
+        order?.restaurantInvoice?.invoice?.delivery_address_id ??
+        null;
+
+    return Boolean(deliveryValue);
+}
+
+function hasDeliveryCustomerSignal(order) {
+    const customerValue =
+        order?.customer_id ??
+        order?.customerId ??
+        order?.customer?.id ??
+        order?.order?.customer_id ??
+        order?.order?.customerId ??
+        order?.order?.customer?.id ??
+        order?.cashier_order?.customer_id ??
+        order?.cashier_order?.customerId ??
+        order?.cashierOrder?.customer_id ??
+        order?.cashierOrder?.customerId ??
+        order?.restaurant_invoice?.invoice?.customer_id ??
+        order?.restaurantInvoice?.invoice?.customer_id ??
+        null;
+
+    return Boolean(customerValue);
+}
+
+function resolveKitchenOrderType(order, items) {
+    const explicitType = normalizeOrderType(getOrderTypeValue(order), "");
+
+    if (explicitType === "delivery" || hasDeliveryAddressSignal(order)) {
+        return "delivery";
+    }
+
+    if (explicitType === "takeaway") {
+        return explicitType;
+    }
+
+    if (hasDineInTableSignal(order, items)) {
+        return "dine_in";
+    }
+
+    if (hasDeliveryCustomerSignal(order)) {
+        return "delivery";
+    }
+
+    return "takeaway";
+}
+
+function getResolvedOrderTypeFromRecord(order) {
+    const items =
+        order?.items ||
+        order?.order_items ||
+        order?.orderItems ||
+        order?.details ||
+        order?.foods ||
+        [];
+
+    return resolveKitchenOrderType(order, getList(items).map(normalizeKitchenItem));
+}
+
+function getOrderTypeValue(order) {
+    return (
+        order?.type ??
+        order?.order_type ??
+        order?.service_type ??
+        order?.kind ??
+        order?.order?.type ??
+        order?.order?.order_type ??
+        order?.order?.service_type ??
+        order?.cashier_order?.type ??
+        order?.cashier_order?.order_type ??
+        order?.cashier_order?.service_type ??
+        order?.cashierOrder?.type ??
+        order?.cashierOrder?.order_type ??
+        order?.cashierOrder?.service_type ??
+        order?.restaurant_order?.type ??
+        order?.restaurant_order?.order_type ??
+        order?.restaurant_order?.service_type ??
+        order?.restaurantOrder?.type ??
+        order?.restaurantOrder?.order_type ??
+        order?.restaurantOrder?.service_type ??
+        order?.restaurant_invoice?.invoice?.type ??
+        order?.restaurant_invoice?.invoice?.order_type ??
+        order?.restaurant_invoice?.invoice?.service_type ??
+        order?.restaurantInvoice?.invoice?.type ??
+        order?.restaurantInvoice?.invoice?.order_type ??
+        order?.restaurantInvoice?.invoice?.service_type
+    );
 }
 
 function formatOrderTime(value) {
@@ -88,6 +225,29 @@ function getKitchenBackendOrderId(order) {
         order.kitchenOrderId ??
         getKitchenParentOrderId(order)
     );
+}
+
+function getKitchenOrderCandidateIds(order) {
+    return [
+        getKitchenParentOrderId(order),
+        getKitchenBackendOrderId(order),
+        order?.id,
+        order?.order_id,
+        order?.restaurant_order_id,
+        order?.restaurantOrderId,
+        order?.order?.id,
+        order?.cashier_order_id,
+        order?.cashierOrderId,
+        order?.cashier_order?.id,
+        order?.cashierOrder?.id,
+        order?.invoice?.order_id,
+        order?.restaurant_invoice?.invoice?.order_id,
+        order?.restaurantInvoice?.invoice?.order_id,
+        order?.restaurant_invoice?.invoice?.id,
+        order?.restaurantInvoice?.invoice?.id,
+    ]
+        .filter(Boolean)
+        .map((id) => String(id));
 }
 
 function getKitchenMergeKey(order) {
@@ -166,16 +326,17 @@ export function normalizeKitchenOrder(order) {
     const backendId = getKitchenBackendOrderId(order);
     const parentOrderId = getKitchenParentOrderId(order);
 
+    const normalizedItems = getList(items).map(normalizeKitchenItem);
+
     return {
         id: parentOrderId ?? backendId,
         backendIds: backendId ? [backendId] : [],
+        detailIds: [...new Set(getKitchenOrderCandidateIds(order))],
         mergeKey: getKitchenMergeKey(order),
-        type: normalizeOrderType(
-            order.type || order.order_type || order.service_type || order.kind
-        ),
+        type: resolveKitchenOrderType(order, normalizedItems),
         time: formatOrderTime(order.created_at || order.time || order.ordered_at),
         status: order.status || order.kitchen_status || "pending",
-        items: getList(items).map(normalizeKitchenItem),
+        items: normalizedItems,
     };
 }
 
@@ -190,6 +351,7 @@ function mergeKitchenOrders(orders) {
             mergedOrders.set(key, {
                 ...order,
                 backendIds: [...new Set(order.backendIds.length ? order.backendIds : [order.id])],
+                detailIds: [...new Set(order.detailIds?.length ? order.detailIds : [order.id])],
             });
             return;
         }
@@ -202,9 +364,109 @@ function mergeKitchenOrders(orders) {
         ];
         existingOrder.items = [...existingOrder.items, ...order.items];
         existingOrder.status = mergeStatus([existingOrder.status, order.status]);
+        existingOrder.detailIds = [
+            ...new Set([
+                ...(existingOrder.detailIds || []),
+                ...(order.detailIds?.length ? order.detailIds : [order.id]),
+            ]),
+        ];
     });
 
     return Array.from(mergedOrders.values());
+}
+
+async function fetchCashierOrderList() {
+    if (!cashierOrderListPromise) {
+        cashierOrderListPromise = api
+            .get("/cashier/orders")
+            .then((response) => getList(response.data).map(getRecord))
+            .catch(() => []);
+    }
+
+    return cashierOrderListPromise;
+}
+
+function findOrderDetailInList(orderId, orders) {
+    const id = String(orderId);
+
+    return orders.find((order) => {
+        const ids = [
+            order?.id,
+            order?.order_id,
+            order?.restaurant_order_id,
+            order?.restaurantOrderId,
+            order?.restaurant_orders?.[0]?.id,
+            order?.restaurantOrders?.[0]?.id,
+            order?.invoice?.order_id,
+            order?.restaurant_invoice?.invoice?.order_id,
+            order?.restaurantInvoice?.invoice?.order_id,
+        ]
+            .filter(Boolean)
+            .map((value) => String(value));
+
+        return ids.includes(id);
+    });
+}
+
+async function fetchKitchenOrderDetail(orderId) {
+    if (!orderId) return null;
+
+    const cacheKey = String(orderId);
+
+    if (kitchenOrderDetailCache.has(cacheKey)) {
+        return kitchenOrderDetailCache.get(cacheKey);
+    }
+
+    const detailRequests = [
+        () => api.get(`/cashier/orders/${orderId}`),
+        () => api.get(`/orders/${orderId}`),
+    ];
+
+    for (const request of detailRequests) {
+        try {
+            const response = await request();
+            const detail = getRecord(response.data);
+
+            kitchenOrderDetailCache.set(cacheKey, detail);
+            return detail;
+        } catch {
+            // Try the next known order-detail endpoint.
+        }
+    }
+
+    const cashierOrders = await fetchCashierOrderList();
+    const detailFromList = findOrderDetailInList(orderId, cashierOrders);
+
+    if (detailFromList) {
+        kitchenOrderDetailCache.set(cacheKey, detailFromList);
+        return detailFromList;
+    }
+
+    kitchenOrderDetailCache.set(cacheKey, null);
+    return null;
+}
+
+async function enrichKitchenOrdersWithOrderDetails(orders) {
+    const enrichedOrders = await Promise.all(
+        orders.map(async (order) => {
+            const detailIds = order.detailIds?.length ? order.detailIds : [order.id];
+            let detail = null;
+
+            for (const detailId of detailIds) {
+                detail = await fetchKitchenOrderDetail(detailId);
+                if (detail) break;
+            }
+
+            if (!detail) return order;
+
+            return {
+                ...order,
+                type: getResolvedOrderTypeFromRecord(detail),
+            };
+        })
+    );
+
+    return enrichedOrders;
 }
 
 export async function fetchKitchenQueue() {
@@ -213,7 +475,11 @@ export async function fetchKitchenQueue() {
         params: restaurantId ? { restaurant_id: restaurantId } : undefined,
     });
 
-    return mergeKitchenOrders(getList(response.data).map(normalizeKitchenOrder));
+    const mergedOrders = mergeKitchenOrders(
+        getList(response.data).map(normalizeKitchenOrder)
+    );
+
+    return enrichKitchenOrdersWithOrderDetails(mergedOrders);
 }
 
 export async function startKitchenOrder(orderId) {
@@ -228,7 +494,7 @@ export async function markKitchenOrderReady(orderId) {
     return response.data;
 }
 
-export function createCashierOrderPayload(cartItems, type = "dine_in") {
+export function createCashierOrderPayload(cartItems, type = "takeaway") {
     const user = getStoredUser();
     const restaurantId =
         cartItems.find((item) => item.restaurant_id)?.restaurant_id ||
@@ -238,6 +504,11 @@ export function createCashierOrderPayload(cartItems, type = "dine_in") {
     return {
         type,
         order_type: type,
+        service_type: type,
+        kind: type,
+        order_source: "cashier",
+        source: "cashier",
+        is_takeaway: normalizeOrderType(type) === "takeaway" ? 1 : 0,
         restaurant_id: restaurantId,
         items: cartItems.map((item) => {
             const modifierOptions = item.selectedModifierOptions ?? [];
@@ -294,12 +565,17 @@ function appendIfPresent(formData, key, value) {
     }
 }
 
-function createCashierOrderFormData(cartItems, type = "dine_in") {
+function createCashierOrderFormData(cartItems, type = "takeaway") {
     const payload = createCashierOrderPayload(cartItems, type);
     const formData = new FormData();
 
     appendIfPresent(formData, "type", payload.type);
     appendIfPresent(formData, "order_type", payload.order_type);
+    appendIfPresent(formData, "service_type", payload.service_type);
+    appendIfPresent(formData, "kind", payload.kind);
+    appendIfPresent(formData, "order_source", payload.order_source);
+    appendIfPresent(formData, "source", payload.source);
+    appendIfPresent(formData, "is_takeaway", payload.is_takeaway);
     appendIfPresent(formData, "restaurant_id", payload.restaurant_id);
 
     payload.items.forEach((item, itemIndex) => {
@@ -333,7 +609,7 @@ function isOrderTypeValidationError(error) {
     );
 }
 
-export async function createCashierOrder(cartItems, type = "dine_in") {
+export async function createCashierOrder(cartItems, type = "takeaway") {
     const typeVariants =
         type === "takeaway"
             ? ["takeaway", "take-away", "take_away", "take away", "TAKEAWAY"]

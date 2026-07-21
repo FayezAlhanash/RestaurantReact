@@ -2,6 +2,7 @@ import { getStoredUser } from "./auth";
 
 const ADMIN_DEFAULT_PERMISSIONS = [
     "manage_users",
+    "manage_employee_shifts",
     "manage_roles",
     "manage_permissions",
 ];

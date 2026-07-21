@@ -1,6 +1,7 @@
 import { BookOpen, CheckCircle2, ClipboardList, Headset, House, LogOut, Package, ReceiptText, Settings, Store, Table, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { clearSession } from "../../utils/auth";
+import BrandLogo from "../Shared/BrandLogo";
 
 const navigation = [
     { id: "menu", label: "Menu", icon: House, permissions: ["manage_takeaway_orders"] },
@@ -33,9 +34,7 @@ function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
 
     return (
         <div className="flex h-dvh w-[92px] flex-col items-center border-r border-white/10 bg-[#101517] px-3 py-5 text-white">
-            <div className="grid h-14 w-14 place-items-center rounded-[20px] bg-[#FFD166] text-lg font-black text-[#151A1D] shadow-[0_10px_24px_rgba(255,209,102,0.16)]">
-                B4
-            </div>
+            <BrandLogo className="h-14 w-14" rounded="rounded-[20px]" />
 
             <nav className="mt-10 flex w-full flex-1 flex-col gap-3">
                 {navigation.filter((item) => canShow(item.permissions)).map((item) => {

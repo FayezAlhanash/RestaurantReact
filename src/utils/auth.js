@@ -101,6 +101,7 @@ export function getPermissionHomePath(user = {}) {
         requiredPermissions.some((permission) => permissions.includes(permission));
 
     if (can("manage_users")) return "/employee";
+    if (can("manage_employee_shifts")) return "/employee-shifts";
     if (can("manage_roles", "manage_permissions")) return "/roles";
     if (isAdmin && can("manage_restaurants", "monitor_restaurant")) return "/restaurants";
     if (can("manage_tables")) return "/tables";
@@ -246,4 +247,6 @@ export function clearSession() {
     sessionStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("big4:fcm-token");
+    localStorage.removeItem("big4:fcm-user-id");
 }

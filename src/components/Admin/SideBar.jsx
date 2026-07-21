@@ -10,6 +10,7 @@ import {
     ReceiptText,
     ClipboardList,
     ChefHat,
+    CalendarDays,
     FolderPlus,
     Package,
     TriangleAlert,
@@ -21,6 +22,7 @@ import {
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../../API/axios";
+import BrandLogo from "../Shared/BrandLogo";
 import { useTheme } from "../../context/ThemeContext";
 import { ROLE_IDS, clearSession, getStoredUser, storeUser } from "../../utils/auth";
 import {
@@ -112,6 +114,12 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             title: "Employees",
             path: "/employee",
             permissions: ["manage_users"],
+        },
+        {
+            icon: CalendarDays,
+            title: "Manage Employee Shifts",
+            path: "/employee-shifts",
+            permissions: ["manage_employee_shifts", "manage_users"],
         },
         {
             icon: UserCog,
@@ -273,16 +281,14 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                 </button>
 
                 <div className={`${isCollapsed ? "lg:px-3" : ""} px-4 pb-3 pt-5`}>
-                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(127,29,29,0.20),transparent_34%),linear-gradient(135deg,#171D20,#26181B)] text-white shadow-[0_18px_42px_rgba(0,0,0,0.24)]">
+                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(185,28,28,0.24),transparent_34%),linear-gradient(135deg,#171D20,#26181B)] text-white shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition hover:scale-[1.02]">
                         <div className="absolute inset-x-0 top-0 h-1 bg-[#7F1D1D]" />
 
                         <div className={`${isCollapsed ? "lg:px-2 lg:pb-3 lg:pt-5" : ""} px-4 pb-4 pt-5`}>
                             <div className={`flex items-center gap-3 ${isCollapsed ? "lg:justify-center" : ""}`}>
-                                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#FFD166] text-sm font-black text-[#151A1D] shadow-sm">
-                                    B4
-                                </div>
+                                <BrandLogo className="h-11 w-11" />
                                 <div className={`min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
-                                    <h1 className="truncate text-2xl font-black leading-none">
+                                    <h1 className="truncate pb-0.5 text-2xl font-black leading-tight">
                                         Big-4
                                     </h1>
                                     <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
@@ -331,13 +337,13 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                                         onClick={onClose}
                                         title={isCollapsed ? item.title : undefined}
                                         className={({ isActive }) =>
-                                            `group relative flex h-12 items-center gap-3 rounded-xl border px-3 text-sm font-black transition duration-200 active:scale-[0.99] ${isCollapsed ? "lg:justify-center lg:px-0" : ""} ${
+                                            `group relative flex h-12 items-center gap-3 rounded-xl border px-3 text-sm font-black transition duration-200 hover:scale-[1.03] active:scale-[0.99] ${isCollapsed ? "lg:justify-center lg:px-0" : ""} ${
                                                 isActive
                                                     ? isLight
-                                                        ? "border-[#7F1D1D]/35 bg-[#7F1D1D]/10 !text-[#241815] shadow-[0_12px_26px_rgba(127,29,29,0.10)]"
-                                                        : "border-[#7F1D1D]/35 bg-[#7F1D1D]/14 !text-white shadow-[0_12px_26px_rgba(127,29,29,0.12)]"
+                                                        ? "border-[#7F1D1D]/40 bg-[#7F1D1D]/10 !text-[#241815] shadow-[0_12px_26px_rgba(127,29,29,0.12)]"
+                                                        : "border-[#7F1D1D]/40 bg-[#7F1D1D]/16 !text-white shadow-[0_12px_26px_rgba(127,29,29,0.16)]"
                                                     : isLight
-                                                        ? "border-transparent !text-[#6B5A52] hover:border-[#7F1D1D]/20 hover:bg-[#FFF4EA] hover:!text-[#241815]"
+                                                        ? "border-transparent !text-[#6B5A52] hover:border-[#7F1D1D]/25 hover:bg-[#FFF4EA] hover:!text-[#241815]"
                                                         : "border-transparent !text-white hover:border-white/10 hover:bg-white/[0.07] hover:!text-white"
                                             }`
                                         }
@@ -395,7 +401,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className={`flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-red-400/65 bg-[#7F1D1D] text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-[#9B2C2C] hover:shadow-[0_16px_32px_rgba(127,29,29,0.38)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
+                        className={`flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#7F1D1D]/70 bg-[#7F1D1D] text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.30)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:border-[#681718] hover:bg-[#681718] hover:shadow-[0_16px_32px_rgba(127,29,29,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
                         title={isCollapsed ? "Logout" : undefined}
                     >
                         <LogOut size={18} />

@@ -9,7 +9,7 @@ export default function UnifiedLayout({ outletContext = {} }) {
     const [search, setSearch] = useState("");
 
     return (
-        <div className="app-shell flex min-h-dvh bg-[#101517] font-[Raleway] lg:h-dvh lg:overflow-hidden">
+        <div className="app-shell flex min-h-dvh bg-[#101517] font-merriweather lg:h-dvh lg:overflow-hidden">
             <SideBar
                 isOpen={sidebarOpen}
                 isCollapsed={sidebarCollapsed}

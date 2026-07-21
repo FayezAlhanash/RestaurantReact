@@ -14,7 +14,7 @@ function RestaurantCard({ restaurant, onDelete, onEdit }) {
     const imageUrl = getImageUrl(restaurant.front_image);
 
     return (
-        <article className="overflow-hidden rounded-[24px] border border-white/10 bg-[#202B2F] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:border-[#7F1D1D]/35 hover:shadow-[0_24px_58px_rgba(0,0,0,0.3)]">
+        <article className="overflow-hidden rounded-[24px] border border-white/10 bg-[#202B2F] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-[#EF4444]/40 hover:shadow-[0_24px_58px_rgba(0,0,0,0.3)]">
             <div className="relative h-56 overflow-hidden bg-[#0D1214]">
                 {imageUrl ? (
                     <img
@@ -23,7 +23,7 @@ function RestaurantCard({ restaurant, onDelete, onEdit }) {
                         className="h-full w-full object-cover transition duration-500 hover:scale-105"
                     />
                 ) : (
-                    <div className="grid h-full place-items-center text-[#7F1D1D]">
+                    <div className="grid h-full place-items-center text-[#EF4444]">
                         <Store size={48} />
                     </div>
                 )}
@@ -49,7 +49,7 @@ function RestaurantCard({ restaurant, onDelete, onEdit }) {
                     <button
                         type="button"
                         onClick={() => onEdit(restaurant)}
-                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/12 text-sm font-black text-sky-200 transition hover:bg-sky-400/18"
+                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#FFD166]/45 bg-[#FFD166]/14 text-sm font-black text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)] transition hover:scale-[1.03] hover:border-[#FFD166]/75 hover:bg-[#FFD166] hover:text-[#241815] hover:shadow-[0_16px_32px_rgba(255,209,102,0.24)]"
                     >
                         <Pencil size={16} />
                         Edit
@@ -58,7 +58,7 @@ function RestaurantCard({ restaurant, onDelete, onEdit }) {
                     <button
                         type="button"
                         onClick={() => onDelete(restaurant.id)}
-                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white transition hover:bg-[#681718]"
+                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#B91C1C] text-sm font-black text-white shadow-[0_12px_26px_rgba(185,28,28,0.22)] transition hover:scale-[1.03] hover:bg-[#DC2626] hover:shadow-[0_16px_32px_rgba(220,38,38,0.30)]"
                     >
                         <Trash2 size={16} />
                         Delete

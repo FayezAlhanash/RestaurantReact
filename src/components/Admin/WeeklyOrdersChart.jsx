@@ -64,7 +64,7 @@ function WeeklyOrdersChart({
             data: values,
             borderColor: color,
             backgroundColor:
-              theme === "light" ? "rgba(20, 184, 166, 0.12)" : "rgba(125, 211, 199, 0.14)",
+              theme === "light" ? "rgba(34, 197, 94, 0.12)" : "rgba(34, 197, 94, 0.18)",
             fill: true,
             tension: 0.34,
             borderWidth: 3,
@@ -99,7 +99,7 @@ function WeeklyOrdersChart({
         backgroundColor: theme === "light" ? "#F8FAFC" : "#101A1D",
         titleColor: theme === "light" ? "#0F172A" : "#F8FAFC",
         bodyColor: theme === "light" ? "#0F172A" : "#F8FAFC",
-        borderColor: "rgba(125,211,199,0.34)",
+        borderColor: "rgba(34,197,94,0.42)",
         borderWidth: 1,
         padding: 10,
         titleFont: { weight: "bold" },
@@ -140,7 +140,7 @@ function WeeklyOrdersChart({
   return (
     <div className="relative h-full">
       {variant === "line" && peakIndex >= 0 && maxValue > 0 && (
-        <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md bg-[#5AA69D] px-3 py-1 text-xs font-black text-white shadow-[0_10px_26px_rgba(20,184,166,0.22)]">
+        <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md bg-[#16A34A] px-3 py-1 text-xs font-black text-white shadow-[0_10px_26px_rgba(34,197,94,0.28)]">
           {formatValue(maxValue)}
         </div>
       )}
