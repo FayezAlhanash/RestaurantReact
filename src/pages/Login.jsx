@@ -110,7 +110,7 @@ function Login() {
     };
 
     return (
-        <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(127,29,29,0.13),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(247,201,72,0.18),transparent_30%),linear-gradient(135deg,#f8f5ef_0%,#ebe3d8_100%)] px-4 py-8 font-raleway text-stone-950">
+        <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(127,29,29,0.13),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(247,201,72,0.18),transparent_30%),linear-gradient(135deg,#f8f5ef_0%,#ebe3d8_100%)] px-4 py-8 font-merriweather text-stone-950">
             <section className="w-full max-w-[540px] overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_24px_70px_rgba(69,48,35,0.16)]">
                 <div className="bg-[#7F1D1D] px-8 py-9 text-center text-white">
                     <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-3xl bg-white/12 shadow-lg shadow-stone-950/15 ring-1 ring-white/18">

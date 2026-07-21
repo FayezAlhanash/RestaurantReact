@@ -166,6 +166,11 @@ const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
 
     appendIfPresent(formData, "order_type", orderType);
     appendIfPresent(formData, "type", orderType);
+    appendIfPresent(formData, "service_type", orderType);
+    appendIfPresent(formData, "kind", orderType);
+    appendIfPresent(formData, "order_source", "dine_in");
+    appendIfPresent(formData, "source", "dine_in");
+    appendIfPresent(formData, "is_takeaway", 0);
     appendIfPresent(formData, "restaurant_id", restaurantId);
     appendIfPresent(formData, "table_id", tableId);
     appendIfPresent(formData, "table_number", tableId);
@@ -437,31 +442,21 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
         menuItems.filter((item) => String(item.restaurant_id) === String(restaurantId)).length;
 
     return (
-        <section className="mb-3 rounded-[24px] border border-white/10 bg-white/[0.06] p-3 text-white shadow-[0_18px_45px_rgba(0,0,0,0.20)] backdrop-blur sm:mb-4 sm:rounded-[28px] sm:p-4">
+        <section className="relative mb-3 overflow-hidden rounded-[24px] border border-[#E8D2C7] bg-[#FFF9F1] p-3 text-[#251918] shadow-[0_18px_42px_rgba(127,29,29,0.10)] sm:mb-4 sm:rounded-[28px] sm:p-4 dark:border-white/10 dark:bg-[#151A1D] dark:text-white dark:shadow-[0_18px_45px_rgba(0,0,0,0.20)]">
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#7F1D1D] via-[#FFD166] to-[#16A34A]" />
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
+                <div className="relative">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9A6400] dark:text-[#FFD166]">
                         Choose restaurant
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">
+                    <h2 className="mt-1 text-xl font-black text-[#241716] dark:text-white sm:text-2xl">
                         Pick the kitchen you want
                     </h2>
                 </div>
 
-                <select
-                    value={activeRestaurant}
-                    onChange={(event) => onSelect(event.target.value)}
-                    className="h-12 rounded-2xl border border-white/10 bg-[#12181B] px-4 text-sm font-black text-white outline-none focus:border-[#FFD166]/70 sm:w-[280px]"
-                >
-                    {restaurants.map((restaurant) => (
-                        <option key={restaurant.id} value={restaurant.id}>
-                            {restaurant.name}
-                        </option>
-                    ))}
-                </select>
             </div>
 
-            <div className="customer-order-scroll flex gap-3 overflow-x-auto pb-1">
+            <div className="customer-order-scroll relative flex gap-3 overflow-x-auto pb-1">
                 {restaurants.map((restaurant) => {
                     const active = String(activeRestaurant) === String(restaurant.id);
 
@@ -470,26 +465,36 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
                             key={restaurant.id}
                             type="button"
                             onClick={() => onSelect(String(restaurant.id))}
-                            className={`flex min-w-[230px] items-center gap-3 rounded-2xl border p-2.5 text-left transition active:scale-[0.99] sm:min-w-[270px] ${
+                            className={`flex min-w-[230px] items-center gap-3 rounded-2xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99] sm:min-w-[270px] ${
                                 active
-                                    ? "border-[#FFD166]/65 bg-[#FFD166]/14 ring-2 ring-[#FFD166]/10"
-                                    : "border-white/10 bg-[#111719] hover:border-[#FFD166]/40 hover:bg-white/[0.08]"
+                                    ? "border-[#D59A19] bg-[linear-gradient(135deg,#FFF9E8_0%,#FFE29A_58%,#FFD166_100%)] text-[#160F0E] shadow-[0_14px_30px_rgba(154,100,0,0.16)] ring-2 ring-[#FFD166]/30 dark:border-[#FFD166]/70 dark:bg-[linear-gradient(135deg,#FFF9E8_0%,#FFE29A_58%,#FFD166_100%)] dark:text-[#160F0E]"
+                                    : "border-[#E8CDBE] bg-white text-[#251918] hover:border-[#C48A17]/60 hover:bg-[#FFF8EC] dark:border-white/10 dark:bg-[#101719] dark:text-white dark:hover:border-[#FFD166]/40 dark:hover:bg-white/[0.08]"
                             }`}
                         >
                             <img
                                 src={getRestaurantImageUrl(restaurant)}
                                 alt={restaurant.name}
-                                className="h-14 w-14 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
+                                className={`h-14 w-14 shrink-0 rounded-2xl object-cover ring-2 ${
+                                    active ? "ring-[#FFD166]/60" : "ring-[#FFD166]/20 dark:ring-white/10"
+                                }`}
                             />
                             <span className="min-w-0 flex-1">
-                                <span className="block truncate text-sm font-black text-white">
+                                <span className="block truncate text-sm font-black">
                                     {restaurant.name}
                                 </span>
-                                <span className="mt-1 block text-xs font-bold text-white/55">
+                                <span className={`mt-1 block text-xs font-black ${active ? "text-[#7F1D1D] dark:text-[#7F1D1D]" : "text-[#7A6258] dark:text-white/55"}`}>
                                     {getItemCount(restaurant.id)} dishes
                                 </span>
                             </span>
-                            {active && <CheckCircle2 size={18} className="shrink-0 text-[#FFD166]" />}
+                            <span
+                                className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
+                                    active
+                                        ? "bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.22)] dark:bg-[#FFD166] dark:text-[#251918]"
+                                        : "bg-[#FFF1CF] text-[#9A6400] dark:bg-white/10 dark:text-[#FFD166]"
+                                }`}
+                            >
+                                {active ? <CheckCircle2 size={18} /> : <ChevronRight size={17} />}
+                            </span>
                         </button>
                     );
                 })}
@@ -996,6 +1001,10 @@ function ConfirmOrderModal({
     cartItems,
     subtotal,
     paymentMethod,
+    onPaymentMethodChange,
+    isStripeReady,
+    stripeCardMessage,
+    stripeCardContainerRef,
     isSubmitting,
     onCancel,
     onConfirm,
@@ -1058,10 +1067,59 @@ function ConfirmOrderModal({
 
                 <div className="border-t border-white/10 p-5">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                        <div className="flex justify-between text-sm font-bold text-white/62">
-                            <span>Payment</span>
-                            <span className="capitalize text-white">{paymentMethod}</span>
+                        <div>
+                            <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                                Payment method
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
+                                {[
+                                    { id: "cash", label: "Cash", icon: Banknote },
+                                    { id: "stripe", label: "Stripe", icon: CreditCard },
+                                ].map((method) => {
+                                    const Icon = method.icon;
+                                    const isActive = paymentMethod === method.id;
+
+                                    return (
+                                        <button
+                                            key={method.id}
+                                            type="button"
+                                            onClick={() => onPaymentMethodChange(method.id)}
+                                            disabled={isSubmitting}
+                                            className={`flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                                                isActive
+                                                    ? "bg-[#FFD166] text-[#151A1D]"
+                                                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                                            }`}
+                                        >
+                                            <Icon size={16} />
+                                            {method.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
+
+                        {paymentMethod === "cash" && (
+                            <p className="mt-2 text-xs font-semibold text-white/55">
+                                The waiter will collect and confirm the cash payment.
+                            </p>
+                        )}
+
+                        {paymentMethod === "stripe" && (
+                            <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
+                                <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                                    Card
+                                </p>
+                                <div
+                                    ref={stripeCardContainerRef}
+                                    className="rounded-lg border border-white/10 bg-white px-3 py-3"
+                                />
+                                <p className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}>
+                                    {stripeCardMessage || (isStripeReady ? "Card ready." : "Loading Stripe...")}
+                                </p>
+                            </div>
+                        )}
+
                         <div className="mt-3 flex items-end justify-between border-t border-dashed border-white/20 pt-3">
                             <span className="text-lg font-black">Total</span>
                             <span className="text-3xl font-black text-[#FFD166]">
@@ -1082,7 +1140,7 @@ function ConfirmOrderModal({
                         <button
                             type="button"
                             onClick={onConfirm}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                             className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
                         >
                             {isSubmitting ? "Sending..." : "Place order"}
@@ -1140,7 +1198,7 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
     };
 
     return (
-        <main className="customer-experience relative min-h-dvh overflow-hidden bg-[#140F0D] font-[Raleway] text-white">
+        <main className="customer-experience relative min-h-dvh overflow-hidden bg-[#140F0D] font-merriweather text-white">
             <div
                 className="absolute inset-0 flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ transform: `translateX(-${activeSlide * 100}%)` }}
@@ -1389,7 +1447,7 @@ function DineInOrder() {
             stripeCardRef.current?.destroy();
             stripeCardRef.current = null;
         };
-    }, [paymentMethod, isMobileCartOpen]);
+    }, [paymentMethod, isMobileCartOpen, isConfirmOrderOpen]);
 
     const visibleItems = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -1595,7 +1653,7 @@ function DineInOrder() {
     }
 
     return (
-        <div className="customer-experience min-h-dvh overflow-hidden bg-[#101517] font-[Raleway] text-white">
+        <div className="customer-experience min-h-dvh overflow-hidden bg-[#101517] font-merriweather text-white">
             <div className="customer-dark-overlay pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.24),transparent_30%),radial-gradient(circle_at_12%_20%,rgba(255,209,102,0.13),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)]" />
 
             <header className="customer-dark-header sticky top-0 z-30 border-b border-white/10 bg-[#101517]/82 px-3 py-2.5 text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:px-4 sm:py-3">
@@ -1782,6 +1840,10 @@ function DineInOrder() {
                     cartItems={cartItems}
                     subtotal={subtotal}
                     paymentMethod={paymentMethod}
+                    onPaymentMethodChange={setPaymentMethod}
+                    isStripeReady={isStripeReady}
+                    stripeCardMessage={stripeCardMessage}
+                    stripeCardContainerRef={stripeCardContainerRef}
                     isSubmitting={isSubmitting}
                     onCancel={() => !isSubmitting && setIsConfirmOrderOpen(false)}
                     onConfirm={submitOrder}

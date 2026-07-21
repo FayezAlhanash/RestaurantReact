@@ -181,6 +181,7 @@ const getRolePermissionObjects = (user = {}, roles = [], permissions = []) => {
 export default function UserPermission() {
   const { isLight } = useTheme();
   const [users, setUsers] = useState([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(true);
   const [permissions, setPermissions] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userPerms, setUserPerms] = useState([]);
@@ -236,11 +237,14 @@ export default function UserPermission() {
     let res;
 
     try {
+      setIsUsersLoading(true);
       res = await api.get("/admin/users");
     } catch (error) {
       if (error.response?.status !== 404) throw error;
 
       res = await api.get("/admin/staff-users");
+    } finally {
+      setIsUsersLoading(false);
     }
 
     const usersList = getList(res.data, "users");
@@ -607,6 +611,29 @@ export default function UserPermission() {
     : "bg-[linear-gradient(145deg,#0A1012_0%,#111A1D_58%,#181316_100%)] text-white";
   const titleText = isLight ? "text-[#241815]" : "text-white";
   const mutedText = isLight ? "text-[#6B5A52]" : "text-white/58";
+  const panelSurface = isLight
+    ? "border-[#E4CFC3] bg-[#FFF9F2] shadow-[0_18px_44px_rgba(70,45,30,0.10)]"
+    : "border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]";
+  const panelHeader = isLight
+    ? "border-[#E4CFC3] bg-[#FFF4EA]"
+    : "border-white/[0.08] bg-white/[0.025]";
+  const fieldSurface = isLight
+    ? "border-[#E4CFC3] bg-white text-[#241815] placeholder:text-[#8A7972]"
+    : "border-white/10 bg-[#0D1214] text-white placeholder:text-white/35";
+  const emptySurface = isLight
+    ? "border-[#E4CFC3] bg-[#FFF4EA] text-[#7A6A64]"
+    : "border-white/15 bg-[#111A1D] text-white/45";
+  const goldText = isLight ? "text-[#9A6400]" : "text-[#FFD166]";
+  const goldTextSoft = isLight ? "text-[#9A6400]" : "text-[#FFD166]/80";
+  const goldBorder = isLight ? "border-[#D8A22D]/38" : "border-[#FFD166]/30";
+  const goldBackground = isLight ? "bg-[#FFF4DA]" : "bg-[#FFD166]/10";
+  const goldBackgroundSoft = isLight ? "bg-[#FFF8E8]" : "bg-[#FFD166]/10";
+  const selectedUserSurface = isLight
+    ? "border-[#D8A22D]/45 bg-[#FFF4DA] text-[#241815] shadow-[0_12px_26px_rgba(154,100,0,0.10)] ring-1 ring-[#D8A22D]/16"
+    : "border-[#FFD166]/35 bg-[#FFD166]/10 text-white shadow-[0_12px_26px_rgba(255,209,102,0.08)] ring-1 ring-[#FFD166]/10";
+  const selectedPermissionSurface = isLight
+    ? "border-[#D8A22D]/38 bg-[#FFF4DA] shadow-[0_10px_24px_rgba(154,100,0,0.08)]"
+    : "border-[#FFD166]/28 bg-[#FFD166]/10 shadow-[0_10px_24px_rgba(255,209,102,0.06)]";
 
   return (
     <div className={`min-h-full space-y-6 p-4 sm:p-6 lg:p-8 ${pageSurface}`}>
@@ -615,11 +642,11 @@ export default function UserPermission() {
       >
         <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166] shadow-[0_14px_30px_rgba(0,0,0,0.18)] ring-1 ring-white/10">
+            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border ${goldBorder} ${goldBackgroundSoft} ${goldText} shadow-[0_14px_30px_rgba(0,0,0,0.12)] ring-1 ring-white/10`}>
               <UserCheck size={25} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+              <p className={`text-xs font-black uppercase tracking-[0.18em] ${goldText}`}>
                 Direct user tasks
               </p>
               <h1
@@ -648,7 +675,7 @@ export default function UserPermission() {
               </strong>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#FFD166]">
+              <p className={`text-xs font-black uppercase tracking-[0.12em] ${goldText}`}>
                 Assignable
               </p>
               <strong
@@ -672,27 +699,27 @@ export default function UserPermission() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[380px_1fr]">
-        <aside className="overflow-hidden rounded-[24px] border border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]">
-          <div className="border-b border-white/[0.08] bg-white/[0.025] p-4">
+        <aside className={`overflow-hidden rounded-[24px] border ${panelSurface}`}>
+          <div className={`border-b p-4 ${panelHeader}`}>
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] shadow-sm">
+              <div className={`grid h-10 w-10 place-items-center rounded-xl border ${goldBorder} ${goldBackgroundSoft} ${goldText} shadow-sm`}>
                 <Users size={20} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]/80">
+                <p className={`text-xs font-black uppercase tracking-[0.16em] ${goldTextSoft}`}>
                   Select employee
                 </p>
-                <h2 className="text-lg font-black text-white">Users</h2>
+                <h2 className={`text-lg font-black ${titleText}`}>Users</h2>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D1214] px-3 py-2.5 shadow-inner">
-              <Search size={17} className="shrink-0 text-[#FFD166]" />
+            <div className={`mt-4 flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-inner ${fieldSurface}`}>
+              <Search size={17} className={`shrink-0 ${goldText}`} />
               <input
                 value={userSearch}
                 onChange={(event) => setUserSearch(event.target.value)}
                 placeholder="Search users..."
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
               />
             </div>
           </div>
@@ -723,7 +750,7 @@ export default function UserPermission() {
                   onClick={() => selectUser(user)}
                   className={`group flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] ${
                     isActive
-                      ? "border-[#FFD166]/35 bg-[#FFD166]/10 text-white shadow-[0_12px_26px_rgba(255,209,102,0.08)] ring-1 ring-[#FFD166]/10"
+                      ? selectedUserSurface
                       : "border-transparent bg-[#101A1D] text-white/74 hover:border-white/10 hover:bg-[#152226] hover:text-white"
                   }`}
                 >
@@ -732,7 +759,7 @@ export default function UserPermission() {
                       {getUserName(user)}
                     </span>
                     <span
-                      className={`mt-1 block text-xs font-bold ${isActive ? "text-[#FFD166]" : "text-white/40"}`}
+                      className={`mt-1 block text-xs font-bold ${isActive ? goldText : isLight ? "text-[#6B5A52]" : "text-white/40"}`}
                     >
                       {formatRoleName(user.role)} · {activeCount} active
                     </span>
@@ -742,39 +769,46 @@ export default function UserPermission() {
               );
             })}
 
-            {!filteredUsers.length && (
-              <div className="rounded-2xl border border-dashed border-white/15 bg-[#111A1D] p-6 text-center text-sm font-semibold text-white/45">
+            {isUsersLoading && (
+              <div className={`flex items-center justify-center gap-2 rounded-2xl border border-dashed p-6 text-center text-sm font-semibold ${emptySurface}`}>
+                <Loader2 size={17} className={`animate-spin ${goldText}`} />
+                Loading users...
+              </div>
+            )}
+
+            {!isUsersLoading && !filteredUsers.length && (
+              <div className={`rounded-2xl border border-dashed p-6 text-center text-sm font-semibold ${emptySurface}`}>
                 No users found.
               </div>
             )}
           </div>
         </aside>
 
-        <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]">
-          <div className="border-b border-white/[0.08] bg-white/[0.025] p-4">
+        <section className={`overflow-hidden rounded-[24px] border ${panelSurface}`}>
+          <div className={`border-b p-4 ${panelHeader}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]/80">
+                <p className={`text-xs font-black uppercase tracking-[0.16em] ${goldTextSoft}`}>
                   Direct permissions
                 </p>
-                <h2 className="mt-1 text-3xl font-black text-white">
+                <h2 className={`mt-1 text-3xl font-black ${titleText}`}>
                   {selectedUserName}
                 </h2>
                 {selectedUser && (
-                  <p className="mt-1 text-sm font-bold text-white/45">
+                  <p className={`mt-1 text-sm font-bold ${mutedText}`}>
                     Role tasks appear here too. Direct tasks can be changed for
                     this user only.
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D1214] px-3 py-2.5 shadow-inner lg:w-[320px]">
-                <Search size={17} className="shrink-0 text-[#FFD166]" />
+              <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-inner lg:w-[320px] ${fieldSurface}`}>
+                <Search size={17} className={`shrink-0 ${goldText}`} />
                 <input
                   value={permissionSearch}
                   onChange={(event) => setPermissionSearch(event.target.value)}
                   placeholder="Search permissions..."
-                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
                 />
               </div>
             </div>
@@ -793,10 +827,10 @@ export default function UserPermission() {
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]">
                   <UserCheck size={25} />
                 </div>
-                <h3 className="mt-4 text-xl font-black text-white">
+                <h3 className={`mt-4 text-xl font-black ${titleText}`}>
                   Pick a user first
                 </h3>
-                <p className="mt-2 text-sm font-medium text-white/48">
+                <p className={`mt-2 text-sm font-medium ${mutedText}`}>
                   Direct tasks will appear after you select an employee.
                 </p>
               </div>
@@ -826,14 +860,14 @@ export default function UserPermission() {
                     key={p.id}
                     className={`group flex min-w-0 items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 active:scale-[0.99] ${
                       checked
-                        ? "border-[#FFD166]/28 bg-[#FFD166]/10 shadow-[0_10px_24px_rgba(255,209,102,0.06)]"
+                        ? selectedPermissionSurface
                         : "border-white/10 bg-[#101A1D] hover:border-white/16 hover:bg-[#142125]"
                     } ${isUpdating ? "opacity-70" : ""} cursor-pointer`}
                   >
                     <span
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition ${
                         checked
-                          ? "border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]"
+                          ? `border ${goldBorder} ${goldBackground} ${goldText}`
                           : "border border-white/10 bg-white/[0.04] text-white/35 group-hover:border-white/18 group-hover:text-white/65"
                       }`}
                     >
@@ -853,7 +887,7 @@ export default function UserPermission() {
                       </span>
                       <span className="mt-2 flex flex-wrap gap-2">
                         {isInherited && (
-                          <span className="rounded-full border border-[#FFD166]/25 bg-[#FFD166]/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#FFD166]">
+                          <span className={`rounded-full border ${goldBorder} ${goldBackgroundSoft} px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] ${goldText}`}>
                             Role
                           </span>
                         )}
@@ -899,11 +933,11 @@ export default function UserPermission() {
               })}
 
               {!visiblePermissions.length && (
-                <div className="col-span-full rounded-2xl border border-dashed border-white/15 bg-[#111A1D] p-10 text-center">
-                  <h3 className="text-lg font-black text-white">
+                <div className={`col-span-full rounded-2xl border border-dashed p-10 text-center ${emptySurface}`}>
+                  <h3 className={`text-lg font-black ${titleText}`}>
                     No permissions found
                   </h3>
-                  <p className="mt-2 text-sm font-medium text-white/45">
+                  <p className={`mt-2 text-sm font-medium ${mutedText}`}>
                     Try another search term or select a different user.
                   </p>
                 </div>

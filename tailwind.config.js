@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        raleway: ['Raleway', 'sans-serif'],
+        merriweather: ['Merriweather', 'IBM Plex Sans Arabic', 'serif'],
       },
     },
   },

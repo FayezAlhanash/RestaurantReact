@@ -1,10 +1,11 @@
 import { Bell, Search, ShoppingBag } from "lucide-react";
+import BrandLogo from "../Shared/BrandLogo";
 
 function TopBar({ search, setSearch, cartCount }) {
     return (
         <header className="sticky top-0 z-20 border-b border-white/10 bg-[#101517]/82 px-4 py-4 backdrop-blur-xl sm:px-6 xl:px-8">
             <div className="flex items-center gap-3 sm:gap-5">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#FFD166] text-xs font-black text-[#151A1D] shadow-sm lg:hidden">B4</div>
+                <BrandLogo className="h-11 w-11 lg:hidden" />
 
                 <div className="relative min-w-0 flex-1">
                     <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#FFD166]" />

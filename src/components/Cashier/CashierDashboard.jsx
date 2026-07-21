@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import CategoryTabs from "./CategoryTabs";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CatalogOrders from "./CatalogOrders";
 import MenuItemCard from "./MenuItem";
 import OrderSidebar from "./OrderSidebar";
@@ -15,12 +14,13 @@ import StockActions from "../Warehouse/StockAction";
 import LowStock from "../Warehouse/LowStock";
 import WaiterDashboard from "../Waiter/WaiterDashboard";
 import { getStoredUser, storeUser } from "../../utils/auth";
+import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import {
     getProfileUserPermissions,
     getUserPermissions,
     toPermissionKeys,
 } from "../../utils/permissions";
-import { BookOpen, House, ReceiptText, ShieldAlert } from "lucide-react";
+import { BookOpen, House, ReceiptText, ShieldAlert, Store } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
 const REPORTS_BACKGROUND =
@@ -109,18 +109,45 @@ const fetchRestaurantMenu = async (restaurant) => {
     );
 };
 
+const loadFoodDetailsInBatches = async (foods, batchSize = 6) => {
+    const detailedFoods = [];
+
+    for (let index = 0; index < foods.length; index += batchSize) {
+        const batch = foods.slice(index, index + batchSize);
+        const detailResponses = await Promise.allSettled(
+            batch.map(fetchFoodDetails)
+        );
+
+        detailedFoods.push(
+            ...detailResponses.map((result, batchIndex) =>
+                result.status === "fulfilled" ? result.value : batch[batchIndex]
+            )
+        );
+    }
+
+    return detailedFoods;
+};
+
 function CashierDashboard({ embedded = false }) {
     const { isLight } = useTheme();
     const [activeView, setActiveView] = useState("menu");
     const [permissions, setPermissions] = useState(() => getUserPermissions());
     const [openModal, setOpenModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [activeCategory, setActiveCategory] = useState("all");
+    const [activeRestaurant, setActiveRestaurant] = useState("all");
     const [search, setSearch] = useState("");
     const [cartItems, setCartItems] = useState([]);
+    const [restaurants, setRestaurants] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
     const [isLoadingMenu, setIsLoadingMenu] = useState(true);
     const [menuError, setMenuError] = useState("");
+    const restaurantFilterTrackRef = useRef(null);
+    const restaurantFilterButtonRefs = useRef({});
+    const [restaurantIndicatorStyle, setRestaurantIndicatorStyle] = useState({
+        opacity: 0,
+        transform: "translateX(0px)",
+        width: 0,
+    });
 
     useEffect(() => {
         const refreshProfile = async () => {
@@ -178,24 +205,39 @@ function CashierDashboard({ embedded = false }) {
             setMenuError("");
 
             try {
-                const res = await api.get("/food");
-                const foods = getList(res.data).map(normalizeFoodItem);
-                const detailResponses = await Promise.allSettled(
-                    foods.map(fetchFoodDetails)
-                );
+                const restaurantsResponse = await api.get("/restaurants");
+                const restaurantList = getList(restaurantsResponse.data);
 
-                setMenuItems(
-                    detailResponses.map((result, index) =>
-                        result.status === "fulfilled" ? result.value : foods[index]
-                    )
-                );
+                setRestaurants(restaurantList);
+
+                if (restaurantList.length) {
+                    const menuResponses = await Promise.allSettled(
+                        restaurantList.map(fetchRestaurantMenu)
+                    );
+
+                    setMenuItems(
+                        menuResponses.flatMap((result) =>
+                            result.status === "fulfilled" ? result.value : []
+                        )
+                    );
+                    return;
+                }
+
+                const restaurantId = await ensureCurrentRestaurantId();
+                const foodResponse = await api.get("/food", {
+                    params: restaurantId ? { restaurant_id: restaurantId } : {},
+                });
+                const foods = getList(foodResponse.data).map(normalizeFoodItem);
+
+                setMenuItems(await loadFoodDetailsInBatches(foods));
             } catch (error) {
                 if (needsRestaurantId(error)) {
                     try {
                         const restaurantsResponse = await api.get("/restaurants");
-                        const restaurants = getList(restaurantsResponse.data);
+                        const restaurantList = getList(restaurantsResponse.data);
+                        setRestaurants(restaurantList);
                         const menuResponses = await Promise.allSettled(
-                            restaurants.map(fetchRestaurantMenu)
+                            restaurantList.map(fetchRestaurantMenu)
                         );
 
                         setMenuItems(
@@ -222,29 +264,79 @@ function CashierDashboard({ embedded = false }) {
         fetchMenu();
     }, []);
 
-    const categories = useMemo(() => {
-        const categoryMap = new Map();
+    const restaurantFilters = useMemo(() => {
+        const restaurantMap = new Map();
 
         menuItems.forEach((item) => {
-            categoryMap.set(String(item.category), {
-                id: String(item.category),
-                name: item.categoryName,
+            const id = String(item.restaurant_id || "unknown");
+
+            if (!id || id === "unknown") return;
+
+            restaurantMap.set(id, {
+                id,
+                name: item.restaurantName || "Restaurant",
+                count: (restaurantMap.get(id)?.count || 0) + 1,
             });
         });
 
-        return Array.from(categoryMap.values());
-    }, [menuItems]);
+        restaurants.forEach((restaurant) => {
+            const id = String(restaurant.id);
+            const existing = restaurantMap.get(id);
+
+            restaurantMap.set(id, {
+                id,
+                name: restaurant.name || existing?.name || "Restaurant",
+                count: existing?.count || 0,
+            });
+        });
+
+        return Array.from(restaurantMap.values()).filter(
+            (restaurant) => restaurant.count > 0
+        );
+    }, [menuItems, restaurants]);
 
     const visibleItems = useMemo(() => {
         const query = search.trim().toLowerCase();
 
         return menuItems.filter((item) => {
-            const matchesCategory =
-                activeCategory === "all" || String(item.category) === String(activeCategory);
+            const matchesRestaurant =
+                activeRestaurant === "all" ||
+                String(item.restaurant_id) === String(activeRestaurant);
             const matchesSearch = !query || `${item.title} ${item.description}`.toLowerCase().includes(query);
-            return matchesCategory && matchesSearch;
+            return matchesRestaurant && matchesSearch;
         });
-    }, [activeCategory, menuItems, search]);
+    }, [activeRestaurant, menuItems, search]);
+
+    useLayoutEffect(() => {
+        const track = restaurantFilterTrackRef.current;
+        const activeButton = restaurantFilterButtonRefs.current[activeRestaurant];
+
+        if (!track || !activeButton) {
+            setRestaurantIndicatorStyle((current) => ({ ...current, opacity: 0 }));
+            return undefined;
+        }
+
+        const updateIndicator = () => {
+            const trackRect = track.getBoundingClientRect();
+            const buttonRect = activeButton.getBoundingClientRect();
+
+            setRestaurantIndicatorStyle({
+                opacity: 1,
+                transform: `translateX(${buttonRect.left - trackRect.left + track.scrollLeft}px)`,
+                width: buttonRect.width,
+            });
+        };
+
+        updateIndicator();
+
+        window.addEventListener("resize", updateIndicator);
+        track.addEventListener("scroll", updateIndicator, { passive: true });
+
+        return () => {
+            window.removeEventListener("resize", updateIndicator);
+            track.removeEventListener("scroll", updateIndicator);
+        };
+    }, [activeRestaurant, restaurantFilters]);
 
     const addToCart = (product) => {
         setCartItems((current) => {
@@ -266,8 +358,8 @@ function CashierDashboard({ embedded = false }) {
         <div
             className={
                 embedded
-                    ? `cashier-dashboard h-[calc(100dvh-88px)] overflow-hidden rounded-lg border border-white/10 ${REPORTS_BACKGROUND} font-[Raleway] text-white shadow-sm lg:flex`
-                    : `cashier-dashboard min-h-dvh ${REPORTS_BACKGROUND} font-[Raleway] text-white lg:flex lg:h-dvh lg:overflow-hidden`
+                    ? `cashier-dashboard h-[calc(100dvh-88px)] overflow-hidden rounded-lg border border-white/10 ${REPORTS_BACKGROUND} font-merriweather text-white shadow-sm lg:flex`
+                    : `cashier-dashboard min-h-dvh ${REPORTS_BACKGROUND} font-merriweather text-white lg:flex lg:h-dvh lg:overflow-hidden`
             }
         >
             {!embedded && (
@@ -286,8 +378,12 @@ function CashierDashboard({ embedded = false }) {
                 }`}
             >
                 {embedded ? (
-                    <div className="border-b border-white/[0.08] bg-[#0F1517]/78 px-4 py-3 backdrop-blur-xl sm:px-6">
-                        <nav className="flex gap-2 overflow-x-auto">
+                    <div className="border-b border-white/[0.08] bg-[#0F1517]/72 px-4 py-3 backdrop-blur-xl sm:px-6">
+                        <nav
+                            className="relative inline-grid max-w-full grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] p-1 shadow-[0_16px_38px_rgba(0,0,0,0.18)]"
+                            style={{ "--active-index": embeddedNavigation.findIndex((item) => item.id === activeView) }}
+                        >
+                            <span className="pointer-events-none absolute bottom-1 left-1 top-1 w-[calc((100%-0.5rem)/3)] rounded-xl bg-[#FFD166] shadow-[0_10px_22px_rgba(255,209,102,0.18)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] [transform:translateX(calc(var(--active-index)*100%))]" />
                             {embeddedNavigation.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = activeView === item.id;
@@ -297,14 +393,14 @@ function CashierDashboard({ embedded = false }) {
                                         key={item.id}
                                         type="button"
                                         onClick={() => setActiveView(item.id)}
-                                        className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition ${
+                                        className={`relative z-10 inline-flex h-10 min-w-28 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition-colors duration-300 ${
                                             isActive
-                                                ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-sm shadow-[#7F1D1D]/20"
-                                                : "border-white/10 bg-white/[0.055] text-white/66 hover:border-[#FFD166]/30 hover:bg-white/[0.09] hover:text-white"
+                                                ? "text-[#151A1D]"
+                                                : "text-white/58 hover:bg-white/[0.07] hover:text-white"
                                         }`}
                                     >
-                                        <Icon size={17} />
-                                        {item.label}
+                                        <Icon size={16} strokeWidth={isActive ? 2.7 : 2.2} />
+                                        <span>{item.label}</span>
                                     </button>
                                 );
                             })}
@@ -359,12 +455,61 @@ function CashierDashboard({ embedded = false }) {
                             <p className="text-sm font-medium text-white/60">{visibleItems.length} items available</p>
                         </div>
 
-                        <CategoryTabs
-                            activeCategory={activeCategory}
-                            setActiveCategory={setActiveCategory}
-                            categories={categories}
-                            variant={cashierVariant}
-                        />
+                        <div
+                            ref={restaurantFilterTrackRef}
+                            className="customer-order-scroll relative mb-8 flex gap-2 overflow-x-auto rounded-[22px] border border-white/10 bg-white/[0.035] p-1 pb-2"
+                        >
+                            <span
+                                className="pointer-events-none absolute top-1 z-0 h-14 rounded-2xl bg-[#FFD166] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition-[opacity,transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                                style={restaurantIndicatorStyle}
+                            />
+                            <button
+                                ref={(element) => {
+                                    restaurantFilterButtonRefs.current.all = element;
+                                }}
+                                type="button"
+                                onClick={() => setActiveRestaurant("all")}
+                                className={`relative z-10 inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black transition-colors duration-300 ${
+                                    activeRestaurant === "all"
+                                        ? "text-[#151A1D]"
+                                        : "text-white/70 hover:bg-white/[0.07] hover:text-white"
+                                }`}
+                            >
+                                <Store size={17} />
+                                All restaurants
+                            </button>
+                            {restaurantFilters.map((restaurant) => {
+                                const isActive = activeRestaurant === restaurant.id;
+
+                                return (
+                                    <button
+                                        ref={(element) => {
+                                            restaurantFilterButtonRefs.current[restaurant.id] = element;
+                                        }}
+                                        key={restaurant.id}
+                                        type="button"
+                                        onClick={() => setActiveRestaurant(restaurant.id)}
+                                        className={`relative z-10 inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-black transition-colors duration-300 ${
+                                            isActive
+                                                ? "text-[#151A1D]"
+                                                : "text-white/70 hover:bg-white/[0.07] hover:text-white"
+                                        }`}
+                                    >
+                                        <Store size={17} />
+                                        <span>{restaurant.name}</span>
+                                        <span
+                                            className={`rounded-full px-2 py-0.5 text-xs ${
+                                                isActive
+                                                    ? "bg-[#151A1D]/10 text-[#151A1D]/72"
+                                                    : "bg-white/10 text-white/50"
+                                            }`}
+                                        >
+                                            {restaurant.count}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
 
                         {isLoadingMenu ? (
                             <div className="rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
@@ -392,7 +537,7 @@ function CashierDashboard({ embedded = false }) {
                         ) : (
                             <div className="rounded-[28px] border border-dashed border-white/15 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
                                 <h2 className="text-xl font-bold text-white">No items found</h2>
-                                <p className="mt-2 text-white/58">Try another category or search phrase.</p>
+                                <p className="mt-2 text-white/58">Try another restaurant or search phrase.</p>
                             </div>
                         )}
                     </section>
@@ -409,7 +554,7 @@ function CashierDashboard({ embedded = false }) {
 
             {canManageTakeawayOrders && !["tables", "restaurants", "inventory", "stockActions", "lowStock", "serveOrders"].includes(activeView) && (
                 <aside
-                    className={`cashier-order-panel border-t border-white/10 bg-[#0F1517] lg:w-[360px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[390px] ${
+                    className={`cashier-order-panel border-t border-white/10 bg-[#0F1517] lg:w-[330px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[340px] ${
                         embedded ? "cashier-scroll min-h-0 lg:h-full lg:overflow-y-auto" : "cashier-scroll lg:h-dvh"
                     }`}
                 >

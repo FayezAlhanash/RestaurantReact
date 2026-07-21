@@ -10,6 +10,63 @@ import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import { useTheme } from "../../context/ThemeContext";
 import PermissionToast from "../Shared/PermissionToast";
 
+const getList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data?.data)) return data.data.data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.ingredients)) return data.ingredients;
+    if (Array.isArray(data?.data?.ingredients)) return data.data.ingredients;
+    return [];
+};
+
+const getPagination = (data) => {
+    const source = data?.meta || data?.data?.meta || data?.pagination || data?.data;
+
+    return {
+        currentPage: Number(
+            source?.current_page ??
+                source?.currentPage ??
+                data?.current_page ??
+                data?.currentPage ??
+                1
+        ),
+        lastPage: Number(
+            source?.last_page ??
+                source?.lastPage ??
+                source?.total_pages ??
+                source?.totalPages ??
+                data?.last_page ??
+                data?.lastPage ??
+                1
+        ),
+    };
+};
+
+async function fetchAllRestaurantIngredients(restaurantId) {
+    const firstResponse = await api.get(`/restaurants/${restaurantId}/ingredients`, {
+        params: { page: 1, per_page: 100 },
+    });
+    const firstItems = getList(firstResponse.data);
+    const pagination = getPagination(firstResponse.data);
+    const pages = Math.max(1, pagination.lastPage);
+    const remainingPages = Array.from(
+        { length: Math.max(0, pages - 1) },
+        (_, index) => index + 2
+    );
+    const remainingResponses = await Promise.all(
+        remainingPages.map((pageNumber) =>
+            api.get(`/restaurants/${restaurantId}/ingredients`, {
+                params: { page: pageNumber, per_page: 100 },
+            })
+        )
+    );
+
+    return [
+        ...firstItems,
+        ...remainingResponses.flatMap((response) => getList(response.data)),
+    ];
+}
+
 function StockActions() {
     const { isLight } = useTheme();
     const [action, setAction] = useState(null);
@@ -23,6 +80,7 @@ function StockActions() {
     const [isLoadingWarehouse, setIsLoadingWarehouse] = useState(false);
     const [permissionMessage, setPermissionMessage] = useState("");
     const [isIngredientPickerOpen, setIsIngredientPickerOpen] = useState(false);
+    const [isIngredientPickerMounted, setIsIngredientPickerMounted] = useState(false);
     const [ingredientQuery, setIngredientQuery] = useState("");
     const permissions = getUserPermissions();
     const canManageInventory = permissions.includes("manage_inventory");
@@ -41,9 +99,12 @@ function StockActions() {
         }
 
         setIsLoadingWarehouse(true);
-        const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
-        setIngredients(res.data.data);
-        setIsLoadingWarehouse(false);
+
+        try {
+            setIngredients(await fetchAllRestaurantIngredients(restaurantId));
+        } finally {
+            setIsLoadingWarehouse(false);
+        }
     }, [getActiveRestaurantId]);
 
     const openAction = (type) => {
@@ -98,20 +159,54 @@ function StockActions() {
         fetchRestaurants();
     }, [isAdmin]);
 
+    useEffect(() => {
+        if (isIngredientPickerOpen) {
+            const timeoutId = window.setTimeout(() => {
+                setIsIngredientPickerMounted(true);
+            }, 0);
+
+            return () => window.clearTimeout(timeoutId);
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setIsIngredientPickerMounted(false);
+        }, 180);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [isIngredientPickerOpen]);
+
     const refreshAfterAction = async () => {
         const restaurantId = await getActiveRestaurantId();
         if (!restaurantId) return;
 
-        const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
-        await getIngredients();
+        const previousIngredient = selectedIngredient;
+        const nextIngredients = await fetchAllRestaurantIngredients(restaurantId);
         await getMovements();   // 🔥 مهم
+        const updatedIngredient =
+            nextIngredients.find(i => String(i.id) === String(previousIngredient?.id)) || null;
+        const isNowLowStock =
+            Number(updatedIngredient?.current_quantity ?? 0) <=
+            Number(updatedIngredient?.min_quantity ?? 0);
+
         setAction(null);
-        setIngredients(res.data.data);
+        setIngredients(nextIngredients);
 
         // 🔥 أهم سطر
-        setSelectedIngredient(prev =>
-            res.data.data.find(i => i.id === prev?.id) || null
-        );
+        setSelectedIngredient(updatedIngredient);
+
+        if (updatedIngredient && isNowLowStock) {
+            window.dispatchEvent(
+                new CustomEvent("big4:low-stock", {
+                    detail: {
+                        id: updatedIngredient.id,
+                        name: updatedIngredient.name,
+                        current_quantity: updatedIngredient.current_quantity,
+                        min_quantity: updatedIngredient.min_quantity,
+                        unit: updatedIngredient.unit,
+                    },
+                })
+            );
+        }
 
         setAction(null);
     };
@@ -194,12 +289,14 @@ function StockActions() {
     };
      return (
         <div className="mx-auto max-w-5xl p-4 text-white sm:p-6">
-            {isIngredientPickerOpen && (
+            {isIngredientPickerMounted && (
                 <button
                     type="button"
                     aria-label="Close ingredient picker"
                     onClick={() => setIsIngredientPickerOpen(false)}
-                    className="fixed inset-0 z-20 bg-black/35 backdrop-blur-sm"
+                    className={`fixed inset-0 z-20 bg-black/35 backdrop-blur-sm transition-opacity duration-200 ease-out ${
+                        isIngredientPickerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                    }`}
                 />
             )}
 
@@ -313,8 +410,14 @@ function StockActions() {
                         />
                     </button>
 
-                    {isIngredientPickerOpen && (
-                        <div className="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-40 overflow-hidden rounded-[24px] border border-[#FFD166]/35 bg-[#1B282C] shadow-[0_30px_80px_rgba(0,0,0,0.62)] ring-1 ring-white/[0.06]">
+                    {isIngredientPickerMounted && (
+                        <div
+                            className={`absolute left-0 right-0 top-[calc(100%+0.65rem)] z-40 origin-top overflow-hidden rounded-[24px] border border-[#FFD166]/35 bg-[#1B282C] shadow-[0_30px_80px_rgba(0,0,0,0.62)] ring-1 ring-white/[0.06] transition duration-200 ease-out ${
+                                isIngredientPickerOpen
+                                    ? "translate-y-0 scale-100 opacity-100"
+                                    : "pointer-events-none -translate-y-2 scale-[0.98] opacity-0"
+                            }`}
+                        >
                             <div className="border-b border-[#FFD166]/15 bg-[#202F33] p-3">
                                 <div className="flex items-center gap-2 rounded-2xl border border-[#FFD166]/20 bg-[#0D1214] px-3 py-2.5">
                                     <Search size={17} className="text-[#FFD166]" />
@@ -327,7 +430,9 @@ function StockActions() {
                                 </div>
                             </div>
 
-                            <div className="cashier-scroll max-h-[430px] space-y-2 overflow-y-auto bg-[#162225] p-3">
+                            <div className={`cashier-scroll max-h-[430px] space-y-2 overflow-y-auto bg-[#162225] p-3 transition duration-200 ease-out ${
+                                isIngredientPickerOpen ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+                            }`}>
                                 {isLoadingWarehouse ? (
                                     <p className="px-3 py-10 text-center text-sm font-bold text-white/45">
                                         Loading ingredients...
@@ -349,7 +454,7 @@ function StockActions() {
                                                     setIsIngredientPickerOpen(false);
                                                     setIngredientQuery("");
                                                 }}
-                                                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left shadow-[0_8px_18px_rgba(0,0,0,0.12)] transition ${
+                                                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left shadow-[0_8px_18px_rgba(0,0,0,0.12)] transition duration-150 hover:scale-[1.01] ${
                                                     isSelected
                                                         ? "border-[#FFD166]/55 bg-[#FFD166]/14"
                                                         : "border-white/10 bg-[#0D1214] hover:border-[#FFD166]/30 hover:bg-[#202F33]"

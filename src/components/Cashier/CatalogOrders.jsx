@@ -403,7 +403,7 @@ function CatalogOrders() {
                     type="button"
                     onClick={() => loadOrders({ showLoader: true })}
                     disabled={isLoading}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100"
                 >
                     <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
                     Refresh
@@ -548,7 +548,7 @@ function CatalogOrders() {
                                     type="button"
                                     onClick={() => cancelOrder(order.id)}
                                     disabled={submittingKey === `order:${order.id}`}
-                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-sm transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
+                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-sm transition hover:bg-[#681718] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100"
                                 >
                                     <Trash2 size={16} />
                                     {submittingKey === `order:${order.id}`

@@ -54,6 +54,7 @@ const formatPermissionLabel = (permission = {}) =>
 export default function RolesPermission() {
   const { isLight } = useTheme();
   const [roles, setRoles] = useState([]);
+  const [isRolesLoading, setIsRolesLoading] = useState(true);
   const [permissions, setPermissions] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null);
   const [rolePermissions, setRolePermissions] = useState([]);
@@ -89,18 +90,24 @@ export default function RolesPermission() {
   };
 
   const fetchRoles = async () => {
-    const res = await api.get("/admin/roles");
-    const rolesList = getList(res.data, "roles");
+    setIsRolesLoading(true);
 
-    setRoles(rolesList);
+    try {
+      const res = await api.get("/admin/roles");
+      const rolesList = getList(res.data, "roles");
 
-    if (selectedRole) {
-      const updatedRole = rolesList.find((role) => role.id === selectedRole.id);
+      setRoles(rolesList);
 
-      if (updatedRole) {
-        setSelectedRole(updatedRole);
-        setRolePermissions(getRolePermissionIds(updatedRole));
+      if (selectedRole) {
+        const updatedRole = rolesList.find((role) => role.id === selectedRole.id);
+
+        if (updatedRole) {
+          setSelectedRole(updatedRole);
+          setRolePermissions(getRolePermissionIds(updatedRole));
+        }
       }
+    } finally {
+      setIsRolesLoading(false);
     }
   };
 
@@ -502,17 +509,46 @@ export default function RolesPermission() {
   const statSurface = isLight
     ? "border-[#E4CFC3] bg-[#FFF4EA] shadow-[0_12px_28px_rgba(70,45,30,0.08)]"
     : "border-white/10 bg-white/[0.055] shadow-[0_16px_34px_rgba(0,0,0,0.16)]";
+  const panelSurface = isLight
+    ? "border-[#E4CFC3] bg-[#FFF9F2] shadow-[0_18px_44px_rgba(70,45,30,0.10)]"
+    : "border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]";
+  const panelHeader = isLight
+    ? "border-[#E4CFC3] bg-[#FFF4EA]"
+    : "border-white/[0.08] bg-white/[0.025]";
+  const fieldSurface = isLight
+    ? "border-[#E4CFC3] bg-white text-[#241815] placeholder:text-[#8A7972]"
+    : "border-white/10 bg-[#0D1214] text-white placeholder:text-white/35";
+  const formSurface = isLight
+    ? "border-[#E4CFC3] bg-[#FFF8EF]"
+    : "border-white/10 bg-[#111A1D]";
+  const emptySurface = isLight
+    ? "border-[#E4CFC3] bg-[#FFF4EA] text-[#7A6A64]"
+    : "border-white/15 bg-[#111A1D] text-white/45";
+  const goldText = isLight ? "text-[#9A6400]" : "text-[#FFD166]";
+  const goldTextSoft = isLight ? "text-[#9A6400]" : "text-[#FFD166]/80";
+  const goldBorder = isLight ? "border-[#D8A22D]/38" : "border-[#FFD166]/30";
+  const goldBackground = isLight ? "bg-[#FFF4DA]" : "bg-[#FFD166]/10";
+  const goldBackgroundSoft = isLight ? "bg-[#FFF8E8]" : "bg-[#FFD166]/10";
+  const goldButton = isLight
+    ? "border-[#D8A22D]/45 bg-[#FFF4DA] text-[#9A6400] shadow-[0_10px_22px_rgba(154,100,0,0.12)] hover:border-[#C88A12]/65 hover:bg-[#FFE8B7] hover:shadow-[0_14px_28px_rgba(154,100,0,0.18)]"
+    : "border-[#FFD166]/75 bg-[#FFD166] text-[#151A1D] shadow-[0_10px_22px_rgba(255,209,102,0.28)] hover:border-[#FFE08F] hover:bg-[#FFE08F] hover:shadow-[0_14px_28px_rgba(255,209,102,0.38)]";
+  const selectedRoleSurface = isLight
+    ? "border-[#D8A22D]/45 bg-[#FFF4DA] text-[#241815] shadow-[0_12px_26px_rgba(154,100,0,0.10)] ring-1 ring-[#D8A22D]/16"
+    : "border-[#FFD166]/35 bg-[#FFD166]/10 text-white shadow-[0_12px_26px_rgba(255,209,102,0.08)] ring-1 ring-[#FFD166]/10";
+  const selectedPermissionSurface = isLight
+    ? "border-[#D8A22D]/38 bg-[#FFF4DA] shadow-[0_10px_24px_rgba(154,100,0,0.08)]"
+    : "border-[#FFD166]/28 bg-[#FFD166]/10 shadow-[0_10px_24px_rgba(255,209,102,0.06)]";
 
   return (
     <div className={`min-h-full space-y-6 p-4 sm:p-6 lg:p-8 ${pageSurface}`}>
       <section className={`overflow-hidden rounded-[24px] border ${cardSurface}`}>
         <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166] shadow-[0_14px_30px_rgba(0,0,0,0.18)] ring-1 ring-white/10">
+            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border ${goldBorder} ${goldBackgroundSoft} ${goldText} shadow-[0_14px_30px_rgba(0,0,0,0.12)] ring-1 ring-white/10`}>
               <ShieldCheck size={25} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+              <p className={`text-xs font-black uppercase tracking-[0.18em] ${goldText}`}>
                 Access control
               </p>
               <h1 className={`mt-1 text-3xl font-black sm:text-4xl ${titleText}`}>
@@ -532,8 +568,8 @@ export default function RolesPermission() {
                 {roles.length}
               </strong>
             </div>
-            <div className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-[#FFD166]/25 ${statSurface}`}>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#FFD166]">Assignable</p>
+            <div className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-[#D8A22D]/35 ${statSurface}`}>
+              <p className={`text-xs font-black uppercase tracking-[0.12em] ${goldText}`}>Assignable</p>
               <strong className={`mt-2 block text-4xl font-black tabular-nums ${titleText}`}>
                 {assignablePermissions.length}
               </strong>
@@ -549,17 +585,17 @@ export default function RolesPermission() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
-        <aside className="overflow-hidden rounded-[24px] border border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]">
-          <div className="border-b border-white/[0.08] bg-white/[0.025] p-4">
+        <aside className={`overflow-hidden rounded-[24px] border ${panelSurface}`}>
+          <div className={`border-b p-4 ${panelHeader}`}>
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] shadow-sm">
+              <div className={`grid h-10 w-10 place-items-center rounded-xl border ${goldBorder} ${goldBackgroundSoft} ${goldText} shadow-sm`}>
                 <Users size={20} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]/80">
+                <p className={`text-xs font-black uppercase tracking-[0.16em] ${goldTextSoft}`}>
                   Select role
                 </p>
-                <h2 className="text-lg font-black text-white">Roles</h2>
+                <h2 className={`text-lg font-black ${titleText}`}>Roles</h2>
               </div>
               <button
                 type="button"
@@ -567,7 +603,7 @@ export default function RolesPermission() {
                   setShowCreateRole((prev) => !prev);
                   setCreateRoleError("");
                 }}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#FFD166]/75 bg-[#FFD166] text-[#151A1D] shadow-[0_10px_22px_rgba(255,209,102,0.28)] transition hover:border-[#FFE08F] hover:bg-[#FFE08F] hover:shadow-[0_14px_28px_rgba(255,209,102,0.38)] active:scale-95"
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition active:scale-95 ${goldButton}`}
                 aria-label={showCreateRole ? "Close add role form" : "Add role"}
                 title={showCreateRole ? "Close" : "Add role"}
               >
@@ -578,7 +614,7 @@ export default function RolesPermission() {
             {showCreateRole && (
               <form
                 onSubmit={handleCreateRole}
-                className="mt-4 rounded-2xl border border-white/10 bg-[#111A1D] p-3 shadow-sm"
+                className={`mt-4 rounded-2xl border p-3 shadow-sm ${formSurface}`}
               >
                 <div className="grid gap-3">
                   <input
@@ -586,7 +622,7 @@ export default function RolesPermission() {
                     value={createRoleForm.name}
                     onChange={handleCreateRoleChange}
                     placeholder="Role name"
-                    className="w-full rounded-xl border border-white/10 bg-[#0D1214] px-3 py-2.5 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                    className={`w-full rounded-xl border px-3 py-2.5 text-sm font-bold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
                     disabled={isCreatingRole}
                   />
                   <textarea
@@ -595,10 +631,10 @@ export default function RolesPermission() {
                     onChange={handleCreateRoleChange}
                     placeholder="Description"
                     rows={3}
-                    className="w-full resize-none rounded-xl border border-white/10 bg-[#0D1214] px-3 py-2.5 text-sm font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                    className={`w-full resize-none rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
                     disabled={isCreatingRole}
                   />
-                  <label className="flex items-center gap-2 rounded-xl border border-[#FFD166]/20 bg-[#FFD166]/10 px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#FFD166]">
+                  <label className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
                     <input
                       type="checkbox"
                       name="requires_restaurant"
@@ -620,7 +656,7 @@ export default function RolesPermission() {
                   <button
                     type="submit"
                     disabled={isCreatingRole}
-                    className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FFD166]/75 bg-[#FFD166] px-4 text-sm font-black text-[#151A1D] shadow-[0_12px_26px_rgba(255,209,102,0.28)] transition hover:border-[#FFE08F] hover:bg-[#FFE08F] hover:shadow-[0_16px_32px_rgba(255,209,102,0.38)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                    className={`flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 ${goldButton}`}
                   >
                     {isCreatingRole ? (
                       <Loader2 size={17} className="animate-spin" />
@@ -633,13 +669,13 @@ export default function RolesPermission() {
               </form>
             )}
 
-            <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D1214] px-3 py-2.5 shadow-inner">
-              <Search size={17} className="shrink-0 text-[#FFD166]" />
+            <div className={`mt-4 flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-inner ${fieldSurface}`}>
+              <Search size={17} className={`shrink-0 ${goldText}`} />
               <input
                 value={roleSearch}
                 onChange={(event) => setRoleSearch(event.target.value)}
                 placeholder="Search roles..."
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
               />
             </div>
           </div>
@@ -658,7 +694,7 @@ export default function RolesPermission() {
                   onClick={() => handleSelectRole(role)}
                   className={`group flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] ${
                     isActive
-                      ? "border-[#FFD166]/35 bg-[#FFD166]/10 text-white shadow-[0_12px_26px_rgba(255,209,102,0.08)] ring-1 ring-[#FFD166]/10"
+                      ? selectedRoleSurface
                       : "border-transparent bg-[#101A1D] text-white/74 hover:border-white/10 hover:bg-[#152226] hover:text-white"
                   }`}
                 >
@@ -668,7 +704,7 @@ export default function RolesPermission() {
                     </span>
                     <span
                       className={`mt-1 block text-xs font-bold ${
-                        isActive ? "text-[#FFD166]" : "text-white/40"
+                        isActive ? goldText : isLight ? "text-[#6B5A52]" : "text-white/40"
                       }`}
                     >
                       {assignedCount} enabled
@@ -679,22 +715,29 @@ export default function RolesPermission() {
               );
             })}
 
-            {!filteredRoles.length && (
-              <div className="rounded-2xl border border-dashed border-white/15 bg-[#111A1D] p-6 text-center text-sm font-semibold text-white/45">
+            {isRolesLoading && (
+              <div className={`flex items-center justify-center gap-2 rounded-2xl border border-dashed p-6 text-center text-sm font-semibold ${emptySurface}`}>
+                <Loader2 size={17} className={`animate-spin ${goldText}`} />
+                Loading roles...
+              </div>
+            )}
+
+            {!isRolesLoading && !filteredRoles.length && (
+              <div className={`rounded-2xl border border-dashed p-6 text-center text-sm font-semibold ${emptySurface}`}>
                 No roles found.
               </div>
             )}
           </div>
         </aside>
 
-        <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]">
-          <div className="border-b border-white/[0.08] bg-white/[0.025] p-4">
+        <section className={`overflow-hidden rounded-[24px] border ${panelSurface}`}>
+          <div className={`border-b p-4 ${panelHeader}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]/80">
+                <p className={`text-xs font-black uppercase tracking-[0.16em] ${goldTextSoft}`}>
                   Permissions
                 </p>
-                <h2 className="mt-1 text-3xl font-black text-white">
+                <h2 className={`mt-1 text-3xl font-black ${titleText}`}>
                   {selectedRole ? selectedRole.name : "Select a role"}
                 </h2>
               </div>
@@ -706,7 +749,7 @@ export default function RolesPermission() {
                       type="button"
                       onClick={isEditingRole ? () => setIsEditingRole(false) : startEditRole}
                       disabled={isUpdatingRole || isDeletingRole}
-                      className="grid h-11 w-11 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] shadow-sm transition hover:border-[#FFD166]/55 hover:bg-[#FFD166]/18 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      className={`grid h-11 w-11 place-items-center rounded-xl border shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${goldBorder} ${goldBackgroundSoft} ${goldText} ${isLight ? "hover:border-[#D8A22D]/55 hover:bg-[#FFF4DA]" : "hover:border-[#FFD166]/55 hover:bg-[#FFD166]/18"}`}
                       aria-label={isEditingRole ? "Close edit role form" : "Edit role"}
                       title={isEditingRole ? "Close edit" : "Edit role"}
                     >
@@ -729,13 +772,13 @@ export default function RolesPermission() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D1214] px-3 py-2.5 shadow-inner lg:w-[320px]">
-                  <Search size={17} className="shrink-0 text-[#FFD166]" />
+                <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-inner lg:w-[320px] ${fieldSurface}`}>
+                  <Search size={17} className={`shrink-0 ${goldText}`} />
                   <input
                     value={permissionSearch}
                     onChange={(event) => setPermissionSearch(event.target.value)}
                     placeholder="Search permissions..."
-                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
                   />
                 </div>
               </div>
@@ -744,7 +787,7 @@ export default function RolesPermission() {
             {selectedRole && isEditingRole && (
               <form
                 onSubmit={handleUpdateRole}
-                className="mt-4 rounded-2xl border border-white/10 bg-[#111A1D] p-3 shadow-sm"
+                className={`mt-4 rounded-2xl border p-3 shadow-sm ${formSurface}`}
               >
                 <div className="grid gap-3 lg:grid-cols-[1fr_1.4fr_auto] lg:items-start">
                   <input
@@ -752,7 +795,7 @@ export default function RolesPermission() {
                     value={editRoleForm.name}
                     onChange={handleEditRoleChange}
                     placeholder="Role name"
-                    className="w-full rounded-xl border border-white/10 bg-[#0D1214] px-3 py-2.5 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                    className={`w-full rounded-xl border px-3 py-2.5 text-sm font-bold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
                     disabled={isUpdatingRole}
                   />
                   <textarea
@@ -761,7 +804,7 @@ export default function RolesPermission() {
                     onChange={handleEditRoleChange}
                     placeholder="Description"
                     rows={1}
-                    className="w-full resize-none rounded-xl border border-white/10 bg-[#0D1214] px-3 py-2.5 text-sm font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                    className={`w-full resize-none rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
                     disabled={isUpdatingRole}
                   />
                   <button
@@ -777,7 +820,7 @@ export default function RolesPermission() {
                     Save
                   </button>
                 </div>
-                <label className="mt-3 flex items-center gap-2 rounded-xl border border-[#FFD166]/20 bg-[#FFD166]/10 px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#FFD166]">
+                <label className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
                   <input
                     type="checkbox"
                     name="requires_restaurant"
@@ -811,10 +854,10 @@ export default function RolesPermission() {
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]">
                   <ShieldCheck size={25} />
                 </div>
-                <h3 className="mt-4 text-xl font-black text-white">
+                <h3 className={`mt-4 text-xl font-black ${titleText}`}>
                   Pick a role first
                 </h3>
-                <p className="mt-2 text-sm font-medium text-white/48">
+                <p className={`mt-2 text-sm font-medium ${mutedText}`}>
                   Permissions will appear here after you select a role.
                 </p>
               </div>
@@ -830,14 +873,14 @@ export default function RolesPermission() {
                     key={perm.id}
                     className={`group flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 active:scale-[0.99] ${
                       checked
-                        ? "border-[#FFD166]/28 bg-[#FFD166]/10 shadow-[0_10px_24px_rgba(255,209,102,0.06)]"
+                        ? selectedPermissionSurface
                         : "border-white/10 bg-[#101A1D] hover:border-white/16 hover:bg-[#142125]"
                     } ${isUpdating ? "opacity-70" : ""}`}
                   >
                     <span
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition ${
                         checked
-                          ? "border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]"
+                          ? `border ${goldBorder} ${goldBackground} ${goldText}`
                           : "border border-white/10 bg-white/[0.04] text-white/35 group-hover:border-white/18 group-hover:text-white/65"
                       }`}
                     >
@@ -869,11 +912,11 @@ export default function RolesPermission() {
               })}
 
               {!visiblePermissions.length && (
-                <div className="col-span-full rounded-2xl border border-dashed border-white/15 bg-[#111A1D] p-10 text-center">
-                  <h3 className="text-lg font-black text-white">
+                <div className={`col-span-full rounded-2xl border border-dashed p-10 text-center ${emptySurface}`}>
+                  <h3 className={`text-lg font-black ${titleText}`}>
                     No permissions found
                   </h3>
-                  <p className="mt-2 text-sm font-medium text-white/45">
+                  <p className={`mt-2 text-sm font-medium ${mutedText}`}>
                     Try another search term or select a different role.
                   </p>
                 </div>

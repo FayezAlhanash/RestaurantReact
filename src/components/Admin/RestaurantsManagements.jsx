@@ -34,9 +34,9 @@ function DeletePasswordModal({
                 onSubmit={onConfirm}
                 className="w-full max-w-md overflow-hidden rounded-[26px] border border-white/10 bg-[#182124] text-white shadow-2xl"
             >
-                <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.18),transparent_36%),rgba(24,33,36,0.96)] px-5 py-4">
+                <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(185,28,28,0.24),transparent_36%),rgba(24,33,36,0.96)] px-5 py-4">
                     <div className="flex items-center gap-3">
-                        <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D]">
+                        <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#B91C1C]/40 bg-[#B91C1C]/14 text-[#EF4444]">
                             <Trash2 size={20} />
                         </div>
                         <div>
@@ -53,7 +53,7 @@ function DeletePasswordModal({
                         type="button"
                         onClick={onClose}
                         disabled={isDeleting}
-                        className="grid h-10 w-10 place-items-center rounded-xl text-white/55 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
+                        className="grid h-10 w-10 place-items-center rounded-xl text-white/55 transition hover:scale-110 hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
                         aria-label="Close delete confirmation"
                     >
                         <X size={20} />
@@ -85,7 +85,7 @@ function DeletePasswordModal({
                     </label>
 
                     {errorMessage && (
-                        <p className="rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
+                        <p className="rounded-2xl border border-[#B91C1C]/35 bg-[#B91C1C]/12 px-4 py-3 text-sm font-bold text-[#EF4444]">
                             {errorMessage}
                         </p>
                     )}
@@ -96,7 +96,7 @@ function DeletePasswordModal({
                         type="button"
                         onClick={onClose}
                         disabled={isDeleting}
-                        className="h-11 rounded-2xl border border-white/10 px-6 text-sm font-black text-white/65 transition hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
+                        className="h-11 rounded-2xl border border-white/10 px-6 text-sm font-black text-white/65 transition hover:scale-[1.03] hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
                     >
                         Cancel
                     </button>
@@ -104,7 +104,7 @@ function DeletePasswordModal({
                     <button
                         type="submit"
                         disabled={isDeleting || !password.trim()}
-                        className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.24)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#DC2626_0%,#B91C1C_52%,#991B1B_100%)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgba(185,28,28,0.28)] transition hover:scale-[1.03] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isDeleting && <Loader2 size={17} className="animate-spin" />}
                         Delete Restaurant
@@ -224,7 +224,7 @@ function RestaurantsManagements() {
     }, [restaurants]);
 
     return (
-        <div className="min-h-full bg-[radial-gradient(circle_at_86%_10%,rgba(127,29,29,0.18),transparent_30%),radial-gradient(circle_at_18%_22%,rgba(255,209,102,0.12),transparent_26%),radial-gradient(circle_at_60%_82%,rgba(52,211,153,0.08),transparent_30%),linear-gradient(145deg,#0D1214_0%,#12191C_52%,#24171A_100%)] p-4 text-white sm:p-6 lg:p-8">
+        <div className="min-h-full bg-[radial-gradient(circle_at_86%_10%,rgba(185,28,28,0.20),transparent_30%),radial-gradient(circle_at_18%_22%,rgba(255,209,102,0.12),transparent_26%),radial-gradient(circle_at_60%_82%,rgba(52,211,153,0.08),transparent_30%),linear-gradient(145deg,#0D1214_0%,#12191C_52%,#24171A_100%)] p-4 text-white sm:p-6 lg:p-8">
             <div className="mx-auto max-w-[1500px] space-y-6">
                 <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm sm:p-6">
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
@@ -244,7 +244,7 @@ function RestaurantsManagements() {
                         <button
                             type="button"
                             onClick={handleOpenCreate}
-                            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:bg-[#681718]"
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#B91C1C] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(185,28,28,0.30)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-[#DC2626] hover:shadow-[0_20px_40px_rgba(220,38,38,0.34)] active:scale-[0.99]"
                         >
                             <Plus size={18} />
                             Add Restaurant
@@ -252,14 +252,14 @@ function RestaurantsManagements() {
                     </div>
 
                     {errorMessage && (
-                        <p className="mt-5 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
+                        <p className="mt-5 rounded-2xl border border-[#B91C1C]/35 bg-[#B91C1C]/12 px-4 py-3 text-sm font-bold text-[#EF4444]">
                             {errorMessage}
                         </p>
                     )}
                 </section>
 
                 <section className="grid gap-4 md:grid-cols-3">
-                    <article className="rounded-[24px] border border-emerald-400/35 bg-emerald-400/10 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+                    <article className="rounded-[24px] border border-emerald-400/35 bg-emerald-400/10 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_24px_58px_rgba(0,0,0,0.30)]">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">
@@ -275,23 +275,23 @@ function RestaurantsManagements() {
                         </div>
                     </article>
 
-                    <article className="rounded-[24px] border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+                    <article className="rounded-[24px] border border-[#B91C1C]/40 bg-[#B91C1C]/12 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:border-[#EF4444]/50 hover:shadow-[0_24px_58px_rgba(185,28,28,0.24)]">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#7F1D1D]">
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#EF4444]">
                                     Average tax
                                 </p>
                                 <strong className="mt-3 block text-3xl font-black">
                                     {averageTax.toFixed(2)}%
                                 </strong>
                             </div>
-                            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]">
+                            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#B91C1C]/40 bg-[#B91C1C]/12 text-[#EF4444]">
                                 %
                             </div>
                         </div>
                     </article>
 
-                    <article className="rounded-[24px] border border-[#FFD166]/35 bg-[#FFD166]/10 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
+                    <article className="rounded-[24px] border border-[#FFD166]/35 bg-[#FFD166]/10 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_24px_58px_rgba(0,0,0,0.30)]">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[#FFD166]">

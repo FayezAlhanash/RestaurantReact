@@ -7,6 +7,13 @@ function WarehouseCard({ item, onEdit, onDelete }) {
     const minimum = Number(item.min_quantity || 0);
     const isLow = current <= minimum;
     const progress = minimum > 0 ? Math.min((current / minimum) * 100, 160) : 100;
+    const healthyIconClass = isLight
+        ? "bg-[#EAF6EF] text-[#2F7D55]"
+        : "bg-emerald-400/12 text-emerald-300";
+    const healthyBadgeClass = isLight
+        ? "border-[#9FD8B7] bg-[#EAF6EF] text-[#2F7D55]"
+        : "border-emerald-400/45 bg-emerald-400/14 text-emerald-300";
+    const healthyBarClass = isLight ? "bg-[#3C9A6B]" : "bg-emerald-400";
 
     return (
         <article className={`rounded-[24px] border p-4 shadow-[0_16px_34px_rgba(0,0,0,0.20)] ring-1 transition hover:-translate-y-0.5 sm:p-5 ${
@@ -16,7 +23,7 @@ function WarehouseCard({ item, onEdit, onDelete }) {
         }`}>
             <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-4">
-                    <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${isLow ? "bg-[#7F1D1D]/14 text-[#7F1D1D]" : "bg-emerald-400/12 text-emerald-300"}`}>
+                    <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${isLow ? "bg-[#7F1D1D]/14 text-[#7F1D1D]" : healthyIconClass}`}>
                         <Package size={26} />
                     </div>
 
@@ -30,7 +37,7 @@ function WarehouseCard({ item, onEdit, onDelete }) {
                     </div>
                 </div>
 
-                <span className={`flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-base font-black shadow-sm ${isLow ? "border-[#7F1D1D]/45 bg-[#7F1D1D]/16 text-[#7F1D1D]" : "border-emerald-400/45 bg-emerald-400/14 text-emerald-300"}`}>
+                <span className={`flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-base font-black shadow-sm ${isLow ? "border-[#7F1D1D]/45 bg-[#7F1D1D]/16 text-[#7F1D1D]" : healthyBadgeClass}`}>
                     {isLow ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
                     {isLow ? "Low" : "Good"}
                 </span>
@@ -79,7 +86,7 @@ function WarehouseCard({ item, onEdit, onDelete }) {
 
                 <div className={`mt-4 h-2.5 overflow-hidden rounded-full ${isLight ? "bg-[#EADBD2]" : "bg-[#2E393D]"}`}>
                     <div
-                        className={`h-full rounded-full ${isLow ? "bg-[#7F1D1D]" : "bg-emerald-400"}`}
+                        className={`h-full rounded-full ${isLow ? "bg-[#7F1D1D]" : healthyBarClass}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                 </div>

@@ -7,7 +7,7 @@ import {
     ReceiptText,
     Utensils,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import { clearSession, getStoredUser } from "../../utils/auth";
@@ -39,6 +39,9 @@ const getRestaurantOrderId = (item) =>
     item?.restaurantOrder?.id ??
     item?.id ??
     null;
+
+const getReadyOrderNotificationId = (item) =>
+    getRestaurantOrderId(item) ?? item?.order_id ?? item?.order?.id ?? null;
 
 const getTableNumber = (item) =>
     item?.table_number ??
@@ -112,6 +115,8 @@ function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, a
 export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [cashPayments, setCashPayments] = useState([]);
     const [readyOrders, setReadyOrders] = useState([]);
+    const readyOrderIdsRef = useRef(new Set());
+    const hasLoadedReadyOrdersRef = useRef(false);
     const permissions = getUserPermissions();
     const canServeDineInOrders = permissions.includes("serve_dine_in_orders");
     const canProcessPayments = permissions.includes("process_payments");
@@ -139,8 +144,30 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                     : Promise.resolve({ data: [] }),
             ]);
 
+            const nextReadyOrders = getList(readyResponse.data);
+            const nextReadyIds = new Set(
+                nextReadyOrders
+                    .map((order) => String(getReadyOrderNotificationId(order) || ""))
+                    .filter(Boolean)
+            );
+
+            if (hasLoadedReadyOrdersRef.current) {
+                nextReadyOrders.forEach((order) => {
+                    const id = String(getReadyOrderNotificationId(order) || "");
+
+                    if (!id || readyOrderIdsRef.current.has(id)) return;
+
+                    window.dispatchEvent(
+                        new CustomEvent("big4:dine-in-ready", { detail: order })
+                    );
+                });
+            }
+
+            readyOrderIdsRef.current = nextReadyIds;
+            hasLoadedReadyOrdersRef.current = true;
+
             setCashPayments(getList(cashResponse.data));
-            setReadyOrders(getList(readyResponse.data));
+            setReadyOrders(nextReadyOrders);
             setErrorMessage("");
         } catch (error) {
             setErrorMessage(error.response?.data?.message || "Could not load waiter data.");
@@ -338,7 +365,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                                     )
                                                 }
                                                 disabled={busyKey === key || !invoiceId}
-                                                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/40"
+                                                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.20)] transition hover:bg-[#681718] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 dark:disabled:!bg-[#7F1D1D] dark:disabled:!text-white"
                                             >
                                                 <Banknote size={18} />
                                                 {busyKey === key ? "Confirming..." : "Confirm cash"}
@@ -369,7 +396,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                                 )
                                             }
                                             disabled={busyKey === key || !restaurantOrderId}
-                                            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FFD166] text-sm font-black text-[#151A1D] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition hover:bg-[#ffdc82] disabled:bg-white/15 disabled:text-white/40"
+                                            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FFD166] text-sm font-black text-[#151A1D] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition hover:bg-[#ffdc82] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 dark:disabled:!bg-[#7F1D1D] dark:disabled:!text-white"
                                         >
                                             <CheckCircle2 size={18} />
                                             {busyKey === key ? "Saving..." : "Mark served"}

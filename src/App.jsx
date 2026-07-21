@@ -4,6 +4,7 @@ import KitchenLayout from "./components/Kitchen/KitchenLayout";
 import KitchenDashboard from "./components/Kitchen/KitchenDashboard";
 import Login from "./pages/Login";
 import Employee from "./components/Admin/Employee";
+import EmployeeShifts from "./components/Admin/EmployeeShifts";
 import AdminLayout from "./components/Admin/AdminLayout";
 import MainContent from "./components/Admin/MainContent";
 import RestaurantsManagements from "./components/Admin/RestaurantsManagements";
@@ -34,6 +35,7 @@ import NoTasks from "./components/Shared/NoTasks";
 import { ThemeProvider } from "./context/ThemeContext";
 import api from "./API/axios";
 import { getStoredToken } from "./utils/auth";
+import NotificationManager from "./notifications/NotificationManager";
 
 const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "manage_menu",
@@ -93,6 +95,7 @@ function App() {
     <ThemeProvider>
     <BrowserRouter >
       <SessionWatcher />
+      <NotificationManager />
 
       <Routes>
 
@@ -178,6 +181,9 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["manage_users"]} />}>
               <Route path="/employees" element={<EmployeesManagements />} />
               <Route path="/employee" element={<Employee />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_employee_shifts", "manage_users"]} />}>
+              <Route path="/employee-shifts" element={<EmployeeShifts />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["manage_permissions"]} />}>
               <Route path="/user-permissions" element={<UserPermission />} />

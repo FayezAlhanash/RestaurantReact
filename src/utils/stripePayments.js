@@ -57,7 +57,7 @@ export async function createStripeCardElement(container) {
         style: {
             base: {
                 color: "#261F1D",
-                fontFamily: "Raleway, Arial, sans-serif",
+                fontFamily: "Merriweather, Georgia, serif",
                 fontSize: "15px",
                 "::placeholder": {
                     color: "#A28F87",

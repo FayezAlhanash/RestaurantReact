@@ -125,10 +125,14 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             }
 
             setCartItems([]);
+            const orderLabel = orderIds.length
+                ? `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")}`
+                : "Order";
+
             setSuccessMessage(
                 isInKitchenQueue
-                    ? `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")} paid and sent to kitchen`
-                    : `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")} paid, but not in kitchen queue`
+                    ? `${orderLabel} paid and sent to kitchen`
+                    : `${orderLabel} paid, but not in kitchen queue`
             );
 
             window.setTimeout(() => {
@@ -153,24 +157,24 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
 
     return (
         <div className="flex h-full min-h-[520px] flex-col bg-[#0F1517] text-white">
-            <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#11191B]/88 px-5 py-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#11191B]/88 px-4 py-3.5 sm:px-5">
                 <div>
                     <div className="flex items-center gap-2">
                         <ShoppingBag size={20} className="text-[#7F1D1D]" />
-                        <h2 className="text-2xl font-black tracking-tight">Current order</h2>
+                        <h2 className="text-xl font-black tracking-tight">Current order</h2>
                     </div>
-                    <p className="mt-1 text-sm font-medium text-white/45">Takeaway · Order #1029</p>
+                    <p className="mt-1 text-sm font-medium text-white/45">Takeaway · New order</p>
                 </div>
-                <span className="rounded-full bg-[#7F1D1D]/14 px-3 py-1.5 text-sm font-black text-[#7F1D1D]">{itemCount} items</span>
+                <span className="rounded-full bg-[#7F1D1D]/14 px-2.5 py-1 text-xs font-black text-[#7F1D1D]">{itemCount} items</span>
             </div>
 
-            <div className="cashier-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+            <div className="cashier-scroll flex-1 space-y-3 overflow-y-auto px-3.5 py-3 sm:px-4">
                 {cartItems.length === 0 ? (
-                    <div className="flex h-full min-h-52 flex-col items-center justify-center text-center">
-                        <div className="grid h-16 w-16 place-items-center rounded-[22px] border border-white/10 bg-white/[0.07] text-[#FFD166]">
-                            <Receipt size={28} />
+                    <div className="flex h-full min-h-40 flex-col items-center justify-center text-center">
+                        <div className="grid h-[52px] w-[52px] place-items-center rounded-[18px] border border-white/10 bg-white/[0.07] text-[#FFD166]">
+                            <Receipt size={24} />
                         </div>
-                        <h3 className="mt-4 font-extrabold">Your order is empty</h3>
+                        <h3 className="mt-3 font-extrabold">Your order is empty</h3>
                         <p className="mt-1 max-w-52 text-sm leading-5 text-white/48">Choose an item from the menu to start a new order.</p>
                     </div>
                 ) : (
@@ -205,21 +209,21 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                 )}
             </div>
 
-            <div className="border-t border-white/[0.08] bg-[linear-gradient(180deg,#11191B_0%,#0D1214_100%)] px-5 py-3.5 shadow-[0_-18px_36px_rgba(0,0,0,0.26)] sm:px-6">
-                <div className="space-y-1.5 text-base">
+            <div className="border-t border-white/[0.08] bg-[linear-gradient(180deg,#11191B_0%,#0D1214_100%)] px-4 py-3 shadow-[0_-18px_36px_rgba(0,0,0,0.26)] sm:px-5">
+                <div className="space-y-1 text-sm">
                     <div className="flex justify-between text-white/55"><span>Subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
                     <div className="flex justify-between text-white/55"><span>Tax (5%)</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
                 </div>
-                <div className="my-2.5 border-t border-dashed border-white/15" />
-                <div className="mb-3 flex items-end justify-between">
-                    <span className="text-lg font-black">Total</span>
-                    <span className="text-3xl font-black text-[#FFD166]">${total.toFixed(2)}</span>
+                <div className="my-2 border-t border-dashed border-white/15" />
+                <div className="mb-2.5 flex items-end justify-between">
+                    <span className="text-base font-black">Total</span>
+                    <span className="text-2xl font-black text-[#FFD166]">${total.toFixed(2)}</span>
                 </div>
-                <div className="mb-3">
-                    <p className="mb-1.5 text-xs font-extrabold uppercase tracking-wide text-white/45">
+                <div className="mb-2.5">
+                    <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-white/45">
                         Payment
                     </p>
-                    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.055] p-1">
+                    <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.08] bg-white/[0.055] p-1">
                         {[
                             { id: "cash", label: "Cash" },
                             { id: "stripe", label: "Stripe" },
@@ -228,7 +232,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                 key={method.id}
                                 type="button"
                                 onClick={() => setPaymentMethod(method.id)}
-                                className={`rounded-xl px-3 py-2 text-base font-extrabold transition ${
+                                className={`rounded-lg px-3 py-1.5 text-sm font-extrabold transition ${
                                     paymentMethod === method.id
                                         ? "bg-[#7F1D1D] text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)]"
                                         : "text-white/58 hover:bg-white/10 hover:text-white"
@@ -270,7 +274,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                         Payment is unavailable for this account.
                     </p>
                 )}
-                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3.5 text-base font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35 disabled:shadow-none">
+                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 disabled:shadow-none">
                     {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${total.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
