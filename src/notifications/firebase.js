@@ -13,7 +13,6 @@ export const firebaseConfig = {
 
 export const firebaseVapidKey =
     "BF_5VThP_92VkDd4OXqisvA2oAreP6PqPb04IkxaQcwGDC4is_pCfhAhANv4DW3gPDT8FceIsBzFMLAwFyfE-IA";
-
 const firebaseApp = initializeApp(firebaseConfig);
 
 export async function getFirebaseMessaging() {
