@@ -112,6 +112,9 @@ export function getPermissionHomePath(user = {}) {
     if (can("manage_menu")) return "/add-menu";
     if (can("view_recipes", "manage_recipes")) return "/ingredients";
     if (can("view_reports", "view_global_reports")) return "/reports";
+    if (can("view_delivery_review", "view_delivery_reviews", "view_deivery_review")) {
+        return "/delivery-reviews";
+    }
 
     return "/no-tasks";
 }

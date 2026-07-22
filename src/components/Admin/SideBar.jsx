@@ -17,6 +17,7 @@ import {
     X,
     Store,
     Flame,
+    MessageSquareText,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -180,6 +181,12 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             title: "Reports",
             path: "/reports",
             permissions: ["view_reports", "view_global_reports"],
+        },
+        {
+            icon: MessageSquareText,
+            title: "Delivery Reviews",
+            path: "/delivery-reviews",
+            permissions: ["view_delivery_review", "view_delivery_reviews", "view_deivery_review"],
         },
     ];
 

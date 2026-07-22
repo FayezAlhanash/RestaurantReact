@@ -78,9 +78,51 @@ function money(value) {
 }
 
 function getList(data) {
+  if (Array.isArray(data?.top_foods)) return data.top_foods;
+  if (Array.isArray(data?.topFoods)) return data.topFoods;
+  if (Array.isArray(data?.foods)) return data.foods;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.orders)) return data.orders;
+  if (Array.isArray(data?.data?.top_foods)) return data.data.top_foods;
+  if (Array.isArray(data?.data?.topFoods)) return data.data.topFoods;
+  if (Array.isArray(data?.data?.foods)) return data.data.foods;
+  if (Array.isArray(data?.data?.items)) return data.data.items;
+  if (Array.isArray(data?.data?.orders)) return data.data.orders;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data)) return data;
   return [];
+}
+
+function getFoodName(row) {
+  return (
+    row?.food_name ||
+    row?.foodName ||
+    row?.menu_item_name ||
+    row?.menuItemName ||
+    row?.food?.name ||
+    row?.menu_item?.name ||
+    row?.menuItem?.name ||
+    row?.name ||
+    `Food #${row?.food_id ?? row?.foodId ?? row?.id ?? ""}`
+  );
+}
+
+function getFoodSoldCount(row) {
+  return Number(
+    row?.total_sold ??
+      row?.totalSold ??
+      row?.sold ??
+      row?.sold_quantity ??
+      row?.soldQuantity ??
+      row?.quantity_sold ??
+      row?.quantitySold ??
+      row?.total_quantity ??
+      row?.totalQuantity ??
+      row?.quantity ??
+      row?.qty ??
+      row?.count ??
+      0
+  );
 }
 
 function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
@@ -792,10 +834,10 @@ export default function ManagerDashboard() {
                   Leader
                 </p>
                 <h3 className="mt-2 text-2xl font-black leading-tight text-white">
-                  {topFoods[0].food_name || `Food #${topFoods[0].food_id}`}
+                  {getFoodName(topFoods[0])}
                 </h3>
                 <p className="mt-2 text-sm font-bold text-white/55">
-                  {Number(topFoods[0].total_sold || 0)} sold in this range
+                  {getFoodSoldCount(topFoods[0])} sold in this range
                 </p>
               </div>
             ) : null}
@@ -823,7 +865,7 @@ export default function ManagerDashboard() {
                     label: "Food",
                     render: (row) => (
                       <span className="text-lg font-black text-white">
-                        {row.food_name || `Food #${row.food_id}`}
+                        {getFoodName(row)}
                       </span>
                     ),
                   },
@@ -832,7 +874,7 @@ export default function ManagerDashboard() {
                     label: "Sold",
                     render: (row) => (
                       <span className="rounded-full bg-[#FFD166]/14 px-4 py-1.5 text-base font-black text-[#FFD166]">
-                        {row.total_sold ?? 0}
+                        {getFoodSoldCount(row)}
                       </span>
                     ),
                   },

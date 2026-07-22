@@ -27,15 +27,26 @@ function getRestaurantId() {
 
 function getList(data) {
     if (Array.isArray(data?.restaurants)) return data.restaurants;
+    if (Array.isArray(data?.data?.restaurants)) return data.data.restaurants;
+    if (Array.isArray(data?.top_foods)) return data.top_foods;
+    if (Array.isArray(data?.topFoods)) return data.topFoods;
+    if (Array.isArray(data?.data?.top_foods)) return data.data.top_foods;
+    if (Array.isArray(data?.data?.topFoods)) return data.data.topFoods;
+    if (Array.isArray(data?.foods)) return data.foods;
+    if (Array.isArray(data?.data?.foods)) return data.data.foods;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.data?.items)) return data.data.items;
+    if (Array.isArray(data?.order_items)) return data.order_items;
+    if (Array.isArray(data?.data?.order_items)) return data.data.order_items;
+    if (Array.isArray(data?.orderItems)) return data.orderItems;
+    if (Array.isArray(data?.data?.orderItems)) return data.data.orderItems;
+    if (Array.isArray(data?.details)) return data.details;
+    if (Array.isArray(data?.data?.details)) return data.data.details;
     if (Array.isArray(data?.data)) return data.data;
     if (Array.isArray(data?.orders)) return data.orders;
     if (Array.isArray(data?.queue)) return data.queue;
     if (Array.isArray(data?.data?.orders)) return data.data.orders;
     if (Array.isArray(data?.data?.queue)) return data.data.queue;
-    if (Array.isArray(data?.top_foods)) return data.top_foods;
-    if (Array.isArray(data?.topFoods)) return data.topFoods;
-    if (Array.isArray(data?.foods)) return data.foods;
-    if (Array.isArray(data?.items)) return data.items;
     if (Array.isArray(data)) return data;
     return [];
 }
@@ -190,7 +201,15 @@ function RevenueDonut({ items = [], total = 0 }) {
 
 function getTopFoodOrderCount(item, food) {
     return Number(
-        item?.orders_count ??
+        item?.total_sold ??
+            item?.sold ??
+            item?.totalSold ??
+            item?.soldQuantity ??
+            item?.sold_quantity ??
+            item?.sold_qty ??
+            item?.sales_count ??
+            item?.salesCount ??
+            item?.orders_count ??
             item?.order_count ??
             item?.ordered_count ??
             item?.times_ordered ??
@@ -201,6 +220,11 @@ function getTopFoodOrderCount(item, food) {
             item?.total_quantity ??
             item?.total_qty ??
             item?.quantity_sold ??
+            item?.quantitySold ??
+            item?.amount_sold ??
+            item?.amountSold ??
+            item?.units_sold ??
+            item?.unitsSold ??
             item?.quantity ??
             item?.qty ??
             item?.count ??
@@ -219,64 +243,158 @@ function getTopFoodOrderCount(item, food) {
 }
 
 function normalizeTopFood(item, restaurant) {
-    const food = item?.food || item?.menu_item || item?.product || item;
+    const food =
+        item?.food ||
+        item?.menu_item ||
+        item?.menuItem ||
+        item?.product ||
+        item?.item ||
+        item;
 
     return {
-        id: food?.id ?? item?.food_id ?? item?.id,
+        id:
+            item?.food_id ??
+            item?.foodId ??
+            item?.menu_item_id ??
+            item?.menuItemId ??
+            food?.id ??
+            item?.id,
         name:
+            item?.food_name ||
+            item?.foodName ||
+            item?.menu_item_name ||
+            item?.menuItemName ||
             food?.name ||
             food?.title ||
-            item?.food_name ||
             item?.name ||
             item?.title ||
-            "Food item",
-        restaurant: restaurant?.name || item?.restaurant?.name || "Restaurant",
+            (item?.food_id ? `Food #${item.food_id}` : "Food item"),
+        restaurant:
+            restaurant?.name ||
+            item?.restaurant?.name ||
+            item?.restaurant_name ||
+            item?.restaurantName ||
+            "Restaurant",
         orders: getTopFoodOrderCount(item, food),
     };
 }
 
 function getOrderItems(order) {
-    return (
-        order?.items ||
-        order?.order_items ||
-        order?.orderItems ||
-        order?.details ||
-        order?.foods ||
-        []
-    );
+    const candidates = [
+        order?.items,
+        order?.order_items,
+        order?.orderItems,
+        order?.details,
+        order?.order_details,
+        order?.orderDetails,
+        order?.restaurant_order_items,
+        order?.restaurantOrderItems,
+        order?.foods,
+        order?.food_items,
+        order?.foodItems,
+        order?.order?.items,
+        order?.order?.order_items,
+        order?.order?.orderItems,
+        order?.cashier_order?.items,
+        order?.cashier_order?.order_items,
+        order?.cashierOrder?.items,
+        order?.cashierOrder?.orderItems,
+        order?.restaurant_order?.items,
+        order?.restaurant_order?.order_items,
+        order?.restaurantOrder?.items,
+        order?.restaurantOrder?.orderItems,
+        order?.restaurant_invoice?.items,
+        order?.restaurantInvoice?.items,
+    ];
+
+    return candidates.flatMap(getList);
 }
 
 function buildTopFoodsFromOrders(orders, restaurant) {
     const foodCounts = new Map();
 
-    orders.forEach((order) => {
-        getList(getOrderItems(order)).forEach((item) => {
-            const food = item?.food || item?.menu_item || item?.product || item;
-            const id = food?.id ?? item?.food_id ?? item?.id;
+    const addItem = (item, fallbackRestaurant) => {
+            const food =
+                item?.food ||
+                item?.menu_item ||
+                item?.menuItem ||
+                item?.product ||
+                item?.item ||
+                item;
+            const id =
+                item?.food_id ??
+                item?.foodId ??
+                item?.menu_item_id ??
+                item?.menuItemId ??
+                food?.id ??
+                item?.id;
             const name =
                 food?.name ||
                 food?.title ||
                 item?.food_name ||
+                item?.foodName ||
+                item?.menu_item_name ||
+                item?.menuItemName ||
                 item?.name ||
                 item?.title ||
-                "Food item";
+                (id ? `Food #${id}` : "Food item");
             const quantity = Number(
-                item?.quantity ?? item?.qty ?? item?.count ?? 1
+                item?.quantity ??
+                    item?.qty ??
+                    item?.count ??
+                    item?.pivot?.quantity ??
+                    item?.pivot?.count ??
+                    1
             );
+            const restaurantName =
+                fallbackRestaurant?.name ||
+                item?.restaurant?.name ||
+                item?.restaurant_name ||
+                item?.restaurantName ||
+                restaurant?.name ||
+                "Restaurant";
             const key = `${id ?? name}`;
             const current = foodCounts.get(key) || {
                 id,
                 name,
-                restaurant: restaurant?.name || "Restaurant",
+                restaurant: restaurantName,
                 orders: 0,
             };
 
-            current.orders += quantity;
+            current.orders += Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
             foodCounts.set(key, current);
+    };
+
+    orders.forEach((order) => {
+        getList(getOrderItems(order)).forEach((item) => {
+            addItem(item, order?.restaurant);
+        });
+
+        getList(order?.restaurant_orders || order?.restaurantOrders).forEach((restaurantOrder) => {
+            getList(getOrderItems(restaurantOrder)).forEach((item) => {
+                addItem(item, restaurantOrder?.restaurant || order?.restaurant);
+            });
         });
     });
 
-    return Array.from(foodCounts.values());
+    return Array.from(foodCounts.values()).filter((food) => food.orders > 0);
+}
+
+async function fetchTopFoodsFallback(restaurant) {
+    const [queueResponse, cashierResponse] = await Promise.allSettled([
+        api.get("/kitchen/queue", {
+            params: restaurant?.id ? { restaurant_id: restaurant.id } : undefined,
+        }),
+        api.get("/cashier/orders", {
+            params: restaurant?.id ? { restaurant_id: restaurant.id } : undefined,
+        }),
+    ]);
+    const queueOrders =
+        queueResponse.status === "fulfilled" ? getList(queueResponse.value.data) : [];
+    const cashierOrders =
+        cashierResponse.status === "fulfilled" ? getList(cashierResponse.value.data) : [];
+
+    return buildTopFoodsFromOrders([...queueOrders, ...cashierOrders], restaurant);
 }
 
 function normalizeDailyRevenue(item) {
@@ -358,14 +476,7 @@ function MainContent() {
 
             if (reportFoods.length) return reportFoods;
 
-            const queueResponse = await api.get("/kitchen/queue", {
-                params: { restaurant_id: restaurant.id },
-            });
-
-            return buildTopFoodsFromOrders(
-                getList(queueResponse.data),
-                restaurant
-            );
+            return fetchTopFoodsFallback(restaurant);
         };
         const fetchRestaurantDailyRevenue = async (restaurant) => {
             const response = await api.get(
@@ -503,19 +614,15 @@ function MainContent() {
                     const fallbackTopFoods = getList(topFoodsResponse.data).map(
                         (item) => normalizeTopFood(item, response.data?.restaurant)
                     );
+                    const fallbackRestaurant = response.data?.restaurant || {
+                        id: restaurantId,
+                    };
 
                     if (fallbackTopFoods.length) {
                         setTopFoods(fallbackTopFoods.slice(0, 10));
                     } else {
-                        const queueResponse = await api.get("/kitchen/queue", {
-                            params: { restaurant_id: restaurantId },
-                        });
-
                         setTopFoods(
-                            buildTopFoodsFromOrders(
-                                getList(queueResponse.data),
-                                response.data?.restaurant
-                            )
+                            (await fetchTopFoodsFallback(fallbackRestaurant))
                                 .sort((a, b) => b.orders - a.orders)
                                 .slice(0, 10)
                         );

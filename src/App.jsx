@@ -11,6 +11,7 @@ import RestaurantsManagements from "./components/Admin/RestaurantsManagements";
 import EmployeesManagements from "./components/Admin/EmployeesManagements";
 import RolesPermission from "./components/Admin/Roles&Permission";
 import UserPermission from "./components/Admin/UserPermission";
+import DeliveryReviews from "./components/Admin/DeliveryReviews";
 import TablesManagements from "./components/Admin/TablesManagements";
 import Cashier from "./components/Cashier/Cashier";
 import CashierDashboard from "./components/Cashier/CashierDashboard";
@@ -49,6 +50,7 @@ const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "manage_tables",
   "manage_restaurants",
   "view_reports",
+  "view_delivery_review",
 ];
 
 const SESSION_CHECK_INTERVAL_MS = 15000;
@@ -217,6 +219,9 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["view_reports", "view_global_reports"]} />}>
               <Route path="/reports" element={<ManagerDashboard />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["view_delivery_review", "view_delivery_reviews", "view_deivery_review"]} />}>
+              <Route path="/delivery-reviews" element={<DeliveryReviews />} />
             </Route>
           </Route>
         </Route>
