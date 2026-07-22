@@ -14,6 +14,33 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+function getNotificationTargetUrl(data = {}) {
+    const target = new URL(data.url || "/", self.location.origin);
+    const isTakeawayPath = [
+        "/takeaway-orders",
+        "/cashier",
+        "/kitchen/takeaway-orders",
+        "/warehouse/takeaway-orders",
+        "/manager/takeaway-orders",
+    ].includes(target.pathname);
+
+    if (isTakeawayPath && !target.searchParams.get("view")) {
+        target.searchParams.set("view", "orders");
+    }
+
+    const orderId =
+        data.orderId ||
+        data.order_id ||
+        data.cashier_order_id ||
+        data.restaurant_order_id;
+
+    if (isTakeawayPath && orderId && !target.searchParams.get("orderId")) {
+        target.searchParams.set("orderId", orderId);
+    }
+
+    return target.href;
+}
+
 messaging.onBackgroundMessage((payload) => {
     const notification = payload.notification || {};
     const data = payload.data || {};
@@ -31,7 +58,7 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
 
-    const targetUrl = event.notification.data?.url || "/";
+    const targetUrl = getNotificationTargetUrl(event.notification.data);
 
     event.waitUntil(
         self.clients

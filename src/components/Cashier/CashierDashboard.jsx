@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import CatalogOrders from "./CatalogOrders";
 import MenuItemCard from "./MenuItem";
 import OrderSidebar from "./OrderSidebar";
@@ -25,6 +26,17 @@ import { useTheme } from "../../context/ThemeContext";
 
 const REPORTS_BACKGROUND =
     "bg-[radial-gradient(circle_at_86%_12%,rgba(127,29,29,0.14),transparent_30%),radial-gradient(circle_at_16%_22%,rgba(255,209,102,0.10),transparent_26%),linear-gradient(145deg,#0D1214_0%,#12191C_54%,#211619_100%)]";
+const CASHIER_VIEW_IDS = new Set([
+    "menu",
+    "catalog",
+    "orders",
+    "serveOrders",
+    "inventory",
+    "stockActions",
+    "lowStock",
+    "tables",
+    "restaurants",
+]);
 
 const getList = (data) => {
     if (Array.isArray(data?.food)) return data.food;
@@ -80,9 +92,25 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     modifierGroups: food.modifier_groups ?? food.modifierGroups ?? [],
 });
 
+const foodDetailsCache = new Map();
+
+const hasModifierGroups = (food) =>
+    Boolean(
+        food?.modifierGroups?.length ||
+            food?.modifier_groups?.length ||
+            food?.groups?.length
+    );
+
 const fetchFoodDetails = async (food) => {
+    const foodId = food?.food_id ?? food?.id;
+
+    if (!foodId) return food;
+    if (foodDetailsCache.has(String(foodId))) {
+        return foodDetailsCache.get(String(foodId));
+    }
+
     try {
-        const response = await api.get(`/food/${food.food_id}`);
+        const response = await api.get(`/food/${foodId}`);
         const [details] = getList(response.data);
         const foodDetails = details || response.data?.food || response.data?.data || response.data;
         const modifierGroups =
@@ -90,9 +118,12 @@ const fetchFoodDetails = async (food) => {
             foodDetails?.modifierGroups ??
             foodDetails?.groups ??
             [];
+        const detailedFood = modifierGroups.length ? { ...food, modifierGroups } : food;
 
-        return modifierGroups.length ? { ...food, modifierGroups } : food;
+        foodDetailsCache.set(String(foodId), detailedFood);
+        return detailedFood;
     } catch {
+        foodDetailsCache.set(String(foodId), food);
         return food;
     }
 };
@@ -102,11 +133,7 @@ const fetchRestaurantMenu = async (restaurant) => {
     const foods = getList(foodsResponse.data).map((food) =>
         normalizeFoodItem(food, restaurant)
     );
-    const detailResponses = await Promise.allSettled(foods.map(fetchFoodDetails));
-
-    return detailResponses.map((result, index) =>
-        result.status === "fulfilled" ? result.value : foods[index]
-    );
+    return foods;
 };
 
 const loadFoodDetailsInBatches = async (foods, batchSize = 6) => {
@@ -128,9 +155,47 @@ const loadFoodDetailsInBatches = async (foods, batchSize = 6) => {
     return detailedFoods;
 };
 
+const hydrateMenuItemDetails = async (foods, onHydrated) => {
+    const foodsMissingDetails = foods.filter((food) => !hasModifierGroups(food));
+
+    if (!foodsMissingDetails.length) return;
+
+    const hydratedFoods = await loadFoodDetailsInBatches(foodsMissingDetails, 6);
+    const hydratedById = new Map(
+        hydratedFoods.map((food) => [String(food.food_id ?? food.id), food])
+    );
+
+    onHydrated((currentFoods) =>
+        currentFoods.map((food) => {
+            const hydratedFood = hydratedById.get(String(food.food_id ?? food.id));
+
+            return hydratedFood ? { ...food, ...hydratedFood } : food;
+        })
+    );
+};
+
+const getActiveViewFromSearch = (search) => {
+    const view = new URLSearchParams(search).get("view");
+
+    return CASHIER_VIEW_IDS.has(view) ? view : "menu";
+};
+
 function CashierDashboard({ embedded = false }) {
+    const location = useLocation();
+    const navigate = useNavigate();
     const { isLight } = useTheme();
-    const [activeView, setActiveView] = useState("menu");
+    const routeActiveView = useMemo(
+        () => getActiveViewFromSearch(location.search),
+        [location.search]
+    );
+    const activeView = routeActiveView;
+    const setActiveView = (view) => {
+        const params = new URLSearchParams(location.search);
+
+        params.set("view", view);
+        params.delete("orderId");
+        navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+    };
     const [permissions, setPermissions] = useState(() => getUserPermissions());
     const [openModal, setOpenModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
@@ -214,12 +279,12 @@ function CashierDashboard({ embedded = false }) {
                     const menuResponses = await Promise.allSettled(
                         restaurantList.map(fetchRestaurantMenu)
                     );
-
-                    setMenuItems(
-                        menuResponses.flatMap((result) =>
-                            result.status === "fulfilled" ? result.value : []
-                        )
+                    const nextMenuItems = menuResponses.flatMap((result) =>
+                        result.status === "fulfilled" ? result.value : []
                     );
+
+                    setMenuItems(nextMenuItems);
+                    hydrateMenuItemDetails(nextMenuItems, setMenuItems).catch(() => {});
                     return;
                 }
 
@@ -229,7 +294,8 @@ function CashierDashboard({ embedded = false }) {
                 });
                 const foods = getList(foodResponse.data).map(normalizeFoodItem);
 
-                setMenuItems(await loadFoodDetailsInBatches(foods));
+                setMenuItems(foods);
+                hydrateMenuItemDetails(foods, setMenuItems).catch(() => {});
             } catch (error) {
                 if (needsRestaurantId(error)) {
                     try {
@@ -239,12 +305,12 @@ function CashierDashboard({ embedded = false }) {
                         const menuResponses = await Promise.allSettled(
                             restaurantList.map(fetchRestaurantMenu)
                         );
-
-                        setMenuItems(
-                            menuResponses.flatMap((result) =>
-                                result.status === "fulfilled" ? result.value : []
-                            )
+                        const nextMenuItems = menuResponses.flatMap((result) =>
+                            result.status === "fulfilled" ? result.value : []
                         );
+
+                        setMenuItems(nextMenuItems);
+                        hydrateMenuItemDetails(nextMenuItems, setMenuItems).catch(() => {});
                     } catch (fallbackError) {
                         setMenuError(
                             fallbackError.response?.data?.message ||
@@ -350,6 +416,27 @@ function CashierDashboard({ embedded = false }) {
                 index === existingIndex
                     ? { ...item, quantity: item.quantity + product.quantity }
                     : item
+            );
+        });
+    };
+
+    const openMenuItem = (item) => {
+        const needsDetails = !hasModifierGroups(item);
+
+        setSelectedItem(needsDetails ? { ...item, isLoadingDetails: true } : item);
+        setOpenModal(true);
+
+        if (!needsDetails) return;
+
+        fetchFoodDetails(item).then((detailedItem) => {
+            setSelectedItem({ ...detailedItem, isLoadingDetails: false });
+            setMenuItems((currentItems) =>
+                currentItems.map((currentItem) =>
+                    String(currentItem.food_id ?? currentItem.id) ===
+                    String(detailedItem.food_id ?? detailedItem.id)
+                        ? { ...currentItem, ...detailedItem }
+                        : currentItem
+                )
             );
         });
     };
@@ -527,10 +614,7 @@ function CashierDashboard({ embedded = false }) {
                                     <MenuItemCard
                                         key={item.id}
                                         item={item}
-                                        onOpen={() => {
-                                            setSelectedItem(item);
-                                            setOpenModal(true);
-                                        }}
+                                        onOpen={() => openMenuItem(item)}
                                     />
                                 ))}
                             </div>
@@ -554,7 +638,7 @@ function CashierDashboard({ embedded = false }) {
 
             {canManageTakeawayOrders && !["tables", "restaurants", "inventory", "stockActions", "lowStock", "serveOrders"].includes(activeView) && (
                 <aside
-                    className={`cashier-order-panel border-t border-white/10 bg-[#0F1517] lg:w-[330px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[340px] ${
+                    className={`cashier-order-panel relative z-10 border-t border-white/10 bg-[#0F1517] lg:w-[330px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[340px] ${
                         embedded ? "cashier-scroll min-h-0 lg:h-full lg:overflow-y-auto" : "cashier-scroll lg:h-dvh"
                     }`}
                 >

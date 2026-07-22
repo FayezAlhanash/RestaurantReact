@@ -68,6 +68,79 @@ const getInventoryId = (item) =>
 const getInventoryName = (item) =>
     item?.name ?? item?.ingredient?.name ?? item?.item_name ?? "Inventory item";
 
+const roleScopedRoutes = {
+    takeawayOrders: {
+        [ROLE_IDS.CASHIER]: "/takeaway-orders?view=orders",
+        [ROLE_IDS.KITCHEN]: "/kitchen/takeaway-orders?view=orders",
+        [ROLE_IDS.WAREHOUSE_MANAGER]: "/warehouse/takeaway-orders?view=orders",
+        [ROLE_IDS.MANAGER]: "/manager/takeaway-orders?view=orders",
+    },
+    dineInService: {
+        [ROLE_IDS.WAITER]: "/waiter/serve-orders",
+        [ROLE_IDS.KITCHEN]: "/kitchen/dine-in-service",
+        [ROLE_IDS.WAREHOUSE_MANAGER]: "/warehouse/dine-in-service",
+        [ROLE_IDS.MANAGER]: "/manager/dine-in-service",
+    },
+    lowStock: {
+        [ROLE_IDS.KITCHEN]: "/kitchen/low-stock",
+        [ROLE_IDS.WAREHOUSE_MANAGER]: "/warehouse/low-stock",
+        [ROLE_IDS.MANAGER]: "/manager/low-stock",
+    },
+};
+
+const routeKeyByPath = {
+    "/takeaway-orders": "takeawayOrders",
+    "/cashier": "takeawayOrders",
+    "/dine-in-service": "dineInService",
+    "/waiter/service": "dineInService",
+    "/waiter/serve-orders": "dineInService",
+    "/low-stock": "lowStock",
+};
+
+function getRoleScopedRoute(routeKey, fallbackPath = "/") {
+    const user = getStoredUser();
+    const roleId = Number(user?.role_id ?? user?.role?.id);
+
+    if (roleScopedRoutes[routeKey]?.[roleId]) {
+        return roleScopedRoutes[routeKey][roleId];
+    }
+
+    return fallbackPath;
+}
+
+function appendUrlParam(url, key, value) {
+    if (!value) return url;
+
+    const separator = String(url).includes("?") ? "&" : "?";
+
+    return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+}
+
+function resolveNotificationUrl(url = window.location.pathname) {
+    const rawPath = String(url || window.location.pathname);
+    const parsedUrl = new URL(rawPath, window.location.origin);
+    const routeKey = routeKeyByPath[parsedUrl.pathname];
+
+    if (!routeKey) return rawPath;
+
+    const scopedRoute = new URL(
+        getRoleScopedRoute(routeKey, parsedUrl.pathname),
+        window.location.origin
+    );
+
+    parsedUrl.searchParams.forEach((value, key) => {
+        if (!scopedRoute.searchParams.has(key)) {
+            scopedRoute.searchParams.set(key, value);
+        }
+    });
+
+    if (routeKey === "takeawayOrders" && !scopedRoute.searchParams.get("view")) {
+        scopedRoute.searchParams.set("view", "orders");
+    }
+
+    return `${scopedRoute.pathname}${scopedRoute.search}${scopedRoute.hash}`;
+}
+
 function getDeviceName() {
     const userAgent = navigator.userAgent;
 
@@ -85,12 +158,19 @@ function showForegroundNotification(payload) {
     const notification = payload.notification || {};
     const data = payload.data || {};
     const title = notification.title || data.title || "Big-4";
+    const targetUrl = resolveNotificationUrl(data.url);
 
-    new Notification(title, {
+    const browserNotification = new Notification(title, {
         body: notification.body || data.body || "You have a new notification.",
         icon: "/favicon.svg",
-        data,
+        data: { ...data, url: targetUrl },
     });
+
+    browserNotification.onclick = () => {
+        window.focus();
+        window.location.assign(targetUrl);
+        browserNotification.close();
+    };
 }
 
 async function showOperationalNotification(title, body, url = window.location.pathname) {
@@ -103,10 +183,11 @@ async function showOperationalNotification(title, body, url = window.location.pa
 
     if (permission !== "granted") return;
 
+    const targetUrl = resolveNotificationUrl(url);
     const options = {
         body,
         icon: "/favicon.svg",
-        data: { url },
+        data: { url: targetUrl },
     };
 
     if ("serviceWorker" in navigator) {
@@ -123,7 +204,7 @@ async function showOperationalNotification(title, body, url = window.location.pa
 
     notification.onclick = () => {
         window.focus();
-        window.location.assign(url);
+        window.location.assign(targetUrl);
         notification.close();
     };
 }
@@ -279,7 +360,11 @@ function startOperationalNotificationPoller() {
                                     `pickup:${getOrderId(order)}`,
                                     "Pickup order is ready",
                                     `Order #${orderNumber} is ready for customer pickup.`,
-                                    "/takeaway-orders"
+                                    appendUrlParam(
+                                        getRoleScopedRoute("takeawayOrders", "/takeaway-orders?view=orders"),
+                                        "orderId",
+                                        getOrderId(order)
+                                    )
                                 );
                             },
                         });
@@ -309,7 +394,7 @@ function startOperationalNotificationPoller() {
                                     `dine-in:${getOrderId(order)}`,
                                     "Dine-in order is ready",
                                     `${suffix} is ready to serve.`,
-                                    "/dine-in-service"
+                                    getRoleScopedRoute("dineInService", "/dine-in-service")
                                 );
                             },
                         });
@@ -337,7 +422,7 @@ function startOperationalNotificationPoller() {
                                     `low-stock:${getInventoryId(item)}`,
                                     "Low stock alert",
                                     `${getInventoryName(item)} is below minimum stock.`,
-                                    "/low-stock"
+                                    getRoleScopedRoute("lowStock", "/low-stock")
                                 );
                             },
                         });
@@ -419,7 +504,7 @@ export default function NotificationManager() {
                 `low-stock:${getInventoryId(item)}`,
                 "Low stock alert",
                 `${getInventoryName(item)} is below minimum stock.`,
-                "/low-stock"
+                getRoleScopedRoute("lowStock", "/low-stock")
             );
         };
 
@@ -443,7 +528,7 @@ export default function NotificationManager() {
                 `dine-in:${getOrderId(order) || orderNumber}`,
                 "Dine-in order is ready",
                 `${suffix} is ready to serve.`,
-                "/dine-in-service"
+                getRoleScopedRoute("dineInService", "/dine-in-service")
             );
         };
 

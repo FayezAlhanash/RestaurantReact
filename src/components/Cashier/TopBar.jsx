@@ -1,16 +1,47 @@
-import { Bell, Search, ShoppingBag } from "lucide-react";
+import { Search, ShoppingBag } from "lucide-react";
+import { useState } from "react";
 import BrandLogo from "../Shared/BrandLogo";
+import EmployeeProfileButton from "../Shared/EmployeeProfileButton";
+import NotificationsButton from "../Shared/NotificationsButton";
 
 function TopBar({ search, setSearch, cartCount }) {
+    const [isSearchReady, setIsSearchReady] = useState(false);
+
     return (
-        <header className="sticky top-0 z-20 border-b border-white/10 bg-[#101517]/82 px-4 py-4 backdrop-blur-xl sm:px-6 xl:px-8">
+        <header className="sticky top-0 z-[110] border-b border-white/10 bg-[#101517]/82 px-4 py-4 backdrop-blur-xl sm:px-6 xl:px-8">
             <div className="flex items-center gap-3 sm:gap-5">
                 <BrandLogo className="h-11 w-11 lg:hidden" />
 
                 <div className="relative min-w-0 flex-1">
+                    <input
+                        type="text"
+                        name="username"
+                        autoComplete="username"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                        className="hidden"
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        autoComplete="current-password"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                        className="hidden"
+                    />
                     <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#FFD166]" />
                     <input
-                        type="search"
+                        type="text"
+                        name="big4_topbar_filter_cashier"
+                        autoComplete="new-password"
+                        autoCorrect="off"
+                        spellCheck="false"
+                        inputMode="search"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        readOnly={!isSearchReady}
+                        onFocus={() => setIsSearchReady(true)}
+                        onMouseDown={() => setIsSearchReady(true)}
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search dishes, drinks..."
@@ -18,16 +49,16 @@ function TopBar({ search, setSearch, cartCount }) {
                     />
                 </div>
 
-                <button aria-label="Notifications" className="hidden h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.07] text-white/65 transition hover:border-[#FFD166]/35 hover:text-[#FFD166] sm:grid">
-                    <Bell size={21} />
-                </button>
+                <div className="hidden sm:block">
+                    <NotificationsButton />
+                </div>
 
-                <div className="hidden items-center gap-3 border-l border-white/10 pl-5 xl:flex">
-                    <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D] font-bold text-white">FA</div>
-                    <div>
-                        <p className="text-sm font-bold">Fayez Ahmad</p>
-                        <p className="text-xs text-white/50">Cashier · Shift A</p>
-                    </div>
+                <div className="relative z-[130] shrink-0 sm:hidden">
+                    <EmployeeProfileButton compact floatingPanel />
+                </div>
+
+                <div className="relative z-[130] hidden shrink-0 border-l border-white/10 pl-5 sm:block">
+                    <EmployeeProfileButton floatingPanel />
                 </div>
 
                 <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#F7C948] text-[#372B13] lg:hidden">

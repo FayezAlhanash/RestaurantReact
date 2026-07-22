@@ -224,7 +224,7 @@ function RestaurantsManagements() {
     }, [restaurants]);
 
     return (
-        <div className="min-h-full bg-[radial-gradient(circle_at_86%_10%,rgba(185,28,28,0.20),transparent_30%),radial-gradient(circle_at_18%_22%,rgba(255,209,102,0.12),transparent_26%),radial-gradient(circle_at_60%_82%,rgba(52,211,153,0.08),transparent_30%),linear-gradient(145deg,#0D1214_0%,#12191C_52%,#24171A_100%)] p-4 text-white sm:p-6 lg:p-8">
+        <div className="admin-rich-page min-h-full p-4 text-white sm:p-6 lg:p-8">
             <div className="mx-auto max-w-[1500px] space-y-6">
                 <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm sm:p-6">
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">

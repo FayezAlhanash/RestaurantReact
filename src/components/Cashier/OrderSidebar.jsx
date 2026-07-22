@@ -188,7 +188,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                             <h3 className="truncate text-base font-extrabold">{item.title}</h3>
                                             <p className="mt-0.5 text-sm capitalize text-white/50">{item.size}</p>
                                         </div>
-                                        <button onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white/35 transition hover:bg-[#7F1D1D]/12 hover:text-[#7F1D1D]">
+                                        <button onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-[#FF6B6B]/30 bg-[#9B1C1F] text-white shadow-[0_8px_18px_rgba(155,28,31,0.20)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] active:scale-95">
                                             <Trash2 size={17} />
                                         </button>
                                     </div>

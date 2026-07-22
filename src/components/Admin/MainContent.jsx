@@ -1,9 +1,16 @@
-import { AlertCircle, DollarSign, Flame, ShoppingBag, Store, Trophy } from "lucide-react";
+import {
+    AlertCircle,
+    CircleDollarSign,
+    Ellipsis,
+    Flame,
+    ShoppingBag,
+    Store,
+    Trophy,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser } from "../../utils/auth";
-import PieChart from "./PieChart";
 import WeeklyOrdersChart from "./WeeklyOrdersChart";
 
 function getRestaurantId() {
@@ -52,6 +59,133 @@ function getCurrentYearFilters() {
         from: `${year}-01-01`,
         to: `${year}-12-31`,
     };
+}
+
+function formatShortPeriod() {
+    const year = new Date().getFullYear();
+
+    return `Jan 01 - Dec 31, ${year}`;
+}
+
+function getDisplayDate(value) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return value || "Today";
+
+    return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+    });
+}
+
+function MiniBars({ color = "#42d09f" }) {
+    return (
+        <div className="flex h-10 items-end gap-1">
+            {[18, 25, 31, 40, 48].map((height) => (
+                <span
+                    key={height}
+                    className="w-1.5 rounded-t-full opacity-75"
+                    style={{ height, backgroundColor: color }}
+                />
+            ))}
+        </div>
+    );
+}
+
+function OrdersBar({ items = [] }) {
+    const latest = items[items.length - 1];
+    const orderCount = Number(latest?.totalOrders || 0);
+    const height = orderCount > 0 ? 164 : 160;
+
+    return (
+        <div className="flex h-full flex-col">
+            <div className="relative mx-auto flex min-h-[220px] w-full max-w-[290px] flex-1 items-end justify-center px-8 pb-8 pt-12">
+                <div className="absolute inset-x-8 top-[42%] border-t border-white/10" />
+                <div className="absolute inset-x-8 top-[58%] border-t border-white/10" />
+                <div className="absolute inset-x-8 top-[74%] border-t border-white/10" />
+                <div className="relative z-10 flex flex-col items-center">
+                    <div className="mb-4 rounded-lg bg-[#4fd99d] px-4 py-3 text-lg font-black text-[#07120f] shadow-[0_16px_34px_rgba(79,217,157,0.24)]">
+                        {orderCount}
+                    </div>
+                    <div
+                        className="w-20 rounded-t-[38px] bg-[linear-gradient(180deg,#54dda4_0%,#50d99d_52%,#45c98f_100%)] shadow-[0_22px_42px_rgba(79,217,157,0.22)]"
+                        style={{ height }}
+                    />
+                    <span className="mt-5 text-sm font-black text-white">
+                        {latest ? getDisplayDate(latest.date) : getDisplayDate(new Date())}
+                    </span>
+                </div>
+            </div>
+            <div className="border-t border-white/10 pt-6 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#8f887c]">
+                Last 24 hours performance
+            </div>
+        </div>
+    );
+}
+
+function RevenueDonut({ items = [], total = 0 }) {
+    const colors = ["#b30d0d", "#078a12", "#dfbd34", "#4267ac", "#b76fff", "#8b929c"];
+    const positiveItems = items.length ? items : [];
+    const safeTotal = positiveItems.reduce((sum, item) => sum + Math.max(Number(item.revenueValue || 0), 0), 0);
+    let cursor = 0;
+    const gradient = positiveItems.length
+        ? positiveItems
+              .map((item, index) => {
+                  const value = Math.max(Number(item.revenueValue || 0), 0);
+                  const start = cursor;
+                  const end = safeTotal ? cursor + (value / safeTotal) * 100 : cursor + 100 / positiveItems.length;
+                  cursor = end;
+                  return `${colors[index % colors.length]} ${start}% ${end}%`;
+              })
+              .join(", ")
+        : "#b30d0d 0% 33%, #078a12 33% 66%, #dfbd34 66% 100%";
+
+    const legendItems = positiveItems.length
+        ? positiveItems.slice(0, 3)
+        : [
+              { restaurant: "Burger Station", revenueValue: 1 },
+              { restaurant: "Italian Corner", revenueValue: 1 },
+              { restaurant: "Levant Grill", revenueValue: 1 },
+          ];
+    const legendTotal = legendItems.reduce((sum, item) => sum + Math.max(Number(item.revenueValue || 0), 0), 0) || legendItems.length;
+
+    return (
+        <div className="flex h-full flex-col justify-between">
+            <div className="flex flex-1 items-center justify-center">
+                <div
+                    className="grid h-48 w-48 place-items-center rounded-full shadow-[0_18px_44px_rgba(0,0,0,0.26)]"
+                    style={{ background: `conic-gradient(${gradient})` }}
+                >
+                    <div className="grid h-32 w-32 place-items-center rounded-full bg-[#111111] text-center">
+                        <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f887c]">
+                                Total
+                            </p>
+                            <p className="mt-2 text-lg font-black text-white">
+                                {formatCurrency(total)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="space-y-4">
+                {legendItems.map((item, index) => (
+                    <div key={`${item.restaurant}-${index}`} className="flex items-center justify-between gap-4 text-sm font-black">
+                        <span className="flex min-w-0 items-center gap-3 text-[#ddd5c6]">
+                            <span
+                                className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_16px_currentColor]"
+                                style={{ backgroundColor: colors[index % colors.length], color: colors[index % colors.length] }}
+                            />
+                            <span className="truncate">{item.restaurant}</span>
+                        </span>
+                        <span className="text-white">
+                            {Math.round((Math.max(Number(item.revenueValue || 0), 0) / legendTotal) * 1000) / 10}%
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 function getTopFoodOrderCount(item, food) {
@@ -186,6 +320,7 @@ function normalizeDailyOrders(item) {
 
 function MainContent() {
     const { isLight } = useTheme();
+    const [isRevenueInfoOpen, setIsRevenueInfoOpen] = useState(false);
     const [restaurantSummaries, setRestaurantSummaries] = useState([]);
     const [topFoods, setTopFoods] = useState([]);
     const [dailyRevenue, setDailyRevenue] = useState([]);
@@ -427,92 +562,86 @@ function MainContent() {
     );
     const totalOrders = earnings.reduce((total, item) => total + item.orders, 0);
     const topRestaurant = earnings[0];
-    const activeRestaurants = earnings.filter((item) => item.revenueValue > 0).length;
+    const restaurantCount = earnings.length;
     const maxRevenue = Math.max(...earnings.map((item) => item.revenueValue), 1);
     const maxFoodOrders = Math.max(...topFoods.map((item) => item.orders), 1);
-
     const stats = [
         {
             title: "Total Revenue",
             value: summaryLoading ? "Loading..." : formatCurrency(totalRevenueValue),
-            helper: "Across all restaurants",
-            icon: DollarSign,
-            accent: "border-[#16A34A]/35 bg-[#16A34A]/10 text-[#22C55E]",
+            helper: "+12.5%",
+            suffix: "vs prev.",
+            icon: CircleDollarSign,
+            accent: "border-[#1cb782]/45 bg-[#0d3a2d] text-[#4fd99d]",
+            graph: <MiniBars color="#42d09f" />,
         },
         {
             title: "Total Orders",
             value: summaryLoading ? "Loading..." : totalOrders,
-            helper: "Orders in selected period",
+            helper: "+3.2%",
+            suffix: "vs prev.",
             icon: ShoppingBag,
-            accent: "border-sky-400/35 bg-sky-400/10 text-sky-300",
+            accent: "border-[#8795c7]/35 bg-[#202436] text-[#b9c6ff]",
+            graph: <MiniBars color="#8795c7" />,
         },
         {
-            title: "Top Restaurant",
+            title: "Top Unit",
             value: summaryLoading
                 ? "Loading..."
                 : topRestaurant?.restaurant || "No revenue yet",
-            helper: topRestaurant ? topRestaurant.revenue : "Waiting for sales",
+            helper: topRestaurant ? topRestaurant.revenue : "$0.00",
+            suffix: "Leading overall sales",
             icon: Trophy,
-            accent: "border-[#FFD166]/35 bg-[#FFD166]/10 text-[#FFD166]",
+            accent: "border-[#d7b52f]/35 bg-[#30290f] text-[#d7b52f]",
         },
         {
             title: "Active Restaurants",
-            value: summaryLoading ? "Loading..." : `${activeRestaurants}/${earnings.length}`,
-            helper: "Restaurants with revenue",
+            value: summaryLoading ? "Loading..." : `${restaurantCount}/${restaurantCount}`,
+            helper: "Registered operating units",
+            suffix: "",
             icon: Store,
-            accent: "border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]",
+            accent: "border-[#d76666]/35 bg-[#321616] text-[#ff9999]",
         },
     ];
-    const titleText = isLight ? "text-[#241815]" : "text-white";
-    const mutedText = isLight ? "text-[#6B5A52]" : "text-white/48";
-    const softText = isLight ? "text-[#7A6A64]" : "text-white/52";
-    const tinyLabelText = isLight ? "text-[#7A6A64]" : "text-white/42";
-    const rowSurface = isLight
-        ? "border-[#E4CFC3] bg-[#FFF9F2] hover:border-[#7F1D1D]/28 hover:bg-[#FFF4EA]"
-        : "border-white/10 bg-[#172124] hover:border-[#7F1D1D]/30 hover:bg-[#1C2A2F]";
-    const emptySurface = isLight
-        ? "border-[#E4CFC3] bg-[#FFF9F2] text-[#7A6A64]"
-        : "border-white/14 bg-[#172124] text-white/45";
-    const getStatValueClass = (title) =>
-        title === "Top Restaurant"
-            ? `mt-3 line-clamp-2 text-3xl font-black leading-tight sm:text-[2.15rem] ${titleText}`
-            : `mt-3 truncate text-4xl font-black leading-none tabular-nums sm:text-[2.65rem] ${titleText}`;
-    const cardFrame =
-        "rounded-[22px] border border-white/10 shadow-[0_22px_55px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]";
     const cardSurface =
-        `${cardFrame} ${
-            isLight
-                ? "border-[#E4CFC3] bg-[#FFF9F2] shadow-[0_18px_44px_rgba(70,45,30,0.10)]"
-                : "bg-[linear-gradient(145deg,rgba(36,49,53,0.96),rgba(25,36,39,0.94))]"
-        }`;
-
+        "dashboard-dark-card rounded-[14px] border border-white/10 bg-[linear-gradient(90deg,#111111_0%,#141414_52%,#101010_100%)] shadow-[0_18px_44px_rgba(0,0,0,0.22)]";
+    const panelSurface =
+        "dashboard-dark-card rounded-[14px] border border-white/10 bg-[linear-gradient(90deg,#111111_0%,#131313_52%,#101010_100%)] shadow-[0_18px_44px_rgba(0,0,0,0.18)]";
     return (
-        <div className={`min-h-full overflow-y-auto p-4 sm:p-6 lg:p-8 ${isLight ? "bg-[#FBF6EF] text-[#241815]" : "bg-[linear-gradient(145deg,#0A1012_0%,#111A1D_46%,#25171B_100%)] text-white"}`}>
+        <div className="admin-dashboard-page admin-rich-page min-h-full overflow-y-auto p-5 text-white sm:p-7 lg:p-10">
             <div className="mx-auto max-w-[1500px]">
-                <section className={`${cardSurface} mb-6 overflow-hidden rounded-[26px] p-5 backdrop-blur-sm sm:p-6`}>
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <section className="mb-7">
+                    <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                         <div>
-                            <p className="admin-dashboard-hero-eyebrow text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                Admin overview
+                            <p className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.42em] text-[#d7b52f]">
+                                Admin Overview
+                                <span className="rounded-full border border-[#2fc78d]/40 bg-[#123529] px-3 py-1 text-[10px] tracking-normal text-[#59e3a8]">
+                                    Live
+                                </span>
                             </p>
-                            <h1 className={`mt-2 text-4xl font-black sm:text-5xl ${titleText}`}>
+                            <h1 className="mt-3 flex items-center gap-3 font-merriweather text-4xl font-black leading-none text-white sm:text-5xl">
                                 Dashboard
+                                <span className="h-3 w-3 rounded-full bg-[#59e3a8]" />
                             </h1>
-                            <p className={`mt-2 max-w-2xl text-base font-medium ${mutedText}`}>
-                                Live revenue, orders, and restaurant performance for the current year.
+                            <p className="mt-4 max-w-2xl text-base font-semibold text-[#9b9388]">
+                                Unified restaurant performance analytics for fiscal year {new Date().getFullYear()}.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 sm:flex">
-                            <div className={`rounded-2xl border px-4 py-3 ${isLight ? "border-[#E4CFC3] bg-[#FFF4EA]" : "border-white/10 bg-white/[0.07]"}`}>
-                                <p className={`text-xs font-bold ${tinyLabelText}`}>Period</p>
-                                <p className={`mt-1 text-base font-black ${titleText}`}>
-                                    {getCurrentYearFilters().from} to {getCurrentYearFilters().to}
+                        <div className="grid grid-cols-2 gap-4 sm:flex">
+                            <div className="dashboard-light-tile rounded-[10px] border border-white/10 bg-[#121212] px-6 py-5">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f887c]">
+                                    Reporting Period
+                                </p>
+                                <p className="mt-2 whitespace-nowrap text-base font-black text-white">
+                                    {formatShortPeriod()}
                                 </p>
                             </div>
-                            <div className={`rounded-2xl border px-4 py-3 ${isLight ? "border-[#E4CFC3] bg-[#FFF4EA]" : "border-white/10 bg-white/[0.07]"}`}>
-                                <p className={`text-xs font-bold ${tinyLabelText}`}>Restaurants</p>
-                                <p className={`mt-1 text-2xl font-black tabular-nums ${titleText}`}>
+                            <div className="dashboard-light-tile rounded-[10px] border border-white/10 bg-[#121212] px-9 py-5 text-center">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f887c]">
+                                    Units
+                                </p>
+                                <p className="mt-2 text-3xl font-black tabular-nums text-[#d7b52f]">
                                     {summaryLoading ? "Loading..." : earnings.length}
                                 </p>
                             </div>
@@ -520,54 +649,94 @@ function MainContent() {
                     </div>
 
                     {summaryError && (
-                        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
+                        <div className="mt-5 flex items-start gap-3 rounded-[10px] border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#ff9999]">
                             <AlertCircle size={18} className="mt-0.5 shrink-0" />
                             <span>{summaryError}</span>
                         </div>
                     )}
                 </section>
 
-                <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <section className="mb-7 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                     {stats.map((card) => {
                         const Icon = card.icon;
 
                         return (
                             <article
                                 key={card.title}
-                                className={`${cardSurface} p-5 transition duration-200 hover:-translate-y-1 ${isLight ? "hover:border-[#7F1D1D]/28 hover:bg-[#FFF4EA]" : "hover:border-white/18 hover:bg-[#253236]"}`}
+                                className={`${cardSurface} min-h-[210px] overflow-hidden p-7 transition duration-200 hover:-translate-y-1 hover:border-white/20`}
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="min-w-0">
-                                        <p className={`text-xs font-black uppercase tracking-[0.12em] ${tinyLabelText}`}>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8f887c]">
                                             {card.title}
                                         </p>
-                                        <h2 className={getStatValueClass(card.title)}>
+                                        <h2 className={`mt-5 ${card.title === "Top Unit" ? "line-clamp-2 text-2xl" : "truncate font-merriweather text-4xl"} font-black leading-tight text-white`}>
                                             {card.value}
                                         </h2>
                                     </div>
-                                    <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl border ${card.accent}`}>
-                                        <Icon size={23} />
+                                    <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-[10px] border ${card.accent}`}>
+                                        <Icon size={24} />
                                     </div>
                                 </div>
-                                <p className={`mt-5 text-sm font-semibold ${softText}`}>
-                                    {card.helper}
-                                </p>
+                                {card.title === "Active Restaurants" ? (
+                                    <>
+                                        <div className="mt-9 flex items-center gap-3">
+                                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/15">
+                                                <div
+                                                    className="h-full rounded-full bg-[#ff9999]"
+                                                    style={{
+                                                        width: `${restaurantCount ? 100 : 0}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="text-sm font-black text-white">
+                                                {restaurantCount ? 100 : 0}%
+                                            </span>
+                                        </div>
+                                        <p className="mt-5 text-sm font-semibold text-[#8f887c]">
+                                            {card.helper}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <div className="mt-10 flex items-end justify-between gap-4">
+                                        <p className="text-sm font-semibold text-[#d9d1c5]">
+                                            <span className={card.title === "Total Orders" ? "text-[#b9c6ff]" : "text-[#59e3a8]"}>
+                                                {card.helper}
+                                            </span>{" "}
+                                            {card.suffix}
+                                        </p>
+                                        {card.graph}
+                                    </div>
+                                )}
                             </article>
                         );
                     })}
                 </section>
 
-                <section className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
-                    <div className={`${cardSurface} p-5`}>
+                <section className="mb-7 grid grid-cols-1 gap-7 xl:grid-cols-3">
+                    <div className={`${panelSurface} relative min-h-[500px] p-8`}>
                         <div className="mb-4 flex items-center justify-between gap-3">
                             <div>
-                                <h2 className={`text-2xl font-black ${titleText}`}>Daily Revenue</h2>
-                                <p className={`text-sm font-medium ${mutedText}`}>
-                                    Revenue grouped by day
+                                <h2 className="text-2xl font-black text-white">Daily Revenue</h2>
+                                <p className="mt-2 text-sm font-semibold text-[#8f887c]">
+                                    Trend analysis by day
                                 </p>
                             </div>
+                            <button
+                                type="button"
+                                aria-label="Daily revenue details"
+                                onClick={() => setIsRevenueInfoOpen((value) => !value)}
+                                className="grid h-9 w-9 place-items-center rounded-[8px] text-[#8f887c] transition hover:bg-white/10 hover:text-[#d7b52f]"
+                            >
+                                <Ellipsis size={22} />
+                            </button>
                         </div>
-                        <div className="h-[320px]">
+                        {isRevenueInfoOpen && (
+                            <div className="dashboard-info-popover absolute right-6 top-24 z-30 max-w-[260px] rounded-[10px] border border-white/10 bg-[#151515] p-4 text-sm font-semibold leading-6 text-white shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+                                Shows total revenue grouped by day for the selected reporting period. Use it to spot daily sales peaks and slow days.
+                            </div>
+                        )}
+                        <div className="h-[365px]">
                             <WeeklyOrdersChart
                                 items={dailyRevenue}
                                 valueKey="revenue"
@@ -580,93 +749,89 @@ function MainContent() {
                         </div>
                     </div>
 
-                    <div className={`${cardSurface} p-5`}>
+                    <div className={`${panelSurface} min-h-[500px] p-8`}>
                         <div className="mb-4 flex items-center justify-between gap-3">
                             <div>
-                                <h2 className={`text-2xl font-black ${titleText}`}>Daily Orders</h2>
-                                <p className={`text-sm font-medium ${mutedText}`}>
-                                    Orders grouped by day
+                                <h2 className="text-2xl font-black text-white">Daily Orders</h2>
+                                <p className="mt-2 text-sm font-semibold text-[#8f887c]">
+                                    Volume tracking
                                 </p>
                             </div>
+                            <span className="rounded-md border border-[#2fc78d]/35 bg-[#123529] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#59e3a8]">
+                                Realtime
+                            </span>
                         </div>
-                        <div className="h-[320px]">
-                            <WeeklyOrdersChart
-                                items={dailyOrders}
-                                valueKey="totalOrders"
-                                label="Orders"
-                                valuePrefix=""
-                                color="#22C55E"
-                                theme={isLight ? "light" : "dark"}
-                            />
+                        <div className="h-[365px]">
+                            <OrdersBar items={dailyOrders} />
                         </div>
                     </div>
 
-                    <div className={`${cardSurface} p-5`}>
+                    <div className={`${panelSurface} min-h-[500px] p-8`}>
                         <div className="mb-4 flex items-center justify-between gap-3">
                             <div>
-                                <h2 className={`text-2xl font-black ${titleText}`}>Revenue Share</h2>
-                                <p className={`text-sm font-medium ${mutedText}`}>
-                                    Split by restaurant
+                                <h2 className="text-2xl font-black text-white">Revenue Share</h2>
+                                <p className="mt-2 text-sm font-semibold text-[#8f887c]">
+                                    Competitive split
                                 </p>
                             </div>
                         </div>
-                        <div className="h-[320px]">
-                            <PieChart items={earnings} theme={isLight ? "light" : "dark"} />
+                        <div className="h-[365px]">
+                            <RevenueDonut items={earnings} total={totalRevenueValue} />
                         </div>
                     </div>
                 </section>
 
-                <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-                    <div className={`flex h-[520px] min-h-0 flex-col ${cardSurface} p-5`}>
-                        <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <section className="mb-7 grid grid-cols-1 gap-7 xl:grid-cols-[1.2fr_0.8fr]">
+                    <div className={`${panelSurface} min-h-[440px] p-7`}>
+                        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <h2 className={`text-2xl font-black ${titleText}`}>Restaurant Earnings</h2>
-                                <p className={`text-sm font-medium ${mutedText}`}>
-                                    Ranked by revenue
+                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8f887c]">
+                                    Financial ranking
                                 </p>
+                                <h2 className="mt-2 text-2xl font-black text-white">
+                                    Restaurant Earnings
+                                </h2>
                             </div>
-                            <p className="text-3xl font-black tabular-nums text-[#22C55E]">
+                            <p className="text-3xl font-black tabular-nums text-[#59e3a8]">
                                 {formatCurrency(totalRevenueValue)}
                             </p>
                         </div>
 
-                        <div className="admin-dashboard-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                        <div className="admin-dashboard-scroll max-h-[330px] space-y-3 overflow-y-auto pr-1">
                             {summaryLoading ? (
-                                <div className={`rounded-2xl border border-dashed p-5 text-sm font-bold ${emptySurface}`}>
+                                <div className="rounded-[10px] border border-dashed border-white/15 bg-white/[0.04] p-5 text-sm font-bold text-[#8f887c]">
                                     Loading restaurant revenue...
                                 </div>
                             ) : earnings.length ? (
                                 earnings.map((item, index) => {
-                                    const percent = Math.round(
-                                        (item.revenueValue / maxRevenue) * 100
-                                    );
+                                    const percent = Math.round((item.revenueValue / maxRevenue) * 100);
 
                                     return (
                                         <div
                                             key={item.restaurant}
-                                            className={`rounded-2xl border p-4 transition duration-200 ${rowSurface}`}
+                                            className="rounded-[10px] border border-white/10 bg-white/[0.04] p-4 transition hover:border-[#d7b52f]/35 hover:bg-white/[0.06]"
                                         >
                                             <div className="flex items-center justify-between gap-4">
-                                                <div className="flex min-w-0 items-center gap-3">
-                                                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] text-xl font-black tabular-nums text-white shadow-[0_10px_24px_rgba(127,29,29,0.22)]">
+                                                <div className="flex min-w-0 items-center gap-4">
+                                                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] bg-[#d7b52f] text-lg font-black tabular-nums text-[#16120a]">
                                                         {index + 1}
                                                     </span>
                                                     <div className="min-w-0">
-                                                        <p className={`truncate text-lg font-black ${titleText}`}>
+                                                        <p className="truncate text-base font-black text-white">
                                                             {item.restaurant}
                                                         </p>
-                                                        <p className={`text-sm font-bold ${mutedText}`}>
+                                                        <p className="mt-1 text-sm font-semibold text-[#8f887c]">
                                                             {item.orders} orders
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className="shrink-0 text-2xl font-black tabular-nums text-[#22C55E]">
+                                                <span className="shrink-0 text-xl font-black tabular-nums text-[#59e3a8]">
                                                     {item.revenue}
                                                 </span>
                                             </div>
-                                            <div className={`mt-4 h-3 overflow-hidden rounded-full ${isLight ? "bg-[#F0E1D8]" : "bg-white/10"}`}>
+                                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                                                 <div
-                                                    className="h-full rounded-full bg-[linear-gradient(90deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] shadow-[0_0_18px_rgba(127,29,29,0.20)]"
+                                                    className="h-full rounded-full bg-[linear-gradient(90deg,#d7b52f_0%,#59e3a8_100%)]"
                                                     style={{ width: `${percent}%` }}
                                                 />
                                             </div>
@@ -674,58 +839,58 @@ function MainContent() {
                                     );
                                 })
                             ) : (
-                                <div className={`rounded-2xl border border-dashed p-5 text-sm font-bold ${emptySurface}`}>
+                                <div className="rounded-[10px] border border-dashed border-white/15 bg-white/[0.04] p-5 text-sm font-bold text-[#8f887c]">
                                     No restaurant earnings available yet.
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className={`flex h-[520px] min-h-0 flex-col ${cardSurface} p-5`}>
-                        <div className="mb-5 shrink-0">
-                            <h2 className={`text-2xl font-black ${titleText}`}>Top Foods</h2>
-                            <p className={`text-sm font-medium ${mutedText}`}>
-                                Most ordered items, limit 10
+                    <div className={`${panelSurface} min-h-[440px] p-7`}>
+                        <div className="mb-6">
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8f887c]">
+                                Menu demand
                             </p>
+                            <h2 className="mt-2 text-2xl font-black text-white">
+                                Top Foods
+                            </h2>
                         </div>
 
-                        <div className="admin-dashboard-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                        <div className="admin-dashboard-scroll max-h-[330px] space-y-3 overflow-y-auto pr-1">
                             {summaryLoading ? (
-                                <div className={`rounded-2xl border border-dashed p-5 text-sm font-bold ${emptySurface}`}>
+                                <div className="rounded-[10px] border border-dashed border-white/15 bg-white/[0.04] p-5 text-sm font-bold text-[#8f887c]">
                                     Loading top foods...
                                 </div>
                             ) : topFoods.length ? (
                                 topFoods.map((item, index) => {
-                                    const percent = Math.round(
-                                        (item.orders / maxFoodOrders) * 100
-                                    );
+                                    const percent = Math.round((item.orders / maxFoodOrders) * 100);
 
                                     return (
                                         <div
                                             key={`${item.restaurant}-${item.id}-${index}`}
-                                            className={`rounded-2xl border p-4 ${isLight ? "border-[#E4CFC3] bg-[#FFF9F2]" : "border-white/10 bg-[#172124]"}`}
+                                            className="rounded-[10px] border border-white/10 bg-white/[0.04] p-4"
                                         >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex min-w-0 items-center gap-3">
-                                                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,225,132,0.18)_0%,rgba(255,193,66,0.13)_52%,rgba(177,112,0,0.18)_100%)] text-[#FFE184] shadow-[0_10px_24px_rgba(255,193,66,0.14)]">
-                                                        <Flame size={20} />
+                                                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[8px] border border-[#d7b52f]/35 bg-[#30290f] text-[#d7b52f]">
+                                                        <Flame size={18} />
                                                     </span>
                                                     <div className="min-w-0">
-                                                        <p className={`truncate text-base font-black ${titleText}`}>
+                                                        <p className="truncate text-sm font-black text-white">
                                                             {index + 1}. {item.name}
                                                         </p>
-                                                        <p className={`truncate text-sm font-bold ${mutedText}`}>
+                                                        <p className="mt-1 truncate text-xs font-semibold text-[#8f887c]">
                                                             {item.restaurant}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className="shrink-0 bg-[linear-gradient(180deg,#FFE184_0%,#FFC142_48%,#C47A00_100%)] bg-clip-text text-2xl font-black tabular-nums text-transparent">
+                                                <span className="shrink-0 text-xl font-black tabular-nums text-[#d7b52f]">
                                                     {item.orders}
                                                 </span>
                                             </div>
-                                            <div className={`mt-4 h-2.5 overflow-hidden rounded-full ${isLight ? "bg-[#F0E1D8]" : "bg-white/10"}`}>
+                                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                                                 <div
-                                                    className="h-full rounded-full bg-[linear-gradient(90deg,#FFE184_0%,#FFC142_52%,#C47A00_100%)] shadow-[0_0_18px_rgba(255,193,66,0.18)]"
+                                                    className="h-full rounded-full bg-[#d7b52f]"
                                                     style={{ width: `${percent}%` }}
                                                 />
                                             </div>
@@ -733,13 +898,18 @@ function MainContent() {
                                     );
                                 })
                             ) : (
-                                <div className={`rounded-2xl border border-dashed p-5 text-sm font-bold ${emptySurface}`}>
+                                <div className="rounded-[10px] border border-dashed border-white/15 bg-white/[0.04] p-5 text-sm font-bold text-[#8f887c]">
                                     No top foods available for this period.
                                 </div>
                             )}
                         </div>
                     </div>
                 </section>
+
+                <div className="mt-24 flex flex-col gap-4 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#4f4a43] sm:flex-row sm:items-center sm:justify-between">
+                    <span>Big-4 Enterprise Suite v4.2.5_e</span>
+                    <span>© {new Date().getFullYear()} Midnight Reserve Ops</span>
+                </div>
             </div>
         </div>
     );

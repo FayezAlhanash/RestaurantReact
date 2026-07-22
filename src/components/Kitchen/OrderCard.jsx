@@ -1,4 +1,4 @@
-import { Bike, CheckCircle2, Clock3, ShoppingBag, Utensils } from "lucide-react";
+import { Bike, CheckCircle2, Clock3, Loader2, ShoppingBag, Utensils } from "lucide-react";
 
 const orderTypeConfig = {
     delivery: {
@@ -68,11 +68,15 @@ export default function OrderCard({
     order,
     onStartPreparing,
     onReady,
+    pendingAction = "",
     className = "",
 }) {
     const type = orderTypeConfig[order.type] || orderTypeConfig.dine_in;
     const TypeIcon = type.icon;
     const normalizedStatus = normalizeStatus(order.status);
+    const isStarting = pendingAction === "start";
+    const isMarkingReady = pendingAction === "ready";
+    const isUpdating = Boolean(pendingAction);
 
     return (
         <article
@@ -159,9 +163,11 @@ export default function OrderCard({
                         <button
                             type="button"
                             onClick={() => onStartPreparing(order.id)}
-                            className="flex h-16 items-center justify-center rounded-xl border border-[#cbbba5] bg-[#f7efdf] text-base font-black text-[#5f4d34] shadow-sm transition hover:bg-[#fff6e8] active:scale-[0.99]"
+                            disabled={isUpdating}
+                            className="flex h-16 items-center justify-center gap-2 rounded-xl border border-[#cbbba5] bg-[#f7efdf] text-base font-black text-[#5f4d34] shadow-sm transition hover:bg-[#fff6e8] active:scale-[0.99] disabled:cursor-wait disabled:opacity-75 disabled:hover:bg-[#f7efdf]"
                         >
-                            بدء التحضير
+                            {isStarting && <Loader2 size={21} className="animate-spin" />}
+                            {isStarting ? "انتظر..." : "بدء التحضير"}
                         </button>
                     )}
 
@@ -169,10 +175,21 @@ export default function OrderCard({
                         <button
                             type="button"
                             onClick={() => onReady?.(order.id)}
-                            className="flex h-16 items-center justify-center gap-2 rounded-xl bg-[#770812] text-base font-black uppercase tracking-normal text-white shadow-[0_10px_18px_rgba(119,8,18,0.28)] transition hover:bg-[#65070f] active:scale-[0.99]"
+                            disabled={isUpdating}
+                            className="flex h-16 items-center justify-center gap-2 rounded-xl bg-[#770812] text-base font-black uppercase tracking-normal text-white shadow-[0_10px_18px_rgba(119,8,18,0.28)] transition hover:bg-[#65070f] active:scale-[0.99] disabled:cursor-wait disabled:opacity-75 disabled:hover:bg-[#770812]"
                         >
-                            <CheckCircle2 size={22} strokeWidth={2.5} />
-                            READY <span className="text-white/45">•</span> جاهز
+                            {isMarkingReady ? (
+                                <Loader2 size={22} className="animate-spin" />
+                            ) : (
+                                <CheckCircle2 size={22} strokeWidth={2.5} />
+                            )}
+                            {isMarkingReady ? (
+                                "انتظر..."
+                            ) : (
+                                <>
+                                    READY <span className="text-white/45">•</span> جاهز
+                                </>
+                            )}
                         </button>
                     )}
                 </div>

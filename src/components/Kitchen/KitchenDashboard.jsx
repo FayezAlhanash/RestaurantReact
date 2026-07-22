@@ -24,6 +24,7 @@ export default function KitchenDashboard() {
     const [showCompleted, setShowCompleted] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [pendingOrderActions, setPendingOrderActions] = useState({});
     const shouldPollRef = useRef(true);
     const user = getStoredUser();
 
@@ -83,6 +84,8 @@ export default function KitchenDashboard() {
     }, [loadQueue]);
 
     const handleStartPreparing = async (orderId) => {
+        if (pendingOrderActions[String(orderId)]) return;
+
         const order = orders.find(
             (currentOrder) => String(currentOrder.id) === String(orderId)
         );
@@ -102,16 +105,29 @@ export default function KitchenDashboard() {
         try {
             const backendIds = order?.backendIds?.length ? order.backendIds : [orderId];
 
+            setPendingOrderActions((current) => ({
+                ...current,
+                [String(orderId)]: "start",
+            }));
             await Promise.all(backendIds.map(startKitchenOrder));
             await loadQueue();
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message || "تعذر بدء تحضير الطلب"
             );
+        } finally {
+            setPendingOrderActions((current) => {
+                const next = { ...current };
+
+                delete next[String(orderId)];
+                return next;
+            });
         }
     };
 
     const handleReady = async (orderId) => {
+        if (pendingOrderActions[String(orderId)]) return;
+
         const order = orders.find(
             (currentOrder) => String(currentOrder.id) === String(orderId)
         );
@@ -131,6 +147,10 @@ export default function KitchenDashboard() {
         try {
             const backendIds = order?.backendIds?.length ? order.backendIds : [orderId];
 
+            setPendingOrderActions((current) => ({
+                ...current,
+                [String(orderId)]: "ready",
+            }));
             await Promise.all(backendIds.map(markKitchenOrderReady));
             if (order) {
                 setCompletedOrders((current) => {
@@ -152,6 +172,13 @@ export default function KitchenDashboard() {
             setErrorMessage(
                 error.response?.data?.message || "تعذر إنهاء الطلب"
             );
+        } finally {
+            setPendingOrderActions((current) => {
+                const next = { ...current };
+
+                delete next[String(orderId)];
+                return next;
+            });
         }
     };
 
@@ -265,6 +292,7 @@ export default function KitchenDashboard() {
                                 order={order}
                                 onStartPreparing={handleStartPreparing}
                                 onReady={handleReady}
+                                pendingAction={pendingOrderActions[String(order.id)]}
                             />
                         ))}
                     </div>

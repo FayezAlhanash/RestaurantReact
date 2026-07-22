@@ -477,8 +477,8 @@ function EmployeeShifts() {
     const titleText = isLight ? "text-[#241815]" : "text-white";
     const mutedText = isLight ? "text-[#6B5A52]" : "text-white/50";
     const pageSurface = isLight
-        ? "bg-[#FBF6EF] text-[#241815]"
-        : "bg-[linear-gradient(145deg,#0A1012_0%,#111A1D_58%,#181316_100%)] text-white";
+        ? "admin-rich-page text-[#241815]"
+        : "admin-rich-page text-white";
     const cardSurface = isLight
         ? "border-[#E4CFC3] bg-[#FFF9F2] shadow-[0_18px_44px_rgba(70,45,30,0.10)]"
         : "border-white/10 bg-[linear-gradient(135deg,rgba(28,39,42,0.96)_0%,rgba(24,34,37,0.94)_60%,rgba(37,27,30,0.92)_100%)] shadow-[0_20px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04]";

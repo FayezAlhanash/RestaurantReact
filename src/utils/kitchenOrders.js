@@ -327,11 +327,17 @@ export function normalizeKitchenOrder(order) {
     const parentOrderId = getKitchenParentOrderId(order);
 
     const normalizedItems = getList(items).map(normalizeKitchenItem);
+    const hasTypeSignal = Boolean(getOrderTypeValue(order));
+    const hasLocationSignal =
+        hasDineInTableSignal(order, normalizedItems) ||
+        hasDeliveryAddressSignal(order) ||
+        hasDeliveryCustomerSignal(order);
 
     return {
         id: parentOrderId ?? backendId,
         backendIds: backendId ? [backendId] : [],
         detailIds: [...new Set(getKitchenOrderCandidateIds(order))],
+        needsTypeDetail: !hasTypeSignal && !hasLocationSignal,
         mergeKey: getKitchenMergeKey(order),
         type: resolveKitchenOrderType(order, normalizedItems),
         time: formatOrderTime(order.created_at || order.time || order.ordered_at),
@@ -364,6 +370,8 @@ function mergeKitchenOrders(orders) {
         ];
         existingOrder.items = [...existingOrder.items, ...order.items];
         existingOrder.status = mergeStatus([existingOrder.status, order.status]);
+        existingOrder.needsTypeDetail =
+            existingOrder.needsTypeDetail && order.needsTypeDetail;
         existingOrder.detailIds = [
             ...new Set([
                 ...(existingOrder.detailIds || []),
@@ -417,23 +425,6 @@ async function fetchKitchenOrderDetail(orderId) {
         return kitchenOrderDetailCache.get(cacheKey);
     }
 
-    const detailRequests = [
-        () => api.get(`/cashier/orders/${orderId}`),
-        () => api.get(`/orders/${orderId}`),
-    ];
-
-    for (const request of detailRequests) {
-        try {
-            const response = await request();
-            const detail = getRecord(response.data);
-
-            kitchenOrderDetailCache.set(cacheKey, detail);
-            return detail;
-        } catch {
-            // Try the next known order-detail endpoint.
-        }
-    }
-
     const cashierOrders = await fetchCashierOrderList();
     const detailFromList = findOrderDetailInList(orderId, cashierOrders);
 
@@ -442,13 +433,23 @@ async function fetchKitchenOrderDetail(orderId) {
         return detailFromList;
     }
 
-    kitchenOrderDetailCache.set(cacheKey, null);
-    return null;
+    try {
+        const response = await api.get(`/cashier/orders/${orderId}`);
+        const detail = getRecord(response.data);
+
+        kitchenOrderDetailCache.set(cacheKey, detail);
+        return detail;
+    } catch {
+        kitchenOrderDetailCache.set(cacheKey, null);
+        return null;
+    }
 }
 
 async function enrichKitchenOrdersWithOrderDetails(orders) {
     const enrichedOrders = await Promise.all(
         orders.map(async (order) => {
+            if (!order.needsTypeDetail) return order;
+
             const detailIds = order.detailIds?.length ? order.detailIds : [order.id];
             let detail = null;
 

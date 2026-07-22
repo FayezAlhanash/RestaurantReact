@@ -223,6 +223,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         }))
         .filter((group) => group.options.length);
     const hasModifiers = modifierGroups.length > 0;
+    const isLoadingDetails = Boolean(item?.isLoadingDetails);
     const selectedModifierOptions = getSelectedModifierOptions();
     const modifierPrice = selectedModifierOptions.reduce(
         (total, option) => total + option.price,
@@ -231,8 +232,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
     const unitPrice = basePrice + modifierPrice + sizePrice;
     const allRequiredModifiersSelected =
-        !hasModifiers ||
-        modifierGroups.every((group) => {
+        !isLoadingDetails &&
+        (!hasModifiers ||
+            modifierGroups.every((group) => {
             if (!isGroupRequired(group)) return true;
 
             const selectedOptionIds = selectedModifiers[getModifierGroupId(group)];
@@ -240,7 +242,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             return Array.isArray(selectedOptionIds)
                 ? selectedOptionIds.length > 0
                 : Boolean(selectedOptionIds);
-        });
+            }));
     const modifierNotes = modifierGroups
         .flatMap((group) => {
             const groupId = getModifierGroupId(group);
@@ -264,7 +266,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         .join(" · ");
 
     return (
-        <div className={`product-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"}`}>
+        <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"}`}>
             <div className={`product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[760px] w-full max-w-[820px] overflow-hidden rounded-[28px] border shadow-2xl md:grid-cols-[0.86fr_1.14fr] ${
                 isDark
                     ? "border-white/10 bg-[#12181B] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]"
@@ -290,7 +292,15 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     <h2 className={`mt-2 pr-12 text-2xl font-black ${isDark ? "text-white" : "text-[#2D2421]"}`}>{item?.title}</h2>
                     <p className={`mt-2 text-base font-semibold leading-7 ${isDark ? "text-white/68" : "text-[#6F5C54]"}`}>{item?.description}</p>
 
-                    {hasModifiers ? (
+                    {isLoadingDetails ? (
+                        <div className={`mt-5 rounded-2xl border p-4 text-sm font-extrabold ${
+                            isDark
+                                ? "border-white/10 bg-white/[0.06] text-white/62"
+                                : "border-[#E7DCD6] bg-[#FBF8F6] text-[#77665F]"
+                        }`}>
+                            Loading options...
+                        </div>
+                    ) : hasModifiers ? (
                         <div className="mt-5 space-y-4">
                             {modifierGroups.map((group) => (
                                 <div
@@ -464,7 +474,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         }`}
                     >
                         <span className="flex items-center gap-2"><ShoppingBag size={19} /> Add to order</span>
-                        <span>${(unitPrice * quantity).toFixed(2)}</span>
+                        <span>{isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}</span>
                     </button>
                 </div>
             </div>

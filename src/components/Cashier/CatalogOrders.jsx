@@ -485,7 +485,7 @@ function CatalogOrders() {
                                                         submittingKey ===
                                                         `restaurant:${group.id}`
                                                     }
-                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-3 text-xs font-black text-[#7F1D1D] transition hover:bg-[#7F1D1D]/20 disabled:opacity-60"
+                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#9B1C1F] px-3 text-xs font-black text-white shadow-[0_10px_22px_rgba(155,28,31,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] hover:shadow-[0_14px_28px_rgba(200,30,42,0.30)] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
                                                 >
                                                     <Ban size={15} />
                                                     {submittingKey ===
@@ -523,7 +523,7 @@ function CatalogOrders() {
                                                                 submittingKey ===
                                                                 `item-delete:${item.id}`
                                                             }
-                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 text-[#7F1D1D] transition hover:bg-[#7F1D1D]/20 disabled:opacity-60"
+                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#FF6B6B]/35 bg-[#9B1C1F] text-white shadow-[0_10px_22px_rgba(155,28,31,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] hover:shadow-[0_14px_28px_rgba(200,30,42,0.30)] active:scale-[0.96] disabled:cursor-wait disabled:opacity-70"
                                                             aria-label={`Delete ${item.name}`}
                                                         >
                                                             <Trash2 size={16} />
@@ -548,7 +548,7 @@ function CatalogOrders() {
                                     type="button"
                                     onClick={() => cancelOrder(order.id)}
                                     disabled={submittingKey === `order:${order.id}`}
-                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-sm transition hover:bg-[#681718] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100"
+                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#9B1C1F] px-4 text-sm font-black text-white shadow-[0_12px_26px_rgba(155,28,31,0.28)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] hover:shadow-[0_16px_32px_rgba(200,30,42,0.34)] active:scale-[0.98] disabled:!bg-[#9B1C1F] disabled:!text-white disabled:!opacity-80"
                                 >
                                     <Trash2 size={16} />
                                     {submittingKey === `order:${order.id}`

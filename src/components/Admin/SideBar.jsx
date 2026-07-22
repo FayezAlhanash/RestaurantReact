@@ -267,7 +267,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             )}
 
             <aside
-                className={`fixed left-0 top-0 z-50 flex h-dvh w-[286px] flex-col border-r border-white/10 bg-[#101517] shadow-[18px_0_45px_rgba(0,0,0,0.28)] transition-[width,transform] duration-300 lg:sticky ${isCollapsed ? "lg:w-[92px]" : "lg:w-[300px]"} lg:translate-x-0 lg:shadow-none ${
+                className={`fixed left-0 top-0 z-50 flex h-dvh w-[286px] flex-col border-r border-white/10 bg-[#1f1f1f] shadow-[18px_0_45px_rgba(0,0,0,0.28)] transition-[width,transform] duration-300 lg:sticky ${isCollapsed ? "lg:w-[92px]" : "lg:w-[320px]"} lg:translate-x-0 lg:shadow-none ${
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
@@ -280,53 +280,47 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                     <X size={20} />
                 </button>
 
-                <div className={`${isCollapsed ? "lg:px-3" : ""} px-4 pb-3 pt-5`}>
-                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(185,28,28,0.24),transparent_34%),linear-gradient(135deg,#171D20,#26181B)] text-white shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition hover:scale-[1.02]">
-                        <div className="absolute inset-x-0 top-0 h-1 bg-[#7F1D1D]" />
-
-                        <div className={`${isCollapsed ? "lg:px-2 lg:pb-3 lg:pt-5" : ""} px-4 pb-4 pt-5`}>
-                            <div className={`flex items-center gap-3 ${isCollapsed ? "lg:justify-center" : ""}`}>
-                                <BrandLogo className="h-11 w-11" />
-                                <div className={`min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
-                                    <h1 className="truncate pb-0.5 text-2xl font-black leading-tight">
-                                        Big-4
-                                    </h1>
-                                    <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
-                                        Restaurant ops
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className={`border-t border-white/10 bg-white/[0.06] px-4 py-3 ${isCollapsed ? "lg:hidden" : ""}`}>
-                            <div className="flex items-center justify-between gap-3 text-sm">
-                                <div className="min-w-0 leading-tight">
-                                    <p className="truncate font-black capitalize text-white">
-                                        {workspaceLabel}
-                                    </p>
-                                    <p className="mt-1 text-xs font-bold text-white/50">
-                                        {visibleMenu.length} available sections
-                                    </p>
-                                </div>
-                                <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-[#FFD166] ring-1 ring-white/10">
-                                    <Flame size={17} />
-                                </div>
-                            </div>
+                <div className={`${isCollapsed ? "lg:px-3" : ""} px-5 pb-3 pt-7`}>
+                    <div className={`flex items-center gap-4 ${isCollapsed ? "lg:justify-center" : ""}`}>
+                        <BrandLogo className="h-[52px] w-[52px]" rounded="rounded-[6px]" />
+                        <div className={`min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
+                            <h1 className="truncate pb-0.5 font-merriweather text-3xl font-black leading-none text-[#f2d35b]">
+                                Big-4
+                            </h1>
+                            <p className="mt-1 truncate text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                Restaurant Ops
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-2">
-                    <div className={`mb-3 flex items-center justify-between px-3 ${isCollapsed ? "lg:hidden" : ""}`}>
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#FFD166]/80">
+                <div className={`mx-5 mt-6 rounded-[8px] border border-white/10 bg-white/[0.06] p-4 ${isCollapsed ? "lg:hidden" : ""}`}>
+                    <div className="flex items-center gap-4">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-[#121212] text-[#d7b52f]">
+                            <Flame size={18} />
+                        </div>
+                        <div className="min-w-0 leading-tight">
+                            <p className="truncate text-base font-black capitalize text-white">
+                                {workspaceLabel}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase text-white/70">
+                                {visibleMenu.length} sections
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-14">
+                    <div className={`mb-4 flex items-center justify-between px-0 ${isCollapsed ? "lg:hidden" : ""}`}>
+                        <p className="text-[12px] font-semibold uppercase tracking-[0.34em] text-[#81786d]">
                             Workspace
                         </p>
-                        <span className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[11px] font-black text-[#FFD166] shadow-sm">
+                        <span className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[11px] font-black text-[#d7b52f] shadow-sm">
                             {visibleMenu.length}
                         </span>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                         {visibleMenu.map((item) => {
                                 const Icon = item.icon;
 
@@ -337,31 +331,29 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                                         onClick={onClose}
                                         title={isCollapsed ? item.title : undefined}
                                         className={({ isActive }) =>
-                                            `group relative flex h-12 items-center gap-3 rounded-xl border px-3 text-sm font-black transition duration-200 hover:scale-[1.03] active:scale-[0.99] ${isCollapsed ? "lg:justify-center lg:px-0" : ""} ${
+                                            `group relative flex h-[50px] items-center gap-3 rounded-[8px] border px-4 text-sm font-semibold transition duration-200 active:scale-[0.99] ${isCollapsed ? "lg:justify-center lg:px-0" : ""} ${
                                                 isActive
                                                     ? isLight
-                                                        ? "border-[#7F1D1D]/40 bg-[#7F1D1D]/10 !text-[#241815] shadow-[0_12px_26px_rgba(127,29,29,0.12)]"
-                                                        : "border-[#7F1D1D]/40 bg-[#7F1D1D]/16 !text-white shadow-[0_12px_26px_rgba(127,29,29,0.16)]"
+                                                        ? "border-[#d7b52f]/45 bg-[#d7b52f] !text-[#16120a] shadow-[0_12px_26px_rgba(215,181,47,0.12)]"
+                                                        : "border-[#d7b52f] bg-[#d7b52f] !text-[#16120a] shadow-[0_12px_26px_rgba(215,181,47,0.16)]"
                                                     : isLight
                                                         ? "border-transparent !text-[#6B5A52] hover:border-[#7F1D1D]/25 hover:bg-[#FFF4EA] hover:!text-[#241815]"
-                                                        : "border-transparent !text-white hover:border-white/10 hover:bg-white/[0.07] hover:!text-white"
+                                                        : "border-transparent !text-[#e6dfd4] hover:border-white/10 hover:bg-white/[0.06] hover:!text-white"
                                             }`
                                         }
                                     >
                                         {({ isActive }) => (
                                             <>
                                                 <span
-                                                    className={`absolute left-0 top-3 h-6 w-1 rounded-r-full transition ${
-                                                        isActive ? "bg-[#7F1D1D]" : "bg-transparent"
-                                                    }`}
+                                                    className="hidden"
                                                 />
                                                 <span
-                                                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-md transition ${
+                                                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition ${
                                                         isActive
-                                                            ? "bg-[#7F1D1D] text-white shadow-sm"
+                                                            ? "bg-transparent text-[#16120a]"
                                                             : isLight
                                                                 ? "bg-[#FFF9F2] text-[#B17400] ring-1 ring-[#E4CFC3] group-hover:bg-[#FFF4EA] group-hover:text-[#8f5f00]"
-                                                                : "bg-white/[0.06] text-white/45 ring-1 ring-white/10 group-hover:bg-white/10 group-hover:text-[#FFD166]"
+                                                                : "bg-transparent text-[#e1d6c6] group-hover:text-[#d7b52f]"
                                                     }`}
                                                 >
                                                     <Icon size={18} />
@@ -369,8 +361,8 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                                                 <span
                                                     className={`min-w-0 truncate ${
                                                         isActive
-                                                            ? isLight ? "!text-[#241815]" : "!text-white"
-                                                            : isLight ? "!text-[#6B5A52] group-hover:!text-[#241815]" : "!text-white/90 group-hover:!text-white"
+                                                            ? "!text-[#16120a]"
+                                                            : isLight ? "!text-[#6B5A52] group-hover:!text-[#241815]" : "!text-[#e6dfd4] group-hover:!text-white"
                                                     } ${isCollapsed ? "lg:hidden" : ""}`}
                                                 >
                                                     {item.title}
@@ -397,11 +389,11 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                     </div>
                 </nav>
 
-                <div className={`border-t border-white/10 bg-white/[0.03] p-4 ${isCollapsed ? "lg:px-3" : ""}`}>
+                <div className={`border-t border-white/10 bg-transparent p-5 ${isCollapsed ? "lg:px-3" : ""}`}>
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className={`flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#7F1D1D]/70 bg-[#7F1D1D] text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.30)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:border-[#681718] hover:bg-[#681718] hover:shadow-[0_16px_32px_rgba(127,29,29,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
+                        className={`flex h-14 w-full items-center justify-center gap-3 rounded-[8px] border border-[#b4000b] bg-[#b4000b] text-sm font-black tracking-[0.12em] text-white shadow-[0_12px_26px_rgba(180,0,11,0.28)] transition hover:-translate-y-0.5 hover:bg-[#9c0009] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
                         title={isCollapsed ? "Logout" : undefined}
                     >
                         <LogOut size={18} />

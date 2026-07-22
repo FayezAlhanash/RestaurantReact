@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3, PackageCheck, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../API/axios";
 
 const getList = (data) => {
@@ -75,6 +76,8 @@ function formatTime(value) {
 }
 
 function PickupOrders() {
+    const location = useLocation();
+    const highlightedOrderId = new URLSearchParams(location.search).get("orderId");
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmittingId, setIsSubmittingId] = useState(null);
@@ -115,7 +118,8 @@ function PickupOrders() {
 
     const readyOrders = useMemo(
         () =>
-            orders.filter((order) => {
+            orders
+                .filter((order) => {
                 const isTakeaway =
                     !order.type ||
                     ["takeaway", "take_away", "takeout"].includes(order.type);
@@ -127,8 +131,14 @@ function PickupOrders() {
                 ].includes(order.status);
 
                 return isTakeaway && isReady;
-            }),
-        [orders]
+                })
+                .sort((a, b) => {
+                    if (!highlightedOrderId) return 0;
+                    if (String(a.id) === String(highlightedOrderId)) return -1;
+                    if (String(b.id) === String(highlightedOrderId)) return 1;
+                    return 0;
+                }),
+        [highlightedOrderId, orders]
     );
 
     const handlePickedUp = async (orderId) => {
@@ -198,7 +208,11 @@ function PickupOrders() {
                     {readyOrders.map((order) => (
                         <article
                             key={order.id}
-                            className="rounded-[24px] border border-[#E4CFC3] bg-white/75 p-5 text-[#241815] shadow-[0_18px_42px_rgba(127,29,29,0.10)] dark:border-white/10 dark:bg-[#252A2D] dark:text-white dark:shadow-[0_18px_42px_rgba(0,0,0,0.20)]"
+                            className={`rounded-[24px] border bg-white/75 p-5 text-[#241815] shadow-[0_18px_42px_rgba(127,29,29,0.10)] dark:bg-[#252A2D] dark:text-white dark:shadow-[0_18px_42px_rgba(0,0,0,0.20)] ${
+                                String(order.id) === String(highlightedOrderId)
+                                    ? "border-[#FFD166] ring-4 ring-[#FFD166]/20 dark:border-[#FFD166]"
+                                    : "border-[#E4CFC3] dark:border-white/10"
+                            }`}
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div>
