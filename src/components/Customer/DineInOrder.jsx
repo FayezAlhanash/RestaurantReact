@@ -16,17 +16,18 @@ import {
     X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import api from "../../API/axios";
-import onboardingCoffee from "../../assets/onboarding-coffee.jpg";
-import onboardingDining from "../../assets/onboarding-dining.jpg";
-import onboardingTerrace from "../../assets/onboarding-terrace.jpg";
+import onboardingChefsTasting from "../../assets/onboarding-chefs-tasting.jpg";
+import onboardingMediterraneanBar from "../../assets/onboarding-mediterranean-bar.jpg";
+import onboardingRestaurantRoom from "../../assets/onboarding-restaurant-room.jpg";
 import {
     confirmStripePayment,
     createStripeCardElement,
     findStripeClientSecret,
 } from "../../utils/stripePayments";
 import { useTheme } from "../../context/ThemeContext";
+import { getStoredToken } from "../../utils/auth";
 import CategoryTabs from "../Cashier/CategoryTabs";
 import ProductModal from "../Cashier/ProductModal";
 
@@ -116,11 +117,28 @@ const getTableToken = (table) =>
 const getTableNumber = (table, fallback) =>
     table?.table_number ?? table?.tableNumber ?? table?.number ?? fallback;
 
-const getTableTokenHeaders = (tableToken, tableId) => ({
-    "Table-Token": tableToken || tableId,
+const getTableTokenFromUrl = (tableId, search) => {
+    const params = new URLSearchParams(search);
+    const explicitToken =
+        params.get("token") ||
+        params.get("table_token") ||
+        params.get("tableToken") ||
+        params.get("qr_token") ||
+        params.get("qrToken");
+
+    if (explicitToken) return explicitToken;
+    if (tableId && !/^\d+$/.test(String(tableId))) return tableId;
+
+    return "";
+};
+
+const getTableTokenHeaders = (tableToken) => ({
+    ...(tableToken ? { "Table-Token": tableToken } : {}),
 });
 
 const fetchTableDetails = async (tableId) => {
+    if (!getStoredToken()) return null;
+
     try {
         const response = await api.get(`/tables/${tableId}`);
         return getFirstRecord(response.data);
@@ -174,7 +192,7 @@ const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
     appendIfPresent(formData, "restaurant_id", restaurantId);
     appendIfPresent(formData, "table_id", tableId);
     appendIfPresent(formData, "table_number", tableId);
-    appendIfPresent(formData, "table_token", tableToken || tableId);
+    appendIfPresent(formData, "table_token", tableToken);
 
     cartItems.forEach((item, index) => {
         const unitPrice = Number(item.price ?? 0);
@@ -210,7 +228,7 @@ const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
     return formData;
 };
 
-const buildAddItemFormData = (item, tableToken, tableId) => {
+const buildAddItemFormData = (item, tableToken) => {
     const formData = new FormData();
     const modifierOptions = item.selectedModifierOptions ?? [];
 
@@ -226,7 +244,7 @@ const buildAddItemFormData = (item, tableToken, tableId) => {
         Number(item.price ?? 0) * Number(item.quantity ?? 1)
     );
     appendIfPresent(formData, "notes", [item.size, item.notes].filter(Boolean).join(" · "));
-    appendIfPresent(formData, "table_token", tableToken || tableId);
+    appendIfPresent(formData, "table_token", tableToken);
 
     modifierOptions.forEach((option, optionIndex) => {
         appendIfPresent(
@@ -292,12 +310,12 @@ const collectInvoiceIds = (value, ids = []) => {
 
 const getCreatedInvoiceId = (data) => collectInvoiceIds(data)[0] ?? null;
 
-async function selectDineInPayment(invoiceId, orderId, tableToken, tableId, paymentMethod) {
+async function selectDineInPayment(invoiceId, orderId, tableToken, paymentMethod) {
     const formData = new FormData();
 
     appendIfPresent(formData, "invoice_id", invoiceId);
     appendIfPresent(formData, "order_id", orderId);
-    appendIfPresent(formData, "table_token", tableToken || tableId);
+    appendIfPresent(formData, "table_token", tableToken);
 
     const endpoint =
         paymentMethod === "stripe"
@@ -305,7 +323,7 @@ async function selectDineInPayment(invoiceId, orderId, tableToken, tableId, paym
             : "/customer-dine-in/payments/cash";
 
     const response = await api.post(endpoint, formData, {
-        headers: getTableTokenHeaders(tableToken, tableId),
+        headers: getTableTokenHeaders(tableToken),
     });
     return response.data;
 }
@@ -314,7 +332,6 @@ async function selectDineInPaymentForCurrentOrder(
     invoiceId,
     orderId,
     tableToken,
-    tableId,
     paymentMethod
 ) {
     try {
@@ -322,7 +339,6 @@ async function selectDineInPaymentForCurrentOrder(
             invoiceId || orderId,
             orderId,
             tableToken,
-            tableId,
             paymentMethod
         );
     } catch (error) {
@@ -335,7 +351,7 @@ async function selectDineInPaymentForCurrentOrder(
 
         if (!shouldRetryWithOrderId) throw error;
 
-        return selectDineInPayment(orderId, orderId, tableToken, tableId, paymentMethod);
+        return selectDineInPayment(orderId, orderId, tableToken, paymentMethod);
     }
 }
 
@@ -349,7 +365,7 @@ async function createDineInOrder(cartItems, tableId, tableToken) {
                 "/customer-dine-in/orders",
                 buildOrderFormData(cartItems, tableId, orderType, tableToken),
                 {
-                    headers: getTableTokenHeaders(tableToken, tableId),
+                    headers: getTableTokenHeaders(tableToken),
                 }
             );
             return response.data;
@@ -368,15 +384,15 @@ async function createDineInOrder(cartItems, tableId, tableToken) {
     throw lastError;
 }
 
-async function addItemsToDineInOrder(orderId, cartItems, tableToken, tableId) {
+async function addItemsToDineInOrder(orderId, cartItems, tableToken) {
     const responses = [];
 
     for (const item of cartItems) {
         const response = await api.post(
             `/customer-dine-in/orders/${orderId}/items`,
-            buildAddItemFormData(item, tableToken, tableId),
+            buildAddItemFormData(item, tableToken),
             {
-                headers: getTableTokenHeaders(tableToken, tableId),
+                headers: getTableTokenHeaders(tableToken),
             }
         );
 
@@ -897,7 +913,7 @@ function OrderPanel({
                     type="button"
                     onClick={onSubmit}
                     disabled={!itemCount || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
-                    className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
+                    className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
                 >
                     {isSubmitting ? "Sending..." : "Confirm order"}
                 </button>
@@ -1154,7 +1170,7 @@ function ConfirmOrderModal({
                             type="button"
                             onClick={onConfirm}
                             disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
-                            className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/45"
+                            className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
                         >
                             {isSubmitting ? "Sending..." : "Place order"}
                         </button>
@@ -1167,7 +1183,7 @@ function ConfirmOrderModal({
 
 const onboardingSlides = [
     {
-        image: onboardingCoffee,
+        image: onboardingMediterraneanBar,
         eyebrow: "Welcome",
         title: "Your table is ready",
         description:
@@ -1175,7 +1191,7 @@ const onboardingSlides = [
         align: "items-end text-left",
     },
     {
-        image: onboardingTerrace,
+        image: onboardingChefsTasting,
         eyebrow: "Simple ordering",
         title: "Pick your favorites",
         description:
@@ -1183,7 +1199,7 @@ const onboardingSlides = [
         align: "items-start text-left",
     },
     {
-        image: onboardingDining,
+        image: onboardingRestaurantRoom,
         eyebrow: "Order now",
         title: "Good food is one tap away",
         description:
@@ -1221,11 +1237,11 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
                         key={item.title}
                         src={item.image}
                         alt=""
-                        className="h-full w-full min-w-full object-cover"
+                        className="h-full w-full min-w-full object-cover object-center"
                     />
                 ))}
             </div>
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,10,8,0.25)_0%,rgba(13,10,8,0.58)_44%,rgba(13,10,8,0.88)_100%)]" />
+            <div className="customer-onboarding-overlay absolute inset-0" />
 
             <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-5 sm:px-8">
                 <div className="rounded-full border border-white/15 bg-black/25 px-4 py-2 text-xs font-black uppercase tracking-wide text-white/85 backdrop-blur">
@@ -1250,19 +1266,19 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
                         className={`flex min-h-dvh w-full min-w-full flex-col justify-end px-5 pb-28 pt-24 sm:px-8 lg:px-12 ${item.align}`}
                     >
                         <div
-                            className={`w-full max-w-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                            className={`customer-onboarding-copy w-full max-w-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                                 index === activeSlide
                                     ? "translate-y-0 opacity-100"
                                     : "translate-y-5 opacity-0"
                             }`}
                         >
-                            <p className="mb-3 inline-flex rounded-full bg-[#D8A23A] px-4 py-2 text-xs font-black uppercase tracking-wide text-[#241707]">
+                            <p className="customer-onboarding-eyebrow mb-3 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide">
                                 {item.eyebrow}
                             </p>
-                            <h1 className="max-w-[12ch] text-4xl font-black leading-[1.04] text-white drop-shadow sm:text-6xl">
+                            <h1 className="customer-onboarding-title max-w-[12ch] text-4xl font-black leading-[1.04] sm:text-6xl">
                                 {item.title}
                             </h1>
-                            <p className="mt-4 max-w-md text-base font-semibold leading-7 text-white/82 sm:text-lg">
+                            <p className="customer-onboarding-description mt-4 max-w-md text-base font-bold leading-7 sm:text-lg">
                                 {item.description}
                             </p>
                         </div>
@@ -1319,6 +1335,11 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
 function DineInOrder() {
     const { isLight, toggleTheme } = useTheme();
     const { tableId = "1" } = useParams();
+    const location = useLocation();
+    const tableTokenFromUrl = useMemo(
+        () => getTableTokenFromUrl(tableId, location.search),
+        [location.search, tableId]
+    );
     const orderStorageKey = `customer-dine-in-order:${tableId}`;
     const invoiceStorageKey = `customer-dine-in-invoice:${tableId}`;
     const tableTokenStorageKey = `customer-dine-in-table-token:${tableId}`;
@@ -1362,8 +1383,18 @@ function DineInOrder() {
             setErrorMessage("");
 
             try {
+                if (tableTokenFromUrl) {
+                    sessionStorage.setItem(tableTokenStorageKey, String(tableTokenFromUrl));
+                    setTableToken(String(tableTokenFromUrl));
+                }
+
                 const tableDetails = await fetchTableDetails(tableId);
                 const nextTableToken = getTableToken(tableDetails);
+                const resolvedTableToken =
+                    nextTableToken ||
+                    tableTokenFromUrl ||
+                    sessionStorage.getItem(tableTokenStorageKey) ||
+                    "";
 
                 if (nextTableToken) {
                     sessionStorage.setItem(tableTokenStorageKey, String(nextTableToken));
@@ -1384,6 +1415,10 @@ function DineInOrder() {
                         result.status === "fulfilled" ? result.value : []
                     )
                 );
+
+                if (!resolvedTableToken) {
+                    setErrorMessage("Open this page from a valid table QR link before placing an order.");
+                }
             } catch (error) {
                 try {
                     const foodsResponse = await api.get("/food");
@@ -1397,6 +1432,10 @@ function DineInOrder() {
                             result.status === "fulfilled" ? result.value : foods[index]
                         )
                     );
+
+                    if (!tableTokenFromUrl && !sessionStorage.getItem(tableTokenStorageKey)) {
+                        setErrorMessage("Open this page from a valid table QR link before placing an order.");
+                    }
                 } catch (fallbackError) {
                     setErrorMessage(
                         fallbackError.response?.data?.message ||
@@ -1409,7 +1448,7 @@ function DineInOrder() {
         };
 
         loadMenu();
-    }, [tableId, tableTokenStorageKey]);
+    }, [tableId, tableTokenFromUrl, tableTokenStorageKey]);
 
     useEffect(() => {
         const storedOrderId = sessionStorage.getItem(orderStorageKey);
@@ -1566,6 +1605,10 @@ function DineInOrder() {
         setSuccessMessage("");
 
         try {
+            if (!tableToken) {
+                throw new Error("Open this page from a valid table QR link before placing an order.");
+            }
+
             if (paymentMethod === "stripe" && !isStripeReady) {
                 throw new Error("Stripe is still loading. Try again in a moment.");
             }
@@ -1587,7 +1630,6 @@ function DineInOrder() {
                 invoiceId,
                 createdOrderId,
                 tableToken,
-                tableId,
                 paymentMethod
             );
 
@@ -1650,6 +1692,11 @@ function DineInOrder() {
 
     const openConfirmOrder = () => {
         if (!cartItems.length) return;
+        if (!tableToken) {
+            setSuccessMessage("");
+            setErrorMessage("Open this page from a valid table QR link before placing an order.");
+            return;
+        }
 
         setErrorMessage("");
         setSuccessMessage("");

@@ -1,6 +1,8 @@
 import {
+    AlertTriangle,
     Ban,
     Clock3,
+    Loader2,
     RefreshCw,
     ShoppingBag,
     Store,
@@ -228,6 +230,8 @@ function CatalogOrders() {
     const [submittingKey, setSubmittingKey] = useState("");
     const [message, setMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [confirmAction, setConfirmAction] = useState(null);
+    const [isConfirmVisible, setIsConfirmVisible] = useState(false);
 
     const loadOrderDetails = useCallback(async (orders) => {
         const detailResponses = await Promise.allSettled(
@@ -311,6 +315,27 @@ function CatalogOrders() {
             ),
         [orders]
     );
+
+    const openConfirmation = (action) => {
+        setConfirmAction(action);
+        setIsConfirmVisible(false);
+        requestAnimationFrame(() => setIsConfirmVisible(true));
+    };
+
+    const closeConfirmation = () => {
+        if (submittingKey) return;
+
+        setIsConfirmVisible(false);
+        window.setTimeout(() => setConfirmAction(null), 180);
+    };
+
+    const confirmDeletion = async () => {
+        if (!confirmAction || submittingKey) return;
+
+        await confirmAction.onConfirm();
+        setIsConfirmVisible(false);
+        window.setTimeout(() => setConfirmAction(null), 180);
+    };
 
     const cancelOrder = async (orderId) => {
         const key = `order:${orderId}`;
@@ -485,13 +510,24 @@ function CatalogOrders() {
                                                 <button
                                                     type="button"
                                                     onClick={() =>
-                                                        cancelRestaurantOrder(group.id, order.id)
+                                                        openConfirmation({
+                                                            title: "Cancel this group?",
+                                                            description: `This will remove the ${group.restaurantName} group from order #${order.number}.`,
+                                                            confirmLabel: "Cancel group",
+                                                            submittingLabel: "Canceling...",
+                                                            submittingKey: `restaurant:${group.id}`,
+                                                            onConfirm: () =>
+                                                                cancelRestaurantOrder(
+                                                                    group.id,
+                                                                    order.id
+                                                                ),
+                                                        })
                                                     }
                                                     disabled={
                                                         submittingKey ===
                                                         `restaurant:${group.id}`
                                                     }
-                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#9B1C1F] px-3 text-xs font-black text-white shadow-[0_10px_22px_rgba(155,28,31,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] hover:shadow-[0_14px_28px_rgba(200,30,42,0.30)] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#7F1D1D] px-3 text-xs font-black text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] hover:shadow-[0_14px_28px_rgba(127,29,29,0.30)] active:scale-[0.98] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
                                                 >
                                                     <Ban size={15} />
                                                     {submittingKey ===
@@ -524,12 +560,24 @@ function CatalogOrders() {
                                                         </span>
                                                         <button
                                                             type="button"
-                                                            onClick={() => deleteOrderItem(item.id)}
+                                                            onClick={() =>
+                                                                openConfirmation({
+                                                                    title: "Delete this item?",
+                                                                    description: `${item.name} will be removed from order #${order.number}.`,
+                                                                    confirmLabel: "Delete item",
+                                                                    submittingLabel: "Deleting...",
+                                                                    submittingKey: `item-delete:${item.id}`,
+                                                                    onConfirm: () =>
+                                                                        deleteOrderItem(
+                                                                            item.id
+                                                                        ),
+                                                                })
+                                                            }
                                                             disabled={
                                                                 submittingKey ===
                                                                 `item-delete:${item.id}`
                                                             }
-                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#FF6B6B]/35 bg-[#9B1C1F] text-white shadow-[0_10px_22px_rgba(155,28,31,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] hover:shadow-[0_14px_28px_rgba(200,30,42,0.30)] active:scale-[0.96] disabled:cursor-wait disabled:opacity-70"
+                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#FF6B6B]/35 bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] hover:shadow-[0_14px_28px_rgba(127,29,29,0.30)] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
                                                             aria-label={`Delete ${item.name}`}
                                                         >
                                                             <Trash2 size={16} />
@@ -552,9 +600,18 @@ function CatalogOrders() {
 
                                 <button
                                     type="button"
-                                    onClick={() => cancelOrder(order.id)}
+                                    onClick={() =>
+                                        openConfirmation({
+                                            title: "Cancel this order?",
+                                            description: `Order #${order.number} and its groups will be canceled.`,
+                                            confirmLabel: "Cancel order",
+                                            submittingLabel: "Canceling...",
+                                            submittingKey: `order:${order.id}`,
+                                            onConfirm: () => cancelOrder(order.id),
+                                        })
+                                    }
                                     disabled={submittingKey === `order:${order.id}`}
-                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#9B1C1F] px-4 text-sm font-black text-white shadow-[0_12px_26px_rgba(155,28,31,0.28)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] hover:shadow-[0_16px_32px_rgba(200,30,42,0.34)] active:scale-[0.98] disabled:!bg-[#9B1C1F] disabled:!text-white disabled:!opacity-80"
+                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.28)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] hover:shadow-[0_16px_32px_rgba(127,29,29,0.34)] active:scale-[0.98] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-80"
                                 >
                                     <Trash2 size={16} />
                                     {submittingKey === `order:${order.id}`
@@ -571,6 +628,71 @@ function CatalogOrders() {
                     <p className="mt-2 text-white/58">
                         New orders will appear here after they are sent.
                     </p>
+                </div>
+            )}
+
+            {confirmAction && (
+                <div
+                    className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm transition-opacity duration-200 ${
+                        isConfirmVisible ? "opacity-100" : "opacity-0"
+                    }`}
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            closeConfirmation();
+                        }
+                    }}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cashier-delete-confirm-title"
+                        className={`w-full max-w-md rounded-[26px] border border-[#7F1D1D]/18 bg-[#fffaf5] p-5 text-[#241815] shadow-[0_28px_80px_rgba(36,24,21,0.26)] ring-1 ring-white/70 transition duration-200 ease-out ${
+                            isConfirmVisible
+                                ? "translate-y-0 scale-100 opacity-100"
+                                : "translate-y-3 scale-95 opacity-0"
+                        }`}
+                    >
+                        <div className="flex items-start gap-4">
+                            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#7F1D1D]/18 bg-[#7F1D1D]/10 text-[#7F1D1D]">
+                                <AlertTriangle size={23} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <h2
+                                    id="cashier-delete-confirm-title"
+                                    className="text-xl font-black"
+                                >
+                                    {confirmAction.title}
+                                </h2>
+                                <p className="mt-2 text-sm font-semibold leading-6 text-[#6b5b53]">
+                                    {confirmAction.description}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={closeConfirmation}
+                                disabled={Boolean(submittingKey)}
+                                className="h-12 rounded-2xl border border-[#d8c9bd] bg-white text-sm font-black text-[#5d4c45] shadow-sm transition hover:bg-[#fff4eb] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+                            >
+                                Keep it
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeletion}
+                                disabled={Boolean(submittingKey)}
+                                className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
+                            >
+                                {submittingKey === confirmAction.submittingKey && (
+                                    <Loader2 size={17} className="animate-spin" />
+                                )}
+                                {submittingKey === confirmAction.submittingKey
+                                    ? confirmAction.submittingLabel
+                                    : confirmAction.confirmLabel}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </section>

@@ -40,7 +40,7 @@ export default function KitchenDashboard() {
     const chefName =
         user?.name ||
         [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
-        "أحمد خالد";
+        "Ahmed Khaled";
 
     const loadQueue = useCallback(async () => {
         try {
@@ -97,8 +97,8 @@ export default function KitchenDashboard() {
 
             setErrorMessage(
                 error.response?.status === 403
-                    ? "Unauthorized. سجّل دخول بحساب المطبخ أو تأكد أن الحساب لديه صلاحية قائمة المطبخ."
-                    : error.response?.data?.message || "تعذر جلب قائمة المطبخ"
+                    ? "Unauthorized. Sign in with a kitchen account or make sure this account has kitchen queue access."
+                    : error.response?.data?.message || "Could not load the kitchen queue."
             );
         } finally {
             setIsLoading(false);
@@ -119,7 +119,7 @@ export default function KitchenDashboard() {
                 );
             } catch (error) {
                 setErrorMessage(
-                    error.response?.data?.message || "تعذر جلب قائمة المطاعم"
+                    error.response?.data?.message || "Could not load restaurants."
                 );
             }
         };
@@ -173,7 +173,7 @@ export default function KitchenDashboard() {
             await loadQueue();
         } catch (error) {
             setErrorMessage(
-                error.response?.data?.message || "تعذر بدء تحضير الطلب"
+                error.response?.data?.message || "Could not start preparing the order."
             );
         } finally {
             setPendingOrderActions((current) => {
@@ -230,7 +230,7 @@ export default function KitchenDashboard() {
             await loadQueue();
         } catch (error) {
             setErrorMessage(
-                error.response?.data?.message || "تعذر إنهاء الطلب"
+                error.response?.data?.message || "Could not mark the order as ready."
             );
         } finally {
             setPendingOrderActions((current) => {
@@ -255,7 +255,7 @@ export default function KitchenDashboard() {
                                 : "border-white/10 bg-[#363c42] text-[#dff7e7] hover:bg-[#414850]"
                         }`}
                     >
-                        الطلبات الجاهزة
+                        Ready Orders
                         <span className="rounded-full bg-white/12 px-2 py-0.5 text-xs">
                             {completedOrders.length}
                         </span>
@@ -263,28 +263,28 @@ export default function KitchenDashboard() {
                     </button>
                 </div>
 
-                <div className="text-right">
+                <div className="text-left">
                     <p className="text-lg font-black text-white">
                         {chefName}
                     </p>
                     <p className="mt-1 text-sm font-extrabold text-[#bbb4aa]">
-                        رئيس الطهاة
+                        Head Chef
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4 text-right">
+                <div className="flex items-center gap-4 text-left">
                     <div>
                         <p className="text-lg font-black text-[#f8ded8]">
                             {selectedRestaurant?.name
-                                ? `مطبخ ${selectedRestaurant.name}`
+                                ? `${selectedRestaurant.name} Kitchen`
                                 : isAdmin && selectedRestaurantId === ADMIN_ALL_RESTAURANTS
-                                  ? "كل المطابخ"
-                                  : "مطبخ الفرع"}
+                                  ? "All Kitchens"
+                                  : "Branch Kitchen"}
                         </p>
                         <p className="mt-1 text-sm font-extrabold text-[#bbb4aa]">
-                            المحطة الرئيسية ·{" "}
+                            Main station ·{" "}
                             <span className="text-white">
-                                {orders.length} طلب نشط
+                                {orders.length} active orders
                             </span>
                         </p>
                     </div>
@@ -297,7 +297,7 @@ export default function KitchenDashboard() {
             <section className="px-5 py-6 lg:px-8">
                 {isAdmin && restaurants.length > 0 && (
                     <div className="mb-5 rounded-2xl border border-[#FFD166]/25 bg-[#2a2f34] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.20)]">
-                        <div className="mb-3 flex items-center gap-3 text-right">
+                        <div className="mb-3 flex items-center gap-3 text-left">
                             <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
                                 <Building2 size={20} />
                             </div>
@@ -306,7 +306,7 @@ export default function KitchenDashboard() {
                                     Admin kitchen view
                                 </p>
                                 <h2 className="text-lg font-black text-white">
-                                    اختر مطعم لعرض مطبخه
+                                    Choose a restaurant to view its kitchen
                                 </h2>
                             </div>
                         </div>
@@ -364,14 +364,14 @@ export default function KitchenDashboard() {
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#78330f] text-[#ffe3cc]">
                             <Flame size={22} strokeWidth={2.5} />
                         </div>
-                        <div className="text-right">
+                        <div className="text-left">
                             <p className="text-sm font-black text-white">
-                                {showCompleted ? "الطلبات الجاهزة" : "قائمة التحضير"}
+                                {showCompleted ? "Ready Orders" : "Prep Queue"}
                             </p>
                             <p className="text-xs font-extrabold text-[#bbb4aa]">
                                 {showCompleted
-                                    ? "الطلبات التي أصبحت جاهزة للتسليم"
-                                    : "طلبات هذا المطبخ قيد المتابعة"}
+                                    ? "Orders that are ready for handoff"
+                                    : "Orders this kitchen is actively tracking"}
                             </p>
                         </div>
                     </div>
@@ -381,20 +381,20 @@ export default function KitchenDashboard() {
                         onClick={loadQueue}
                         className="flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#9b7d06] px-5 text-sm font-black text-[#1f1804] shadow-[0_12px_24px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ac8c08]"
                     >
-                        تحديث القائمة
+                        Refresh Queue
                         <BellRing size={22} strokeWidth={2.4} />
                     </button>
                 </div>
 
                 {errorMessage && (
-                    <p className="mb-5 rounded-2xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-right text-sm font-extrabold text-amber-100">
+                    <p className="mb-5 rounded-2xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-left text-sm font-extrabold text-amber-100">
                         {errorMessage}
                     </p>
                 )}
 
                 {isLoading ? (
                     <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                        جاري تحميل طلبات المطبخ...
+                        Loading kitchen orders...
                     </div>
                 ) : showCompleted ? (
                     completedOrders.length ? (
@@ -409,7 +409,7 @@ export default function KitchenDashboard() {
                         </div>
                     ) : (
                         <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                            لا يوجد طلبات جاهزة لهذا المطبخ حالياً
+                            There are no ready orders for this kitchen right now.
                         </div>
                     )
                 ) : orders.length ? (
@@ -426,7 +426,7 @@ export default function KitchenDashboard() {
                     </div>
                 ) : (
                     <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                        لا يوجد طلبات لهذا المطبخ حالياً
+                        There are no orders for this kitchen right now.
                     </div>
                 )}
             </section>

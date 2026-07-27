@@ -105,6 +105,38 @@ img, svg {
     border-radius: 999px;
 }
 
+.customer-onboarding-overlay {
+    background:
+        radial-gradient(circle at 75% 72%, rgba(0, 0, 0, 0.64) 0%, rgba(0, 0, 0, 0.46) 22%, transparent 44%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.04) 46%, rgba(0, 0, 0, 0.42) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.18) 54%, rgba(0, 0, 0, 0.52) 100%);
+}
+
+.customer-onboarding-copy,
+.customer-onboarding-copy * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+.customer-onboarding-eyebrow {
+    background: rgba(0, 0, 0, 0.36) !important;
+    border: 1px solid rgba(255, 255, 255, 0.34) !important;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26) !important;
+    backdrop-filter: blur(10px);
+}
+
+.customer-onboarding-title {
+    text-shadow:
+        0 3px 8px rgba(0, 0, 0, 0.95),
+        0 14px 34px rgba(0, 0, 0, 0.72);
+}
+
+.customer-onboarding-description {
+    text-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.95),
+        0 10px 24px rgba(0, 0, 0, 0.72);
+}
+
 .product-modal-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 209, 102, 0.62) rgba(18, 25, 28, 0.72);
@@ -771,6 +803,11 @@ img, svg {
     color: #ffffff !important;
 }
 
+[data-theme="light"] .customer-experience .customer-onboarding-copy,
+[data-theme="light"] .customer-experience .customer-onboarding-copy [class*="text-white"] {
+    color: #ffffff !important;
+}
+
 [data-theme="light"] .customer-experience .customer-food-card {
     background-color: rgba(255, 250, 243, 0.96) !important;
     color: #241815 !important;
@@ -1218,6 +1255,24 @@ img, svg {
     color-scheme: dark;
 }
 
+.login-screen.is-arriving-from-help {
+    animation: login-arrive-from-help 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes login-arrive-from-help {
+    from {
+        opacity: 0;
+        filter: blur(8px);
+        transform: translateY(14px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0) scale(1);
+    }
+}
+
 .login-screen .login-backdrop-image,
 [data-theme="light"] .login-screen .login-backdrop-image,
 [data-theme="dark"] .login-screen .login-backdrop-image,
@@ -1253,6 +1308,42 @@ img, svg {
     background:
         radial-gradient(circle at 20% 20%, rgba(255, 209, 102, 0.28), transparent 26%),
         radial-gradient(circle at 82% 76%, rgba(255, 255, 255, 0.18), transparent 24%) !important;
+}
+
+.login-screen .login-help-button,
+[data-theme="light"] .login-screen .login-help-button,
+[data-theme="dark"] .login-screen .login-help-button {
+    color: #fff8e8 !important;
+    background:
+        linear-gradient(135deg, rgba(127, 29, 29, 0.96) 0%, rgba(159, 36, 36, 0.94) 56%, rgba(95, 21, 21, 0.96) 100%) !important;
+    border: 1px solid rgba(255, 209, 102, 0.58) !important;
+    box-shadow:
+        0 18px 36px rgba(30, 8, 8, 0.32),
+        0 0 0 4px rgba(216, 162, 45, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    text-shadow: 0 1px 0 rgba(63, 13, 13, 0.34);
+    backdrop-filter: blur(12px);
+}
+
+.login-screen .login-help-button:hover,
+[data-theme="light"] .login-screen .login-help-button:hover,
+[data-theme="dark"] .login-screen .login-help-button:hover {
+    background:
+        linear-gradient(135deg, rgba(159, 36, 36, 0.98) 0%, rgba(185, 28, 28, 0.96) 54%, rgba(127, 29, 29, 0.98) 100%) !important;
+    box-shadow:
+        0 22px 42px rgba(30, 8, 8, 0.38),
+        0 0 0 5px rgba(216, 162, 45, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+
+.login-screen .login-help-button-icon,
+[data-theme="light"] .login-screen .login-help-button-icon,
+[data-theme="dark"] .login-screen .login-help-button-icon {
+    color: #5f1515 !important;
+    background: #ffd166 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.58),
+        0 8px 16px rgba(63, 13, 13, 0.18);
 }
 
 .login-screen .login-shell,
@@ -1493,6 +1584,12 @@ img, svg {
         opacity: 1;
         transform: none;
         pointer-events: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .login-screen.is-arriving-from-help {
+        animation: none;
     }
 }
 

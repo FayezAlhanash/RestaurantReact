@@ -9,10 +9,12 @@ const ADMIN_DEFAULT_PERMISSIONS = [
     "manage_loyalty_settings",
 ];
 
-function getRevokedPermissions(data = {}) {
+export function getRevokedPermissions(data = {}) {
     return [
         ...(Array.isArray(data.revoked_permissions) ? data.revoked_permissions : []),
         ...(Array.isArray(data.revokedPermissions) ? data.revokedPermissions : []),
+        ...(Array.isArray(data.removed_permissions) ? data.removed_permissions : []),
+        ...(Array.isArray(data.removedPermissions) ? data.removedPermissions : []),
         ...(Array.isArray(data.denied_permissions) ? data.denied_permissions : []),
         ...(Array.isArray(data.deniedPermissions) ? data.deniedPermissions : []),
         ...(Array.isArray(data.excluded_permissions) ? data.excluded_permissions : []),
@@ -29,6 +31,12 @@ function getRevokedPermissions(data = {}) {
         ...(Array.isArray(data.user?.revokedPermissions)
             ? data.user.revokedPermissions
             : []),
+        ...(Array.isArray(data.user?.removed_permissions)
+            ? data.user.removed_permissions
+            : []),
+        ...(Array.isArray(data.user?.removedPermissions)
+            ? data.user.removedPermissions
+            : []),
         ...(Array.isArray(data.user?.denied_permissions)
             ? data.user.denied_permissions
             : []),
@@ -42,6 +50,47 @@ function getRevokedPermissions(data = {}) {
             ? data.user.excludedPermissions
             : []),
     ];
+}
+
+function normalizePermissionKey(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+}
+
+function getPermissionIds(permission = {}) {
+    if (typeof permission === "string") return [];
+    if (!permission || typeof permission !== "object") return [];
+
+    return [
+        permission.id,
+        permission.permission_id,
+        permission.permissionId,
+        permission.permission?.id,
+        permission.pivot?.permission_id,
+        permission.pivot?.permissionId,
+        permission.pivot?.permission?.id,
+    ]
+        .filter((value) => value !== undefined && value !== null && value !== "")
+        .map(String);
+}
+
+function toPermissionIdSet(permissions = []) {
+    if (!Array.isArray(permissions)) return new Set();
+
+    return new Set(permissions.flatMap(getPermissionIds));
+}
+
+function shouldKeepPermission(permission, revokedKeys, revokedIds) {
+    const permissionKeys = toPermissionKeys([permission]).map(normalizePermissionKey);
+    const permissionIds = getPermissionIds(permission);
+
+    return (
+        !permissionKeys.some((key) => revokedKeys.has(key)) &&
+        !permissionIds.some((id) => revokedIds.has(id))
+    );
 }
 
 export function toPermissionKeys(permissions = []) {
@@ -78,6 +127,26 @@ export function toPermissionKeys(permissions = []) {
             ].filter(Boolean);
         })
         .filter(Boolean);
+}
+
+export function getAssignedPermissionKeys(user = getStoredUser()) {
+    if (!user) return [];
+
+    return Array.from(
+        new Set(
+            toPermissionKeys([
+                ...(Array.isArray(user.user_permissions) ? user.user_permissions : []),
+                ...(Array.isArray(user.userPermissions) ? user.userPermissions : []),
+                ...(Array.isArray(user.permissions) ? user.permissions : []),
+                ...(Array.isArray(user.role_permissions) ? user.role_permissions : []),
+                ...(Array.isArray(user.rolePermissions) ? user.rolePermissions : []),
+                ...(Array.isArray(user.role?.permissions) ? user.role.permissions : []),
+                ...(Array.isArray(user.role?.role_permissions)
+                    ? user.role.role_permissions
+                    : []),
+            ])
+        )
+    );
 }
 
 export function getProfileUserPermissions(profile = {}) {
@@ -121,8 +190,12 @@ export function getUserPermissions() {
 
     const roleName = String(user.role?.name ?? "").toLowerCase();
     const roleId = Number(user.role_id ?? user.role?.id);
-    const revokedPermissions = toPermissionKeys(getRevokedPermissions(user));
-    const userPermissions = toPermissionKeys([
+    const revokedPermissionEntries = getRevokedPermissions(user);
+    const revokedPermissionKeys = new Set(
+        toPermissionKeys(revokedPermissionEntries).map(normalizePermissionKey)
+    );
+    const revokedPermissionIds = toPermissionIdSet(revokedPermissionEntries);
+    const permissionEntries = [
         ...(Array.isArray(user.user_permissions) ? user.user_permissions : []),
         ...(Array.isArray(user.userPermissions) ? user.userPermissions : []),
         ...(Array.isArray(user.permissions) ? user.permissions : []),
@@ -132,16 +205,19 @@ export function getUserPermissions() {
         ...(Array.isArray(user.role?.role_permissions)
             ? user.role.role_permissions
             : []),
-    ]);
+    ];
+    const userPermissions = toPermissionKeys(
+        permissionEntries.filter((permission) =>
+            shouldKeepPermission(
+                permission,
+                revokedPermissionKeys,
+                revokedPermissionIds
+            )
+        )
+    );
 
     if (userPermissions.length) {
-        return Array.from(
-            new Set(
-                userPermissions.filter(
-                    (permission) => !revokedPermissions.includes(permission)
-                )
-            )
-        );
+        return Array.from(new Set(userPermissions));
     }
 
     if (roleName === "admin" || roleId === 1) {

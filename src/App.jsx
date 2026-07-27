@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import KitchenLayout from "./components/Kitchen/KitchenLayout";
 import KitchenDashboard from "./components/Kitchen/KitchenDashboard";
 import Login from "./pages/Login";
+import RolesLanding from "./pages/RolesLanding";
 import Employee from "./components/Admin/Employee";
 import EmployeeShifts from "./components/Admin/EmployeeShifts";
 import AdminLayout from "./components/Admin/AdminLayout";
@@ -61,6 +62,7 @@ function SessionWatcher() {
   useEffect(() => {
     const isPublicPage = () =>
       window.location.pathname === "/" ||
+      window.location.pathname === "/help" ||
       window.location.pathname.startsWith("/table/") ||
       window.location.pathname.startsWith("/tables/") ||
       window.location.pathname.startsWith("/dine-in/");
@@ -104,6 +106,7 @@ function App() {
       <Routes>
 
         <Route path="/" element={<Login />} />
+        <Route path="/help" element={<RolesLanding />} />
 
         {/* Customer QR ordering */}
         <Route path="/table/:tableId" element={<DineInOrder />} />

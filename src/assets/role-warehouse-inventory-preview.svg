@@ -1,0 +1,105 @@
+<svg width="1920" height="920" viewBox="90 86 1830 834" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1920" height="920" fill="#FBF4EC"/>
+  <rect x="90" width="1830" height="86" fill="#FFF9F2"/>
+  <rect width="90" height="920" fill="#FFF9F2"/>
+  <rect x="20" y="34" width="52" height="52" rx="7" fill="#9B191C"/>
+  <text x="30" y="58" fill="#FFF4DA" font-family="Georgia, serif" font-size="22" font-weight="700">Big</text>
+  <text x="42" y="78" fill="#FFD166" font-family="Georgia, serif" font-size="22" font-weight="700">4</text>
+  <g fill="#A66A00">
+    <rect x="30" y="139" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+    <rect x="30" y="199" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+    <rect x="30" y="259" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+    <rect x="30" y="319" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+    <rect x="20" y="371" width="52" height="50" rx="10" fill="#D9BA20"/>
+    <rect x="30" y="439" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+    <rect x="30" y="499" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+    <rect x="30" y="559" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  </g>
+  <rect x="12" y="842" width="67" height="56" rx="8" fill="#8F1D1D"/>
+  <text x="131" y="49" fill="#241815" font-family="Georgia, serif" font-size="17" font-weight="700">▻</text>
+  <rect x="188" y="25" width="125" height="42" rx="10" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="225" y="51" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">Mon 27 Jul</text>
+  <rect x="1492" y="25" width="114" height="42" rx="10" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="1530" y="51" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">Manager</text>
+  <rect x="1620" y="25" width="42" height="42" rx="12" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <rect x="1674" y="24" width="206" height="44" rx="10" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <rect x="1688" y="32" width="30" height="30" rx="8" fill="#8F1D1D"/>
+  <text x="1694" y="52" fill="#FFF4DA" font-family="Georgia, serif" font-size="12" font-weight="700">AN</text>
+  <text x="1730" y="43" fill="#241815" font-family="Georgia, serif" font-size="16" font-weight="700">Ahmad Nabil Khalil</text>
+  <text x="1730" y="59" fill="#6E5E58" font-family="Georgia, serif" font-size="12">MANAGER</text>
+  <rect x="90" y="86" width="1830" height="834" fill="url(#pageGlow)"/>
+  <rect x="125" y="112" width="570" height="142" rx="20" fill="#FFF9F2" stroke="#7FD3FF" stroke-width="2"/>
+  <text x="146" y="148" fill="#7A6A64" font-family="Georgia, serif" font-size="16" font-weight="700">Total Ingredients</text>
+  <text x="146" y="190" fill="#9A6400" font-family="Georgia, serif" font-size="36" font-weight="700">22</text>
+  <text x="146" y="229" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Tracked in this restaurant</text>
+  <rect x="624" y="133" width="50" height="50" rx="18" fill="#E8F6F7"/>
+  <rect x="712" y="112" width="570" height="142" rx="20" fill="#FFF9F2" stroke="#55C985" stroke-width="2"/>
+  <text x="733" y="148" fill="#7A6A64" font-family="Georgia, serif" font-size="16" font-weight="700">Healthy Stock</text>
+  <text x="733" y="190" fill="#9A6400" font-family="Georgia, serif" font-size="36" font-weight="700">22</text>
+  <text x="733" y="229" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Above minimum level</text>
+  <rect x="1212" y="133" width="50" height="50" rx="18" fill="#DFF1EA"/>
+  <rect x="1299" y="112" width="570" height="142" rx="20" fill="#FFF9F2" stroke="#B54B4B" stroke-width="2"/>
+  <text x="1320" y="148" fill="#7A6A64" font-family="Georgia, serif" font-size="16" font-weight="700">Low Stock</text>
+  <text x="1320" y="190" fill="#9A6400" font-family="Georgia, serif" font-size="36" font-weight="700">0</text>
+  <text x="1320" y="229" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Needs purchasing soon</text>
+  <rect x="125" y="280" width="1744" height="642" rx="26" fill="#FFF9F2" stroke="#E3C5B7"/>
+  <text x="149" y="316" fill="#9A6400" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="4">LIVE INVENTORY</text>
+  <text x="149" y="354" fill="#241815" font-family="Georgia, serif" font-size="32" font-weight="700">Current Inventory Levels</text>
+  <rect x="1672" y="310" width="172" height="44" rx="18" fill="#8F1D1D"/>
+  <text x="1718" y="337" fill="#FFF4DA" font-family="Georgia, serif" font-size="16" font-weight="700">Add Ingredient</text>
+  <g>
+    <rect x="149" y="385" width="840" height="232" rx="22" fill="#FFF9F2" stroke="#E6C7BA"/>
+    <rect x="170" y="405" width="56" height="56" rx="18" fill="#E6F6F0"/>
+    <text x="242" y="427" fill="#241815" font-family="Georgia, serif" font-size="22" font-weight="700">Burger Bun</text>
+    <text x="242" y="454" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Minimum: 30 pcs</text>
+    <rect x="864" y="405" width="104" height="42" rx="16" fill="#E6F6F0" stroke="#8CE0B3"/>
+    <text x="910" y="432" fill="#2F7D55" font-family="Georgia, serif" font-size="17" font-weight="700">Good</text>
+    <rect x="170" y="481" width="798" height="116" rx="16" fill="#FBF4EC" stroke="#E8D9D3"/>
+    <text x="187" y="511" fill="#8A7972" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="2">AVAILABLE</text>
+    <text x="187" y="547" fill="#9A6400" font-family="Georgia, serif" font-size="34" font-weight="700">200</text>
+    <text x="250" y="547" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">pcs</text>
+    <rect x="187" y="570" width="764" height="10" rx="5" fill="#39976A"/>
+  </g>
+  <g>
+    <rect x="1006" y="385" width="838" height="232" rx="22" fill="#FFF9F2" stroke="#E6C7BA"/>
+    <rect x="1027" y="405" width="56" height="56" rx="18" fill="#E6F6F0"/>
+    <text x="1098" y="427" fill="#241815" font-family="Georgia, serif" font-size="22" font-weight="700">Beef Patty</text>
+    <text x="1098" y="454" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Minimum: 25 pcs</text>
+    <rect x="1720" y="405" width="104" height="42" rx="16" fill="#E6F6F0" stroke="#8CE0B3"/>
+    <text x="1766" y="432" fill="#2F7D55" font-family="Georgia, serif" font-size="17" font-weight="700">Good</text>
+    <rect x="1027" y="481" width="796" height="116" rx="16" fill="#FBF4EC" stroke="#E8D9D3"/>
+    <text x="1044" y="511" fill="#8A7972" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="2">AVAILABLE</text>
+    <text x="1044" y="547" fill="#9A6400" font-family="Georgia, serif" font-size="34" font-weight="700">180</text>
+    <text x="1107" y="547" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">pcs</text>
+    <rect x="1044" y="570" width="762" height="10" rx="5" fill="#39976A"/>
+  </g>
+  <g>
+    <rect x="149" y="636" width="840" height="232" rx="22" fill="#FFF9F2" stroke="#E6C7BA"/>
+    <rect x="170" y="656" width="56" height="56" rx="18" fill="#E6F6F0"/>
+    <text x="242" y="678" fill="#241815" font-family="Georgia, serif" font-size="22" font-weight="700">Chicken Patty</text>
+    <text x="242" y="705" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Minimum: 20 pcs</text>
+    <rect x="170" y="731" width="798" height="116" rx="16" fill="#FBF4EC" stroke="#E8D9D3"/>
+    <text x="187" y="761" fill="#8A7972" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="2">AVAILABLE</text>
+    <text x="187" y="797" fill="#9A6400" font-family="Georgia, serif" font-size="34" font-weight="700">150</text>
+    <text x="250" y="797" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">pcs</text>
+    <rect x="187" y="820" width="764" height="10" rx="5" fill="#39976A"/>
+  </g>
+  <g>
+    <rect x="1006" y="636" width="838" height="232" rx="22" fill="#FFF9F2" stroke="#E6C7BA"/>
+    <rect x="1027" y="656" width="56" height="56" rx="18" fill="#E6F6F0"/>
+    <text x="1098" y="678" fill="#241815" font-family="Georgia, serif" font-size="22" font-weight="700">Tomato</text>
+    <text x="1098" y="705" fill="#7A6A64" font-family="Georgia, serif" font-size="16">Minimum: 1000 g</text>
+    <rect x="1027" y="731" width="796" height="116" rx="16" fill="#FBF4EC" stroke="#E8D9D3"/>
+    <text x="1044" y="761" fill="#8A7972" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="2">AVAILABLE</text>
+    <text x="1044" y="797" fill="#9A6400" font-family="Georgia, serif" font-size="34" font-weight="700">8000</text>
+    <text x="1130" y="797" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">g</text>
+    <rect x="1044" y="820" width="762" height="10" rx="5" fill="#39976A"/>
+  </g>
+  <defs>
+    <linearGradient id="pageGlow" x1="90" y1="86" x2="1850" y2="842" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF9F2"/>
+      <stop offset="0.55" stop-color="#F9EFE7"/>
+      <stop offset="1" stop-color="#F1DCD1"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -17,12 +17,12 @@ import WaiterDashboard from "../Waiter/WaiterDashboard";
 import { getStoredUser, storeUser } from "../../utils/auth";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 import {
-    getProfileUserPermissions,
+    getAssignedPermissionKeys,
     getUserPermissions,
-    toPermissionKeys,
 } from "../../utils/permissions";
 import { BookOpen, House, ReceiptText, ShieldAlert, Store } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+import PermissionToast from "../Shared/PermissionToast";
 
 const REPORTS_BACKGROUND =
     "bg-[radial-gradient(circle_at_86%_12%,rgba(127,29,29,0.14),transparent_30%),radial-gradient(circle_at_16%_22%,rgba(255,209,102,0.10),transparent_26%),linear-gradient(145deg,#0D1214_0%,#12191C_54%,#211619_100%)]";
@@ -197,6 +197,10 @@ function CashierDashboard({ embedded = false }) {
         navigate(`${location.pathname}?${params.toString()}`, { replace: true });
     };
     const [permissions, setPermissions] = useState(() => getUserPermissions());
+    const [assignedPermissions, setAssignedPermissions] = useState(() =>
+        getAssignedPermissionKeys(getStoredUser())
+    );
+    const [permissionMessage, setPermissionMessage] = useState("");
     const [openModal, setOpenModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [activeRestaurant, setActiveRestaurant] = useState("all");
@@ -222,12 +226,11 @@ function CashierDashboard({ embedded = false }) {
 
             try {
                 const res = await api.get("/profile/permissions");
-                const nextPermissions = toPermissionKeys(
-                    getProfileUserPermissions(res.data)
-                );
 
                 storeUser(user, res.data);
-                setPermissions(nextPermissions);
+                const nextUser = getStoredUser() || user;
+                setPermissions(getUserPermissions());
+                setAssignedPermissions(getAssignedPermissionKeys(nextUser));
             } catch (error) {
                 console.log(error.response?.data || error);
             }
@@ -453,10 +456,17 @@ function CashierDashboard({ embedded = false }) {
                 <RightSidebar
                     activeView={activeView}
                     onViewChange={setActiveView}
+                    onPermissionDenied={setPermissionMessage}
                     permissions={permissions}
+                    assignedPermissions={assignedPermissions}
                 />
             </aside>
             )}
+
+            <PermissionToast
+                message={permissionMessage}
+                onClose={() => setPermissionMessage("")}
+            />
 
             <main
                 className={`min-w-0 flex-1 ${

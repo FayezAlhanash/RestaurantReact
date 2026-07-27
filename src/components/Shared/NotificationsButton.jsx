@@ -10,6 +10,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
+import {
+    canReceiveNotification,
+    resolveNotificationUrl,
+} from "../../notifications/notificationRouting";
 
 function getList(data) {
     if (Array.isArray(data)) return data;
@@ -20,18 +24,6 @@ function getList(data) {
     if (Array.isArray(data?.data?.items)) return data.data.items;
 
     return [];
-}
-
-function getUnreadCount(data) {
-    return Number(
-        data?.unread_count ??
-            data?.unreadCount ??
-            data?.count ??
-            data?.data?.unread_count ??
-            data?.data?.unreadCount ??
-            data?.data?.count ??
-            0
-    );
 }
 
 function getNotificationTitle(notification) {
@@ -78,7 +70,7 @@ function getOrderNumber(notification) {
     const searchableText = `${getNotificationTitle(notification)} ${getNotificationBody(notification)}`;
     const orderMatch =
         searchableText.match(/order\s*#?\s*(\d+)/i) ||
-        searchableText.match(/طلب\s*#?\s*(\d+)/i) ||
+        searchableText.match(/\u0637\u0644\u0628\s*#?\s*(\d+)/i) ||
         searchableText.match(/#\s*(\d+)/);
 
     return orderMatch?.[1] || "";
@@ -134,9 +126,12 @@ export default function NotificationsButton() {
 
     const loadUnreadCount = async () => {
         try {
-            const response = await api.get("/notifications/unread-count");
+            const response = await api.get("/notifications");
+            const visibleNotifications = getList(response.data).filter(
+                canReceiveNotification
+            );
 
-            setUnreadCount(getUnreadCount(response.data));
+            setUnreadCount(visibleNotifications.filter(isUnread).length);
         } catch {
             setUnreadCount(0);
         }
@@ -147,15 +142,14 @@ export default function NotificationsButton() {
         setError("");
 
         try {
-            const [notificationsResponse, countResponse] = await Promise.all([
-                api.get("/notifications"),
-                api.get("/notifications/unread-count").catch(() => null),
-            ]);
+            const notificationsResponse = await api.get("/notifications");
 
-            setNotifications(getList(notificationsResponse.data));
-            if (countResponse) {
-                setUnreadCount(getUnreadCount(countResponse.data));
-            }
+            const visibleNotifications = getList(notificationsResponse.data).filter(
+                canReceiveNotification
+            );
+
+            setNotifications(visibleNotifications);
+            setUnreadCount(visibleNotifications.filter(isUnread).length);
         } catch (requestError) {
             setError(
                 requestError.response?.data?.message ||
@@ -165,6 +159,11 @@ export default function NotificationsButton() {
             setIsLoading(false);
         }
     };
+
+    function closePanel() {
+        setIsShown(false);
+        window.setTimeout(() => setIsOpen(false), 160);
+    }
 
     useEffect(() => {
         const initialLoadId = window.setTimeout(loadUnreadCount, 0);
@@ -216,11 +215,6 @@ export default function NotificationsButton() {
         loadNotifications();
     };
 
-    const closePanel = () => {
-        setIsShown(false);
-        window.setTimeout(() => setIsOpen(false), 160);
-    };
-
     const markAllAsRead = async () => {
         setIsMarkingAll(true);
         setError("");
@@ -247,7 +241,10 @@ export default function NotificationsButton() {
 
     const markAsRead = async (notification) => {
         const id = getNotificationId(notification);
-        const url = getNotificationUrl(notification);
+        const url = resolveNotificationUrl(
+            getNotificationUrl(notification),
+            notification
+        );
 
         if (id && isUnread(notification)) {
             try {

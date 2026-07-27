@@ -21,11 +21,26 @@ const navigation = [
     { id: "settings", label: "Settings", icon: Settings },
 ];
 
-function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
+function RightSidebar({
+    activeView = "menu",
+    onViewChange,
+    onPermissionDenied,
+    permissions = [],
+    assignedPermissions = [],
+}) {
     const navigate = useNavigate();
     const canShow = (requiredPermissions = []) =>
         !requiredPermissions.length ||
         requiredPermissions.some((permission) => permissions.includes(permission));
+    const isAssigned = (requiredPermissions = []) =>
+        !requiredPermissions.length ||
+        requiredPermissions.some((permission) =>
+            assignedPermissions.includes(permission)
+        );
+    const isBlockedByAdmin = (item) =>
+        item.permissions?.length &&
+        !canShow(item.permissions) &&
+        isAssigned(item.permissions);
 
     const handleLogout = () => {
         clearSession();
@@ -37,13 +52,20 @@ function RightSidebar({ activeView = "menu", onViewChange, permissions = [] }) {
             <BrandLogo className="h-14 w-14" rounded="rounded-[20px]" />
 
             <nav className="mt-10 flex w-full flex-1 flex-col gap-3">
-                {navigation.filter((item) => canShow(item.permissions)).map((item) => {
+                {navigation.filter((item) => canShow(item.permissions) || isAssigned(item.permissions)).map((item) => {
                     const Icon = item.icon;
                     return (
                         <button
                             key={item.label}
                             title={item.label}
-                            onClick={() => onViewChange?.(item.id)}
+                            onClick={() => {
+                                if (isBlockedByAdmin(item)) {
+                                    onPermissionDenied?.("An admin removed this task from your account.");
+                                    return;
+                                }
+
+                                onViewChange?.(item.id);
+                            }}
                             className={`group flex w-full flex-col items-center gap-1 rounded-2xl py-3 text-[10px] font-bold transition ${
                                 activeView === item.id
                                     ? "bg-[#7F1D1D] text-white shadow-[0_12px_24px_rgba(127,29,29,0.18)]"

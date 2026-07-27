@@ -5,7 +5,7 @@ const api = axios.create({
     baseURL: "https://big4.me/api",
 });
 
-// 🔐 REQUEST INTERCEPTOR
+// Request interceptor
 api.interceptors.request.use((config) => {
     const token = getStoredToken();
 
@@ -13,7 +13,7 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // 🧠 نضيف معلومات المستخدم (اختياري مفيد جداً للباك)
+    // Add user context for backend permission checks.
     const user = getStoredUser();
 
     if (user) {

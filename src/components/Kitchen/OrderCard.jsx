@@ -2,7 +2,7 @@ import { Bike, CheckCircle2, Clock3, Loader2, ShoppingBag, Utensils } from "luci
 
 const orderTypeConfig = {
     delivery: {
-        label: "توصيل",
+        label: "Delivery",
         labelEn: "DELIVERY",
         icon: Bike,
         accent: "#275f9d",
@@ -10,7 +10,7 @@ const orderTypeConfig = {
         badge: "bg-[#e8f1fb] text-[#183d69]",
     },
     takeaway: {
-        label: "سفري",
+        label: "Takeaway",
         labelEn: "TAKEAWAY",
         icon: ShoppingBag,
         accent: "#9b7d06",
@@ -18,7 +18,7 @@ const orderTypeConfig = {
         badge: "bg-[#f8edc4] text-[#5b4704]",
     },
     dine_in: {
-        label: "محلي",
+        label: "Dine-In",
         labelEn: "DINE-IN",
         icon: Utensils,
         accent: "#8b0912",
@@ -45,9 +45,9 @@ function normalizeStatus(status) {
 }
 
 const statusLabels = {
-    pending: "بانتظار التحضير",
-    preparing: "قيد التحضير",
-    ready: "جاهز",
+    pending: "Waiting to Prepare",
+    preparing: "Preparing",
+    ready: "Ready",
 };
 
 const statusClasses = {
@@ -62,6 +62,10 @@ function canStartPreparing(status) {
 
 function canMarkReady(status) {
     return normalizeStatus(status) === "preparing";
+}
+
+function formatItemCount(count) {
+    return `${count} ${count === 1 ? "item" : "items"}`;
 }
 
 export default function OrderCard({
@@ -89,7 +93,7 @@ export default function OrderCard({
                         <span>{order.time}</span>
                     </div>
 
-                    <div className="flex items-center gap-3 text-right">
+                    <div className="flex items-center gap-3 text-left">
                         <div>
                             <p className="text-lg font-black leading-none">
                                 {type.label}
@@ -105,11 +109,11 @@ export default function OrderCard({
                 </div>
             </header>
 
-            <div className="flex min-h-0 flex-1 flex-col px-5 pb-4 pt-5 text-right" dir="rtl">
+            <div className="flex min-h-0 flex-1 flex-col px-5 pb-4 pt-5 text-left">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <p className="text-sm font-extrabold text-[#8a7c69]">
-                            رقم الطلب
+                            Order No.
                         </p>
                         <h2 className="mt-1 text-[48px] font-black leading-none tracking-normal text-[#780812]">
                             #{order.id}
@@ -117,11 +121,11 @@ export default function OrderCard({
                     </div>
 
                     <span className={`rounded-full px-3 py-2 text-sm font-black ${type.badge}`}>
-                        {order.items.length} أصناف
+                        {formatItemCount(order.items.length)}
                     </span>
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex justify-start">
                     <span className={`rounded-full px-4 py-2 text-sm font-black ${statusClasses[normalizedStatus]}`}>
                         {statusLabels[normalizedStatus]}
                     </span>
@@ -167,7 +171,7 @@ export default function OrderCard({
                             className="flex h-16 items-center justify-center gap-2 rounded-xl border border-[#cbbba5] bg-[#f7efdf] text-base font-black text-[#5f4d34] shadow-sm transition hover:bg-[#fff6e8] active:scale-[0.99] disabled:cursor-wait disabled:opacity-75 disabled:hover:bg-[#f7efdf]"
                         >
                             {isStarting && <Loader2 size={21} className="animate-spin" />}
-                            {isStarting ? "انتظر..." : "بدء التحضير"}
+                            {isStarting ? "Please wait..." : "Start Preparing"}
                         </button>
                     )}
 
@@ -184,10 +188,10 @@ export default function OrderCard({
                                 <CheckCircle2 size={22} strokeWidth={2.5} />
                             )}
                             {isMarkingReady ? (
-                                "انتظر..."
+                                "Please wait..."
                             ) : (
                                 <>
-                                    READY <span className="text-white/45">•</span> جاهز
+                                    Ready
                                 </>
                             )}
                         </button>

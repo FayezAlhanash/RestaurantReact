@@ -4,13 +4,14 @@ import {
     AlertCircle,
     ArrowRight,
     Eye,
+    HelpCircle,
     Loader2,
     Lock,
     Sparkles,
     User,
 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
     clearSession,
@@ -21,19 +22,36 @@ import {
 } from "../utils/auth";
 
 function Login() {
+    const location = useLocation();
+    const arrivedFromHelp = Boolean(location.state?.fromHelp);
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSignInOpen, setIsSignInOpen] = useState(false);
+    const [isSignInOpen, setIsSignInOpen] = useState(() =>
+        Boolean(location.state?.openSignIn)
+    );
     const [errorMessage, setErrorMessage] = useState(() => {
         const sessionMessage = sessionStorage.getItem("sessionMessage") || "";
 
         sessionStorage.removeItem("sessionMessage");
         return sessionMessage;
     });
+    const loginInputRef = useRef(null);
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!location.state?.openSignIn) return undefined;
+
+        setIsSignInOpen(true);
+
+        const focusTimer = window.setTimeout(() => {
+            loginInputRef.current?.focus();
+        }, 520);
+
+        return () => window.clearTimeout(focusTimer);
+    }, [location.state?.openSignIn]);
 
     const handleLogin = async (event) => {
         event?.preventDefault();
@@ -86,13 +104,33 @@ function Login() {
                     profileData.user?.userPermissions ??
                     profileData.user?.permissions ??
                     [],
+                revoked_permissions:
+                    profileData.revoked_permissions ??
+                    profileData.revokedPermissions ??
+                    profileData.removed_permissions ??
+                    profileData.removedPermissions ??
+                    profileData.denied_permissions ??
+                    profileData.deniedPermissions ??
+                    profileData.excluded_permissions ??
+                    profileData.excludedPermissions ??
+                    profileData.permission_overrides?.denied ??
+                    profileData.permissionOverrides?.denied ??
+                    profileData.user?.revoked_permissions ??
+                    profileData.user?.revokedPermissions ??
+                    profileData.user?.removed_permissions ??
+                    profileData.user?.removedPermissions ??
+                    profileData.user?.denied_permissions ??
+                    profileData.user?.deniedPermissions ??
+                    profileData.user?.excluded_permissions ??
+                    profileData.user?.excludedPermissions ??
+                    [],
             };
             const roleId = getRoleId(sessionUser);
             const homePath = getHomePath(roleId, sessionUser);
 
             if (!homePath) {
                 clearSession();
-                setErrorMessage("ليس لديك صلاحية للدخول إلى النظام");
+                setErrorMessage("You do not have permission to access the system.");
                 return;
             }
 
@@ -110,7 +148,11 @@ function Login() {
     };
 
     return (
-        <main className="login-screen relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#160f0d] px-4 py-8 font-merriweather text-stone-950">
+        <main
+            className={`login-screen relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#160f0d] px-4 py-8 font-merriweather text-stone-950 ${
+                arrivedFromHelp ? "is-arriving-from-help" : ""
+            }`}
+        >
             <img
                 src={diningImage}
                 alt=""
@@ -119,6 +161,16 @@ function Login() {
             />
             <div className="login-backdrop-shade absolute inset-0" />
             <div className="login-backdrop-warm absolute inset-0" />
+
+            <Link
+                to="/help"
+                className="login-help-button absolute right-5 top-5 z-20 inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition hover:-translate-y-0.5 active:translate-y-0"
+            >
+                <span className="login-help-button-icon grid h-7 w-7 place-items-center rounded-lg">
+                    <HelpCircle size={17} />
+                </span>
+                Help
+            </Link>
 
             <section
                 className={`login-shell relative grid w-full overflow-hidden rounded-[26px] ${
@@ -187,6 +239,7 @@ function Login() {
                                             className="shrink-0 text-stone-400"
                                         />
                                         <input
+                                            ref={loginInputRef}
                                             type="text"
                                             placeholder="name@big4.me or 0999999999"
                                             value={login}

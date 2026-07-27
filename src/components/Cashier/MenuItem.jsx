@@ -185,7 +185,7 @@ const getSizeModifierOptions = (item) => {
     const sizeGroup = modifierGroups.find((group) => {
         const name = String(group?.name ?? "").toLowerCase();
 
-        return name.includes("size") || name.includes("حجم");
+        return name.includes("size") || name.includes("\u062d\u062c\u0645");
     });
 
     if (!sizeGroup) return [];

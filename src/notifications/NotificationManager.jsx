@@ -1,11 +1,15 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../API/axios";
-import { getStoredToken, getStoredUser, ROLE_IDS } from "../utils/auth";
+import { getStoredToken, getStoredUser } from "../utils/auth";
 import {
     listenForForegroundMessages,
     requestFcmToken,
 } from "./firebase";
+import {
+    canReceiveNotification,
+    resolveNotificationUrl,
+} from "./notificationRouting";
 
 const FCM_TOKEN_STORAGE_KEY = "big4:fcm-token";
 const FCM_USER_STORAGE_KEY = "big4:fcm-user-id";
@@ -63,71 +67,6 @@ const isUnreadNotification = (notification) => {
     return true;
 };
 
-const roleScopedRoutes = {
-    takeawayOrders: {
-        [ROLE_IDS.CASHIER]: "/takeaway-orders?view=orders",
-        [ROLE_IDS.KITCHEN]: "/kitchen/takeaway-orders?view=orders",
-        [ROLE_IDS.WAREHOUSE_MANAGER]: "/warehouse/takeaway-orders?view=orders",
-        [ROLE_IDS.MANAGER]: "/manager/takeaway-orders?view=orders",
-    },
-    dineInService: {
-        [ROLE_IDS.WAITER]: "/waiter/serve-orders",
-        [ROLE_IDS.KITCHEN]: "/kitchen/dine-in-service",
-        [ROLE_IDS.WAREHOUSE_MANAGER]: "/warehouse/dine-in-service",
-        [ROLE_IDS.MANAGER]: "/manager/dine-in-service",
-    },
-    lowStock: {
-        [ROLE_IDS.KITCHEN]: "/kitchen/low-stock",
-        [ROLE_IDS.WAREHOUSE_MANAGER]: "/warehouse/low-stock",
-        [ROLE_IDS.MANAGER]: "/manager/low-stock",
-    },
-};
-
-const routeKeyByPath = {
-    "/takeaway-orders": "takeawayOrders",
-    "/cashier": "takeawayOrders",
-    "/dine-in-service": "dineInService",
-    "/waiter/service": "dineInService",
-    "/waiter/serve-orders": "dineInService",
-    "/low-stock": "lowStock",
-};
-
-function getRoleScopedRoute(routeKey, fallbackPath = "/") {
-    const user = getStoredUser();
-    const roleId = Number(user?.role_id ?? user?.role?.id);
-
-    if (roleScopedRoutes[routeKey]?.[roleId]) {
-        return roleScopedRoutes[routeKey][roleId];
-    }
-
-    return fallbackPath;
-}
-
-function resolveNotificationUrl(url = window.location.pathname) {
-    const rawPath = String(url || window.location.pathname);
-    const parsedUrl = new URL(rawPath, window.location.origin);
-    const routeKey = routeKeyByPath[parsedUrl.pathname];
-
-    if (!routeKey) return rawPath;
-
-    const scopedRoute = new URL(
-        getRoleScopedRoute(routeKey, parsedUrl.pathname),
-        window.location.origin
-    );
-
-    parsedUrl.searchParams.forEach((value, key) => {
-        if (!scopedRoute.searchParams.has(key)) {
-            scopedRoute.searchParams.set(key, value);
-        }
-    });
-
-    if (routeKey === "takeawayOrders" && !scopedRoute.searchParams.get("view")) {
-        scopedRoute.searchParams.set("view", "orders");
-    }
-
-    return `${scopedRoute.pathname}${scopedRoute.search}${scopedRoute.hash}`;
-}
-
 function getDeviceName() {
     const userAgent = navigator.userAgent;
 
@@ -141,11 +80,12 @@ function getDeviceName() {
 
 function showForegroundNotification(payload) {
     if (document.hidden || Notification.permission !== "granted") return;
+    if (!canReceiveNotification(payload)) return;
 
     const notification = payload.notification || {};
     const data = payload.data || {};
     const title = notification.title || data.title || "Big-4";
-    const targetUrl = resolveNotificationUrl(data.url);
+    const targetUrl = resolveNotificationUrl(data.url, payload);
 
     const browserNotification = new Notification(title, {
         body: notification.body || data.body || "You have a new notification.",
@@ -185,8 +125,9 @@ async function showBrowserNotification(
             : await Notification.requestPermission();
 
     if (permission !== "granted") return;
+    if (!canReceiveNotification({ title, body, url })) return;
 
-    const targetUrl = resolveNotificationUrl(url);
+    const targetUrl = resolveNotificationUrl(url, { title, body, url });
     const options = {
         body,
         icon: "/favicon.svg",
@@ -268,7 +209,9 @@ function startBackendNotificationsPoller() {
         }
 
         try {
-            const notifications = await fetchBackendNotifications();
+            const notifications = (await fetchBackendNotifications()).filter(
+                canReceiveNotification
+            );
             const unreadNotifications = notifications.filter(isUnreadNotification);
             const nextSeenIds = new Set(seenNotificationIds);
 

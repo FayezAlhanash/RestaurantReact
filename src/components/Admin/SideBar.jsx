@@ -26,12 +26,12 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import BrandLogo from "../Shared/BrandLogo";
+import PermissionToast from "../Shared/PermissionToast";
 import { useTheme } from "../../context/ThemeContext";
 import { ROLE_IDS, clearSession, getStoredUser, storeUser } from "../../utils/auth";
 import {
-    getProfileUserPermissions,
+    getAssignedPermissionKeys,
     getUserPermissions,
-    toPermissionKeys,
 } from "../../utils/permissions";
 
 function getRestaurantLabel(user) {
@@ -70,6 +70,10 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
     const navigate = useNavigate();
     const [sessionUser, setSessionUser] = useState(() => getStoredUser());
     const [permissions, setPermissions] = useState(() => getUserPermissions());
+    const [assignedPermissions, setAssignedPermissions] = useState(() =>
+        getAssignedPermissionKeys(getStoredUser())
+    );
+    const [permissionMessage, setPermissionMessage] = useState("");
     const [restaurantName, setRestaurantName] = useState(() =>
         getRestaurantLabel(getStoredUser())
     );
@@ -218,20 +222,32 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
 
             try {
                 const res = await api.get("/profile/permissions");
-                const userPermissions = getProfileUserPermissions(res.data);
-                const nextPermissions = toPermissionKeys(userPermissions);
 
                 storeUser(user, res.data);
                 const nextUser = getStoredUser() || user;
                 setSessionUser(nextUser);
                 setRestaurantName(getRestaurantLabel(nextUser));
-                setPermissions(nextPermissions);
+                setPermissions(getUserPermissions());
+                setAssignedPermissions(getAssignedPermissionKeys(nextUser));
             } catch (error) {
                 console.log(error.response?.data || error);
             }
         };
 
         refreshPermissions();
+
+        const handleFocus = () => refreshPermissions();
+        const handleVisibilityChange = () => {
+            if (!document.hidden) refreshPermissions();
+        };
+
+        window.addEventListener("focus", handleFocus);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener("focus", handleFocus);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, []);
 
     useEffect(() => {
@@ -273,8 +289,30 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
     const canShow = (requiredPermissions = []) =>
         !requiredPermissions.length ||
         requiredPermissions.some((permission) => permissions.includes(permission));
+    const isAssigned = (requiredPermissions = []) =>
+        !requiredPermissions.length ||
+        requiredPermissions.some((permission) =>
+            assignedPermissions.includes(permission)
+        );
+    const canShowMenuItem = (item) =>
+        (!item.adminOnly || isAdmin) &&
+        (canShow(item.permissions) || isAssigned(item.permissions));
+    const isBlockedByAdmin = (item) =>
+        item.permissions?.length &&
+        !canShow(item.permissions) &&
+        isAssigned(item.permissions);
+    const handleMenuClick = (event, item) => {
+        if (!isBlockedByAdmin(item)) {
+            onClose?.();
+            return;
+        }
+
+        event.preventDefault();
+        setPermissionMessage("An admin removed this task from your account.");
+        onClose?.();
+    };
     const visibleMenu = menu.filter((item) =>
-        (!item.adminOnly || isAdmin) && canShow(item.permissions)
+        canShowMenuItem(item)
     );
 
     return (
@@ -287,6 +325,11 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                     className="fixed inset-0 z-40 bg-[#241F1D]/35 backdrop-blur-[2px] lg:hidden"
                 />
             )}
+
+            <PermissionToast
+                message={permissionMessage}
+                onClose={() => setPermissionMessage("")}
+            />
 
             <aside
                 className={`fixed left-0 top-0 z-50 flex h-dvh w-[286px] flex-col border-r border-white/10 bg-[#1f1f1f] shadow-[18px_0_45px_rgba(0,0,0,0.28)] transition-[width,transform] duration-300 lg:sticky ${isCollapsed ? "lg:w-[92px]" : "lg:w-[320px]"} lg:translate-x-0 lg:shadow-none ${
@@ -378,7 +421,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                                     <NavLink
                                         key={item.path}
                                         to={item.path}
-                                        onClick={onClose}
+                                        onClick={(event) => handleMenuClick(event, item)}
                                         title={isCollapsed ? item.title : undefined}
                                         className={({ isActive }) =>
                                             `group relative flex h-[50px] items-center gap-3 rounded-[8px] border px-4 text-sm font-semibold transition duration-200 active:scale-[0.99] ${isCollapsed ? "lg:justify-center lg:px-0" : ""} ${

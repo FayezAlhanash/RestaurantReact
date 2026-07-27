@@ -175,6 +175,21 @@ function formatOrderTime(value) {
     });
 }
 
+function dedupeNoteSegments(value) {
+    return String(value || "")
+        .split("·")
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+        .filter(
+            (segment, index, segments) =>
+                segments.findIndex(
+                    (currentSegment) =>
+                        currentSegment.toLowerCase() === segment.toLowerCase()
+                ) === index
+        )
+        .join(" · ");
+}
+
 function normalizeKitchenItem(item, index) {
     const food = item.food || item.menu_item || item.product || item.item || {};
 
@@ -193,12 +208,13 @@ function normalizeKitchenItem(item, index) {
             item.food_name ||
             "Item",
         quantity: Number(item.quantity ?? item.qty ?? item.count ?? 1),
-        note:
+        note: dedupeNoteSegments(
             item.note ||
-            item.notes ||
-            item.special_instructions ||
-            item.pivot?.notes ||
-            "",
+                item.notes ||
+                item.special_instructions ||
+                item.pivot?.notes ||
+                ""
+        ),
     };
 }
 
@@ -699,7 +715,7 @@ export function createCashierOrderPayload(cartItems, type = "takeaway") {
                 unit_price: unitPrice,
                 price: unitPrice,
                 total_price: unitPrice * quantity,
-                notes: [item.size, item.notes].filter(Boolean).join(" · "),
+                notes: dedupeNoteSegments([item.size, item.notes].filter(Boolean).join(" · ")),
                 modifier_options: modifierOptionPayload,
                 selected_modifier_options: modifierOptionPayload,
                 selected_modifiers: modifierSelections,

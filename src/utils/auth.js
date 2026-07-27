@@ -25,13 +25,22 @@ function collectPermissionKeys(user = {}) {
     ];
 
     const revokedPermissions = collectRevokedPermissionKeys(user);
+    const revokedPermissionIds = collectRevokedPermissionIds(user);
 
     return Array.from(
         new Set(
             permissionSources.flatMap((permissions) => {
                 if (!Array.isArray(permissions)) return [];
 
-                return permissions.flatMap((permission) => {
+                return permissions
+                    .filter((permission) =>
+                        !permissionMatchesRevoked(
+                            permission,
+                            revokedPermissions,
+                            revokedPermissionIds
+                        )
+                    )
+                    .flatMap((permission) => {
                     if (typeof permission === "string") return [permission];
                     if (!permission || typeof permission !== "object") return [];
 
@@ -56,10 +65,71 @@ function collectPermissionKeys(user = {}) {
     );
 }
 
+function normalizePermissionKey(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+}
+
+function getPermissionIds(permission = {}) {
+    if (typeof permission === "string") return [];
+    if (!permission || typeof permission !== "object") return [];
+
+    return [
+        permission.id,
+        permission.permission_id,
+        permission.permissionId,
+        permission.permission?.id,
+        permission.pivot?.permission_id,
+        permission.pivot?.permissionId,
+        permission.pivot?.permission?.id,
+    ]
+        .filter((value) => value !== undefined && value !== null && value !== "")
+        .map(String);
+}
+
+function permissionMatchesRevoked(permission, revokedPermissions, revokedPermissionIds) {
+    if (typeof permission === "string") {
+        return revokedPermissions
+            .map(normalizePermissionKey)
+            .includes(normalizePermissionKey(permission));
+    }
+
+    if (!permission || typeof permission !== "object") return false;
+
+    const permissionKeys = [
+        permission.key,
+        permission.slug,
+        permission.code,
+        permission.name,
+        permission.permission_key,
+        permission.permission?.key,
+        permission.permission?.slug,
+        permission.permission?.code,
+        permission.permission?.name,
+        permission.pivot?.permission?.key,
+        permission.pivot?.permission?.slug,
+        permission.pivot?.permission?.code,
+        permission.pivot?.permission?.name,
+    ]
+        .filter(Boolean)
+        .map(normalizePermissionKey);
+    const revokedKeys = revokedPermissions.map(normalizePermissionKey);
+
+    return (
+        permissionKeys.some((permissionKey) => revokedKeys.includes(permissionKey)) ||
+        getPermissionIds(permission).some((id) => revokedPermissionIds.includes(id))
+    );
+}
+
 function collectRevokedPermissionKeys(user = {}) {
     const revokedSources = [
         user.revoked_permissions,
         user.revokedPermissions,
+        user.removed_permissions,
+        user.removedPermissions,
         user.denied_permissions,
         user.deniedPermissions,
         user.excluded_permissions,
@@ -91,6 +161,27 @@ function collectRevokedPermissionKeys(user = {}) {
                 permission.pivot?.permission?.name,
             ].filter(Boolean);
         });
+    });
+}
+
+function collectRevokedPermissionIds(user = {}) {
+    const revokedSources = [
+        user.revoked_permissions,
+        user.revokedPermissions,
+        user.removed_permissions,
+        user.removedPermissions,
+        user.denied_permissions,
+        user.deniedPermissions,
+        user.excluded_permissions,
+        user.excludedPermissions,
+        user.permission_overrides?.denied,
+        user.permissionOverrides?.denied,
+    ];
+
+    return revokedSources.flatMap((permissions) => {
+        if (!Array.isArray(permissions)) return [];
+
+        return permissions.flatMap(getPermissionIds);
     });
 }
 
@@ -224,6 +315,8 @@ export function storeUser(user, profile = {}) {
         revoked_permissions:
             profileData.revoked_permissions ??
             profileData.revokedPermissions ??
+            profileData.removed_permissions ??
+            profileData.removedPermissions ??
             profileData.denied_permissions ??
             profileData.deniedPermissions ??
             profileData.excluded_permissions ??
@@ -232,12 +325,16 @@ export function storeUser(user, profile = {}) {
             profileData.permissionOverrides?.denied ??
             profileData.user?.revoked_permissions ??
             profileData.user?.revokedPermissions ??
+            profileData.user?.removed_permissions ??
+            profileData.user?.removedPermissions ??
             profileData.user?.denied_permissions ??
             profileData.user?.deniedPermissions ??
             profileData.user?.excluded_permissions ??
             profileData.user?.excludedPermissions ??
             user?.revoked_permissions ??
             user?.revokedPermissions ??
+            user?.removed_permissions ??
+            user?.removedPermissions ??
             user?.denied_permissions ??
             user?.deniedPermissions ??
             user?.excluded_permissions ??

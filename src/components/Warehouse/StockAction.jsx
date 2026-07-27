@@ -136,7 +136,7 @@ function StockActions() {
         setIngredientQuery("");
         setSelectedIngredient(null);
         getIngredients();
-        getMovements();   // 🔥 جديد
+        getMovements();
     }, [getIngredients, getMovements]);
 
     useEffect(() => {
@@ -181,14 +181,13 @@ function StockActions() {
 
         const previousIngredient = selectedIngredient;
         const nextIngredients = await fetchAllRestaurantIngredients(restaurantId);
-        await getMovements();   // 🔥 مهم
+        await getMovements();
         const updatedIngredient =
             nextIngredients.find(i => String(i.id) === String(previousIngredient?.id)) || null;
 
         setAction(null);
         setIngredients(nextIngredients);
 
-        // 🔥 أهم سطر
         setSelectedIngredient(updatedIngredient);
 
         setAction(null);

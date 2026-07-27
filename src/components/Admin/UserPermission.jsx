@@ -165,6 +165,11 @@ const removeRevokedPermission = (user = {}, permissionId) => ({
   ),
 });
 
+const isAlreadyRevokedError = (error) =>
+  String(error.response?.data?.message || error.response?.data?.error || "")
+    .toLowerCase()
+    .includes("already revoked");
+
 const getRolePermissionObjects = (user = {}, roles = [], permissions = []) => {
   const rolePermissionIds = getRolePermissionIds(user, roles);
   const rolePermissionKeys = getRolePermissions(getRoleForUser(user, roles))
@@ -558,6 +563,25 @@ export default function UserPermission() {
         await refreshCurrentUserPermissions();
       }
     } catch (error) {
+      if (isAlreadyRevokedError(error) && isInheritedPermission && permission) {
+        setPermissionError("");
+        setUserPerms((prev) =>
+          prev.filter((id) => String(id) !== permissionKey),
+        );
+        setSelectedUser((currentUser) =>
+          currentUser ? addRevokedPermission(currentUser, permission) : currentUser,
+        );
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === selectedUser.id
+              ? addRevokedPermission(user, permission)
+              : user,
+          ),
+        );
+        await refreshCurrentUserPermissions();
+        return;
+      }
+
       setPermissionError(
         error.response?.data?.message ||
           "User permission could not be updated. Please try again.",
@@ -664,8 +688,14 @@ export default function UserPermission() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 lg:w-[460px]">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">
+            <div className={`rounded-2xl border p-4 shadow-[0_16px_34px_rgba(127,29,29,0.10)] ${
+              isLight
+                ? "border-[#166534]/25 bg-[#ECFDF3]"
+                : "border-[#166534]/35 bg-[#166534]/12"
+            }`}>
+              <p className={`text-xs font-black uppercase tracking-[0.12em] ${
+                isLight ? "text-[#14532D]" : "text-[#86EFAC]"
+              }`}>
                 Users
               </p>
               <strong
@@ -674,7 +704,11 @@ export default function UserPermission() {
                 {users.length}
               </strong>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
+            <div className={`rounded-2xl border p-4 shadow-[0_16px_34px_rgba(154,100,0,0.12)] ${
+              isLight
+                ? "border-[#C98910]/30 bg-[#FFF1C2]"
+                : "border-[#FFD166]/38 bg-[#FFD166]/14"
+            }`}>
               <p className={`text-xs font-black uppercase tracking-[0.12em] ${goldText}`}>
                 Assignable
               </p>
@@ -684,8 +718,14 @@ export default function UserPermission() {
                 {assignablePermissions.length}
               </strong>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#7F1D1D]">
+            <div className={`rounded-2xl border p-4 shadow-[0_16px_34px_rgba(30,64,175,0.14)] ${
+              isLight
+                ? "border-[#1D4ED8]/25 bg-[#DBEAFE]"
+                : "border-[#60A5FA]/35 bg-[#1D4ED8]/16"
+            }`}>
+              <p className={`text-xs font-black uppercase tracking-[0.12em] ${
+                isLight ? "text-[#1E3A8A]" : "text-[#93C5FD]"
+              }`}>
                 Active
               </p>
               <strong
@@ -789,15 +829,15 @@ export default function UserPermission() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <p className={`text-xs font-black uppercase tracking-[0.16em] ${goldTextSoft}`}>
-                  Direct permissions
+                  Permissions
                 </p>
                 <h2 className={`mt-1 text-3xl font-black ${titleText}`}>
-                  {selectedUserName}
+                  User permissions
                 </h2>
                 {selectedUser && (
                   <p className={`mt-1 text-sm font-bold ${mutedText}`}>
-                    Role tasks appear here too. Direct tasks can be changed for
-                    this user only.
+                    {selectedUserName} · Role tasks appear here too. Direct
+                    tasks can be changed for this user only.
                   </p>
                 )}
               </div>
@@ -879,11 +919,8 @@ export default function UserPermission() {
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 text-sm font-black leading-tight text-white">
+                      <span className="line-clamp-2 text-[clamp(1rem,0.9rem+0.24vw,1.15rem)] font-black leading-tight text-white">
                         {formatPermissionLabel(p)}
-                      </span>
-                      <span className="mt-1 line-clamp-2 break-words text-xs font-semibold leading-tight text-white/42">
-                        {getPermissionKey(p)}
                       </span>
                       <span className="mt-2 flex flex-wrap gap-2">
                         {isInherited && (
@@ -897,7 +934,7 @@ export default function UserPermission() {
                           </span>
                         )}
                         {isDirect && (
-                          <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-emerald-200">
+                          <span className="rounded-full border border-[#166534]/25 bg-[#166534]/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#166534]">
                             Direct
                           </span>
                         )}

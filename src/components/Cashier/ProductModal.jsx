@@ -261,7 +261,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                 .filter(Boolean);
         })
         .filter(Boolean);
-    const orderNotes = [hasModifiers ? "" : selectedSize, ...modifierNotes, notes]
+    const orderNotes = [...modifierNotes, notes]
         .filter(Boolean)
         .join(" · ");
 

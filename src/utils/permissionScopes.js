@@ -37,6 +37,17 @@ function normalizePermissionKey(value) {
         .replace(/^_+|_+$/g, "");
 }
 
+function isTruthyFlag(value) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value === 1;
+
+    return ["1", "true", "yes"].includes(
+        String(value ?? "")
+            .trim()
+            .toLowerCase()
+    );
+}
+
 function isAdminOnlyPermission(permission) {
     return ADMIN_ONLY_PERMISSION_KEYS.includes(
         normalizePermissionKey(getPermissionKey(permission))
@@ -64,15 +75,22 @@ function getPermissionRestaurantId(permission = {}) {
 }
 
 function roleHasRestaurantId(role = {}) {
-    return Boolean(
-        role.restaurant_id ??
-            role.restaurantId ??
-            role.restaurant?.id ??
-            role.pivot?.restaurant_id ??
-            role.pivot?.restaurantId ??
-            role.requires_restaurant ??
-            role.restaurant_required
+    return (
+        Boolean(
+            role.restaurant_id ??
+                role.restaurantId ??
+                role.restaurant?.id ??
+                role.pivot?.restaurant_id ??
+                role.pivot?.restaurantId ??
+                null
+        ) ||
+        isTruthyFlag(role.requires_restaurant) ||
+        isTruthyFlag(role.restaurant_required)
     );
+}
+
+function roleCanCarryRestaurantPermission(role = {}, permission = {}) {
+    return roleHasRestaurantId(role) || Boolean(getPermissionRestaurantId(permission));
 }
 
 function userHasRestaurantId(user = {}) {
@@ -122,7 +140,8 @@ export function isRestaurantRole(role) {
         .toLowerCase();
 
     return (
-        Boolean(role?.requires_restaurant) ||
+        isTruthyFlag(role?.requires_restaurant) ||
+        isTruthyFlag(role?.restaurant_required) ||
         Boolean(restaurantId) ||
         RESTAURANT_ROLE_IDS.includes(roleId) ||
         RESTAURANT_ROLE_NAMES.includes(roleName)
@@ -138,13 +157,13 @@ export function canAssignPermissionToRole(role, permission) {
     if (isAdminRole(role)) return true;
 
     if (isRestaurantRoleAllowedAdminPermission(permission)) {
-        return isRestaurantRole(role);
+        return true;
     }
 
     if (isAdminOnlyPermission(permission)) return false;
 
     if (permissionNeedsRestaurant(permission)) {
-        return roleHasRestaurantId(role) || isRestaurantRole(role);
+        return roleCanCarryRestaurantPermission(role, permission);
     }
 
     return (
@@ -158,7 +177,7 @@ export function canAssignPermissionToUser(user, permission) {
     if (isAdminUser(user)) return true;
 
     if (isRestaurantRoleAllowedAdminPermission(permission)) {
-        return userHasRestaurantScope(user);
+        return true;
     }
 
     if (isAdminOnlyPermission(permission)) return false;

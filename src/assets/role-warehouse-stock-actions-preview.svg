@@ -1,0 +1,81 @@
+<svg width="1920" height="920" viewBox="90 80 1830 840" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1920" height="920" fill="#FBF4EC"/>
+  <rect x="90" width="1830" height="80" fill="#FFF9F2"/>
+  <rect width="90" height="920" fill="#FFF9F2"/>
+  <rect x="20" y="34" width="52" height="52" rx="7" fill="#9B191C"/>
+  <text x="30" y="58" fill="#FFF4DA" font-family="Georgia, serif" font-size="22" font-weight="700">Big</text>
+  <text x="42" y="78" fill="#FFD166" font-family="Georgia, serif" font-size="22" font-weight="700">4</text>
+  <rect x="30" y="139" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="30" y="199" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="30" y="259" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="30" y="319" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="30" y="379" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="20" y="424" width="52" height="50" rx="10" fill="#D9BA20"/>
+  <rect x="30" y="499" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="30" y="559" width="33" height="33" rx="7" stroke="#E7CDBF"/>
+  <rect x="12" y="837" width="67" height="56" rx="8" fill="#8F1D1D"/>
+  <text x="696" y="56" fill="#9A6400" font-family="Georgia, serif" font-size="38" font-weight="700" letter-spacing="8">WELCOME</text>
+  <text x="131" y="49" fill="#241815" font-family="Georgia, serif" font-size="17" font-weight="700">▻</text>
+  <rect x="188" y="19" width="125" height="42" rx="10" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="225" y="45" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">Mon 27 Jul</text>
+  <rect x="1492" y="19" width="114" height="42" rx="10" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="1530" y="45" fill="#6E5E58" font-family="Georgia, serif" font-size="16" font-weight="700">Manager</text>
+  <rect x="1620" y="19" width="42" height="42" rx="12" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <rect x="1674" y="18" width="206" height="44" rx="10" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <rect x="1688" y="26" width="30" height="30" rx="8" fill="#8F1D1D"/>
+  <text x="1694" y="46" fill="#FFF4DA" font-family="Georgia, serif" font-size="12" font-weight="700">AN</text>
+  <text x="1730" y="37" fill="#241815" font-family="Georgia, serif" font-size="16" font-weight="700">Ahmad Nabil Khalil</text>
+  <text x="1730" y="53" fill="#6E5E58" font-family="Georgia, serif" font-size="12">MANAGER</text>
+  <rect x="90" y="80" width="1830" height="840" fill="url(#pageBg)"/>
+  <text x="508" y="117" fill="#9A6400" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="4">INVENTORY CONTROL</text>
+  <text x="508" y="158" fill="#241815" font-family="Georgia, serif" font-size="42" font-weight="700">Stock Actions</text>
+  <rect x="509" y="198" width="976" height="313" rx="28" fill="#FFF9F2" stroke="#E3C5B7"/>
+  <text x="534" y="235" fill="#9A6400" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="4">SELECT INGREDIENT</text>
+  <text x="534" y="263" fill="#241815" font-family="Georgia, serif" font-size="23" font-weight="700">Choose what you want to update</text>
+  <rect x="534" y="287" width="925" height="85" rx="16" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="550" y="324" fill="#241815" font-family="Georgia, serif" font-size="22" font-weight="700">Burger Bun</text>
+  <text x="550" y="351" fill="#7A6A64" font-family="Georgia, serif" font-size="16">200.00 pcs available</text>
+  <text x="1428" y="333" fill="#9A6400" font-family="Georgia, serif" font-size="22">⌄</text>
+  <rect x="534" y="392" width="298" height="94" rx="14" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="554" y="428" fill="#7A6A64" font-family="Georgia, serif" font-size="16" font-weight="700">Current</text>
+  <text x="554" y="457" fill="#9A6400" font-family="Georgia, serif" font-size="28" font-weight="700">200.00 pcs</text>
+  <rect x="848" y="392" width="298" height="94" rx="14" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="868" y="428" fill="#7A6A64" font-family="Georgia, serif" font-size="16" font-weight="700">Minimum</text>
+  <text x="868" y="457" fill="#241815" font-family="Georgia, serif" font-size="28" font-weight="700">30.00 pcs</text>
+  <rect x="1162" y="392" width="298" height="94" rx="14" fill="#E8F2DF" stroke="#79DDA7"/>
+  <text x="1182" y="428" fill="#7A6A64" font-family="Georgia, serif" font-size="16" font-weight="700">Status</text>
+  <text x="1182" y="457" fill="#0EBD6B" font-family="Georgia, serif" font-size="28" font-weight="700">OK</text>
+  <rect x="509" y="543" width="312" height="190" rx="24" fill="#FFF9F2" stroke="#79DDA7"/>
+  <rect x="530" y="565" width="55" height="55" rx="16" fill="#FBF4EC" stroke="#DDE8E8"/>
+  <text x="529" y="658" fill="#008B68" font-family="Georgia, serif" font-size="24" font-weight="700">Refill</text>
+  <text x="529" y="687" fill="#31967C" font-family="Georgia, serif" font-size="16" font-weight="700">Add purchased stock to the selected</text>
+  <text x="529" y="707" fill="#31967C" font-family="Georgia, serif" font-size="16" font-weight="700">ingredient.</text>
+  <rect x="841" y="543" width="312" height="190" rx="24" fill="#F2E0D9" stroke="#B76161"/>
+  <rect x="862" y="565" width="55" height="55" rx="16" fill="#FBF4EC" stroke="#DDE8E8"/>
+  <text x="861" y="658" fill="#8F1D1D" font-family="Georgia, serif" font-size="24" font-weight="700">Waste</text>
+  <text x="861" y="687" fill="#B45E5C" font-family="Georgia, serif" font-size="16" font-weight="700">Record damaged, expired, or discarded</text>
+  <text x="861" y="707" fill="#B45E5C" font-family="Georgia, serif" font-size="16" font-weight="700">quantity.</text>
+  <rect x="1173" y="543" width="312" height="190" rx="24" fill="#FFF9F2" stroke="#E7C65D"/>
+  <rect x="1194" y="565" width="55" height="55" rx="16" fill="#FBF4EC" stroke="#DDE8E8"/>
+  <text x="1193" y="658" fill="#9A6400" font-family="Georgia, serif" font-size="24" font-weight="700">Adjust</text>
+  <text x="1193" y="687" fill="#B98220" font-family="Georgia, serif" font-size="16" font-weight="700">Set the counted quantity after a</text>
+  <text x="1193" y="707" fill="#B98220" font-family="Georgia, serif" font-size="16" font-weight="700">manual check.</text>
+  <rect x="509" y="774" width="976" height="146" rx="28" fill="#FFF9F2" stroke="#E3C5B7"/>
+  <text x="534" y="811" fill="#9A6400" font-family="Georgia, serif" font-size="13" font-weight="700" letter-spacing="4">ACTIVITY</text>
+  <text x="534" y="839" fill="#241815" font-family="Georgia, serif" font-size="28" font-weight="700">Stock Movements</text>
+  <text x="1303" y="841" fill="#7A6A64" font-family="Georgia, serif" font-size="15" font-weight="700">0 recorded movements</text>
+  <rect x="898" y="871" width="70" height="42" rx="12" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="917" y="898" fill="#7A6A64" font-family="Georgia, serif" font-size="18" font-weight="700">Prev</text>
+  <rect x="977" y="871" width="40" height="42" rx="12" fill="#8F1D1D"/>
+  <text x="992" y="899" fill="#FFF4DA" font-family="Georgia, serif" font-size="18" font-weight="700">1</text>
+  <rect x="1024" y="871" width="70" height="42" rx="12" fill="#FFF9F2" stroke="#E8D9D3"/>
+  <text x="1041" y="898" fill="#7A6A64" font-family="Georgia, serif" font-size="18" font-weight="700">Next</text>
+  <defs>
+    <linearGradient id="pageBg" x1="100" y1="87" x2="1730" y2="725" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF9F2"/>
+      <stop offset="0.3" stop-color="#FFF6DD"/>
+      <stop offset="0.65" stop-color="#FAECE8"/>
+      <stop offset="1" stop-color="#F0DCD2"/>
+    </linearGradient>
+  </defs>
+</svg>

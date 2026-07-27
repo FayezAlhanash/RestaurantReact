@@ -1,5 +1,7 @@
 import {
     AlertCircle,
+    Check,
+    ChevronDown,
     CircleDollarSign,
     Ellipsis,
     Flame,
@@ -89,6 +91,51 @@ function getDisplayDate(value) {
     });
 }
 
+function toDateKey(value) {
+    if (typeof value === "string") {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+        if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function getPreviousDayKey(daysAgo) {
+    const date = new Date();
+
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - daysAgo);
+
+    return toDateKey(date);
+}
+
+function getTodayAndPreviousTwoDaysOrders(items = []) {
+    const byDate = new Map(
+        items
+            .filter((item) => toDateKey(item.date))
+            .map((item) => [toDateKey(item.date), item])
+    );
+    const expectedDayKeys = [2, 1, 0].map(getPreviousDayKey);
+
+    return expectedDayKeys.map((dateKey, index) => ({
+        date: dateKey,
+        isToday: index === 2,
+        totalOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+        ...(byDate.get(dateKey) || {}),
+    }));
+}
+
 function MiniBars({ color = "#42d09f" }) {
     return (
         <div className="flex h-10 items-end gap-1">
@@ -104,31 +151,51 @@ function MiniBars({ color = "#42d09f" }) {
 }
 
 function OrdersBar({ items = [] }) {
-    const latest = items[items.length - 1];
-    const orderCount = Number(latest?.totalOrders || 0);
-    const height = orderCount > 0 ? 164 : 160;
+    const chartItems = getTodayAndPreviousTwoDaysOrders(items);
+    const maxOrders = Math.max(
+        ...chartItems.map((item) => Number(item?.totalOrders || 0)),
+        1
+    );
 
     return (
         <div className="flex h-full flex-col">
-            <div className="relative mx-auto flex min-h-[220px] w-full max-w-[290px] flex-1 items-end justify-center px-8 pb-8 pt-12">
+            <div className="relative mx-auto flex min-h-[220px] w-full max-w-[360px] flex-1 items-end justify-center gap-6 px-8 pb-8 pt-12">
                 <div className="absolute inset-x-8 top-[42%] border-t border-white/10" />
                 <div className="absolute inset-x-8 top-[58%] border-t border-white/10" />
                 <div className="absolute inset-x-8 top-[74%] border-t border-white/10" />
-                <div className="relative z-10 flex flex-col items-center">
-                    <div className="mb-4 rounded-lg bg-[#4fd99d] px-4 py-3 text-lg font-black text-[#07120f] shadow-[0_16px_34px_rgba(79,217,157,0.24)]">
-                        {orderCount}
-                    </div>
-                    <div
-                        className="w-20 rounded-t-[38px] bg-[linear-gradient(180deg,#54dda4_0%,#50d99d_52%,#45c98f_100%)] shadow-[0_22px_42px_rgba(79,217,157,0.22)]"
-                        style={{ height }}
-                    />
-                    <span className="mt-5 text-sm font-black text-white">
-                        {latest ? getDisplayDate(latest.date) : getDisplayDate(new Date())}
-                    </span>
-                </div>
+                {chartItems.map((item) => {
+                    const orderCount = Number(item?.totalOrders || 0);
+                    const height = orderCount > 0 ? Math.max(54, Math.round((orderCount / maxOrders) * 164)) : 28;
+                    const isToday = item.isToday;
+
+                    return (
+                        <div key={item.date} className="relative z-10 flex flex-col items-center">
+                            <div
+                                className={`mb-4 rounded-lg px-4 py-3 text-lg font-black shadow-[0_16px_34px_rgba(79,217,157,0.24)] ${
+                                    isToday
+                                        ? "bg-[#4fd99d] text-[#07120f]"
+                                        : "bg-[#D8D3CB] text-[#241815] shadow-[0_14px_30px_rgba(90,82,74,0.16)]"
+                                }`}
+                            >
+                                {orderCount}
+                            </div>
+                            <div
+                                className={`w-14 rounded-t-[32px] shadow-[0_22px_42px_rgba(79,217,157,0.22)] ${
+                                    isToday
+                                        ? "bg-[linear-gradient(180deg,#54dda4_0%,#50d99d_52%,#45c98f_100%)]"
+                                        : "bg-[linear-gradient(180deg,#D8D3CB_0%,#BEB7AC_55%,#A79F94_100%)] shadow-[0_18px_36px_rgba(90,82,74,0.16)]"
+                                }`}
+                                style={{ height }}
+                            />
+                            <span className="mt-5 whitespace-nowrap text-sm font-black text-white">
+                                {getDisplayDate(item.date)}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
             <div className="border-t border-white/10 pt-6 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#8f887c]">
-                Last 24 hours performance
+                Today and previous 2 days performance
             </div>
         </div>
     );
@@ -443,6 +510,11 @@ function MainContent() {
     const [topFoods, setTopFoods] = useState([]);
     const [dailyRevenue, setDailyRevenue] = useState([]);
     const [dailyOrders, setDailyOrders] = useState([]);
+    const [dailyOrdersByRestaurant, setDailyOrdersByRestaurant] = useState([]);
+    const [selectedDailyOrdersRestaurantId, setSelectedDailyOrdersRestaurantId] =
+        useState("all");
+    const [isDailyOrdersRestaurantMenuOpen, setIsDailyOrdersRestaurantMenuOpen] =
+        useState(false);
     const [summaryLoading, setSummaryLoading] = useState(true);
     const [summaryError, setSummaryError] = useState("");
 
@@ -569,11 +641,21 @@ function MainContent() {
                 const dailyOrderItems = Array.from(ordersByDate.values()).sort(
                     (a, b) => new Date(a.date) - new Date(b.date)
                 );
+                const dailyOrdersByRestaurantItems = restaurants.map(
+                    (restaurant, index) => ({
+                        restaurant,
+                        items:
+                            dailyOrdersResponses[index]?.status === "fulfilled"
+                                ? dailyOrdersResponses[index].value
+                                : [],
+                    })
+                );
 
                 setRestaurantSummaries(summaries);
                 setTopFoods(foods);
                 setDailyRevenue(dailyRevenueItems);
                 setDailyOrders(dailyOrderItems);
+                setDailyOrdersByRestaurant(dailyOrdersByRestaurantItems);
             } catch (error) {
                 try {
                     const restaurantId = getRestaurantId();
@@ -633,6 +715,18 @@ function MainContent() {
                     setDailyOrders(
                         getList(dailyOrdersResponse.data).map(normalizeDailyOrders)
                     );
+                    setDailyOrdersByRestaurant([
+                        {
+                            restaurant: response.data?.restaurant || {
+                                id: restaurantId,
+                                name: `Restaurant #${restaurantId}`,
+                            },
+                            items: getList(dailyOrdersResponse.data).map(
+                                normalizeDailyOrders
+                            ),
+                        },
+                    ]);
+                    setSelectedDailyOrdersRestaurantId(String(restaurantId));
                 } catch (fallbackError) {
                     setSummaryError(
                         fallbackError.response?.data?.message ||
@@ -672,6 +766,30 @@ function MainContent() {
     const restaurantCount = earnings.length;
     const maxRevenue = Math.max(...earnings.map((item) => item.revenueValue), 1);
     const maxFoodOrders = Math.max(...topFoods.map((item) => item.orders), 1);
+    const dailyOrdersRestaurantOptions = dailyOrdersByRestaurant.map(
+        ({ restaurant }) => ({
+            id: String(restaurant?.id ?? ""),
+            name: restaurant?.name || `Restaurant #${restaurant?.id ?? ""}`,
+        })
+    );
+    const dailyOrdersFilterOptions = [
+        { id: "all", name: "All restaurants" },
+        ...dailyOrdersRestaurantOptions,
+    ];
+    const selectedDailyOrdersRestaurantLabel =
+        dailyOrdersFilterOptions.find(
+            (restaurant) => restaurant.id === selectedDailyOrdersRestaurantId
+        )?.name || "All restaurants";
+    const selectedDailyOrders = useMemo(() => {
+        if (selectedDailyOrdersRestaurantId === "all") return dailyOrders;
+
+        return (
+            dailyOrdersByRestaurant.find(
+                ({ restaurant }) =>
+                    String(restaurant?.id) === String(selectedDailyOrdersRestaurantId)
+            )?.items || []
+        );
+    }, [dailyOrders, dailyOrdersByRestaurant, selectedDailyOrdersRestaurantId]);
     const stats = [
         {
             title: "Total Revenue",
@@ -864,12 +982,86 @@ function MainContent() {
                                     Volume tracking
                                 </p>
                             </div>
-                            <span className="rounded-md border border-[#2fc78d]/35 bg-[#123529] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#59e3a8]">
-                                Realtime
-                            </span>
+                            <div className="flex flex-col items-end gap-2">
+                                <span className="rounded-md border border-[#2fc78d]/35 bg-[#123529] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#59e3a8]">
+                                    Realtime
+                                </span>
+                                <div
+                                    className="relative"
+                                    onBlur={(event) => {
+                                        if (!event.currentTarget.contains(event.relatedTarget)) {
+                                            setIsDailyOrdersRestaurantMenuOpen(false);
+                                        }
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setIsDailyOrdersRestaurantMenuOpen(
+                                                (value) => !value
+                                            )
+                                        }
+                                        className="flex h-10 min-w-[180px] max-w-[220px] items-center justify-between gap-3 rounded-[8px] border border-[#D8A22D]/70 bg-[#FFFDF8] px-3 text-left text-xs font-black text-[#241815] shadow-[0_10px_24px_rgba(154,100,0,0.08)] outline-none transition hover:border-[#B17400] hover:bg-white focus:border-[#B17400] focus:ring-4 focus:ring-[#D8A22D]/12"
+                                    >
+                                        <span className="truncate">
+                                            {selectedDailyOrdersRestaurantLabel}
+                                        </span>
+                                        <ChevronDown
+                                            size={15}
+                                            className={`shrink-0 text-[#9A6400] transition-transform ${
+                                                isDailyOrdersRestaurantMenuOpen
+                                                    ? "rotate-180"
+                                                    : ""
+                                            }`}
+                                        />
+                                    </button>
+
+                                    <div
+                                        className={`absolute right-0 top-12 z-[90] w-[220px] origin-top-right overflow-hidden rounded-[14px] border border-[#E4CFC3] bg-white p-2 text-[#241815] shadow-[0_22px_50px_rgba(70,45,30,0.16)] ring-1 ring-[#D8A22D]/10 transition-all duration-200 ease-out ${
+                                            isDailyOrdersRestaurantMenuOpen
+                                                ? "translate-y-0 scale-100 opacity-100"
+                                                : "pointer-events-none -translate-y-2 scale-95 opacity-0"
+                                        }`}
+                                    >
+                                        {dailyOrdersFilterOptions.map((restaurant) => {
+                                            const isSelected =
+                                                restaurant.id ===
+                                                selectedDailyOrdersRestaurantId;
+
+                                            return (
+                                                <button
+                                                    key={restaurant.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedDailyOrdersRestaurantId(
+                                                            restaurant.id
+                                                        );
+                                                        setIsDailyOrdersRestaurantMenuOpen(false);
+                                                    }}
+                                                    className={`flex h-10 w-full items-center justify-between gap-3 rounded-[9px] px-3 text-left text-sm font-black transition ${
+                                                        isSelected
+                                                            ? "bg-[#FFF4DA] text-[#7A4F00] ring-1 ring-[#D8A22D]/24"
+                                                            : "text-[#4D3E37] hover:bg-[#FFF9F2] hover:text-[#241815]"
+                                                    }`}
+                                                >
+                                                    <span className="truncate">
+                                                        {restaurant.name}
+                                                    </span>
+                                                    {isSelected && (
+                                                        <Check
+                                                            size={15}
+                                                            className="shrink-0 text-[#9A6400]"
+                                                        />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="h-[365px]">
-                            <OrdersBar items={dailyOrders} />
+                            <OrdersBar items={selectedDailyOrders} />
                         </div>
                     </div>
 
@@ -899,7 +1091,7 @@ function MainContent() {
                                     Restaurant Earnings
                                 </h2>
                             </div>
-                            <p className="text-3xl font-black tabular-nums text-[#59e3a8]">
+                            <p className="text-3xl font-black tabular-nums text-[#22C55E]">
                                 {formatCurrency(totalRevenueValue)}
                             </p>
                         </div>
@@ -932,13 +1124,13 @@ function MainContent() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className="shrink-0 text-xl font-black tabular-nums text-[#59e3a8]">
+                                                <span className="shrink-0 text-xl font-black tabular-nums text-[#22C55E]">
                                                     {item.revenue}
                                                 </span>
                                             </div>
                                             <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                                                 <div
-                                                    className="h-full rounded-full bg-[linear-gradient(90deg,#d7b52f_0%,#59e3a8_100%)]"
+                                                    className="h-full rounded-full bg-[linear-gradient(90deg,#D8A22D_0%,#22C55E_55%,#16A34A_100%)]"
                                                     style={{ width: `${percent}%` }}
                                                 />
                                             </div>

@@ -14,7 +14,41 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+function isKitchenOrderNotification(data = {}) {
+    const text = [
+        data.title,
+        data.body,
+        data.message,
+        data.url,
+        data.type,
+        data.notification_type,
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+    if (
+        text.includes("pickup") ||
+        text.includes("picked up") ||
+        text.includes("ready takeaway")
+    ) {
+        return false;
+    }
+
+    return (
+        text.includes("new kitchen order") ||
+        text.includes("kitchen order") ||
+        text.includes("ready to prepare") ||
+        text.includes("/kitchen-orders") ||
+        text.includes("/kitchen/dashboard")
+    );
+}
+
 function getNotificationTargetUrl(data = {}) {
+    if (isKitchenOrderNotification(data)) {
+        return new URL("/kitchen/dashboard", self.location.origin).href;
+    }
+
     const target = new URL(data.url || "/", self.location.origin);
     const isTakeawayPath = [
         "/takeaway-orders",
@@ -45,11 +79,16 @@ messaging.onBackgroundMessage((payload) => {
     const notification = payload.notification || {};
     const data = payload.data || {};
     const title = notification.title || data.title || "Big-4";
+    const notificationData = {
+        ...data,
+        title,
+        body: notification.body || data.body,
+    };
     const options = {
         body: notification.body || data.body || "You have a new notification.",
         icon: "/favicon.svg",
         badge: "/favicon.svg",
-        data,
+        data: notificationData,
     };
 
     self.registration.showNotification(title, options);
