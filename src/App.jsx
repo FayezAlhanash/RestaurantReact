@@ -12,6 +12,7 @@ import EmployeesManagements from "./components/Admin/EmployeesManagements";
 import RolesPermission from "./components/Admin/Roles&Permission";
 import UserPermission from "./components/Admin/UserPermission";
 import DeliveryReviews from "./components/Admin/DeliveryReviews";
+import LoyaltySettings from "./components/Admin/LoyaltySettings";
 import TablesManagements from "./components/Admin/TablesManagements";
 import Cashier from "./components/Cashier/Cashier";
 import CashierDashboard from "./components/Cashier/CashierDashboard";
@@ -51,6 +52,7 @@ const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "manage_restaurants",
   "view_reports",
   "view_delivery_review",
+  "manage_loyalty_settings",
 ];
 
 const SESSION_CHECK_INTERVAL_MS = 15000;
@@ -116,10 +118,10 @@ function App() {
         </Route>
 
         {/* Waiter */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAITER]} allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.WAITER]} allowedPermissions={["serve_dine_in_orders"]} />}>
           <Route element={<WaiterLayout />}>
             <Route path="/waiter" element={<WaiterHomeRedirect />} />
-            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders"]} />}>
               <Route
                 path="/waiter/service"
                 element={<WaiterDashboard embedded />}
@@ -153,7 +155,7 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["manage_kitchen_orders"]} />}>
               <Route path="/warehouse/kitchen-orders" element={<KitchenDashboard />} />
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders"]} />}>
               <Route path="/warehouse/dine-in-service" element={<WaiterDashboard embedded />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["view_reports"]} />}>
@@ -214,7 +216,7 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["manage_kitchen_orders"]} />}>
               <Route path="/kitchen-orders" element={<KitchenDashboard />} />
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders"]} />}>
               <Route path="/dine-in-service" element={<WaiterDashboard embedded />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["view_reports", "view_global_reports"]} />}>
@@ -222,6 +224,12 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["view_delivery_review", "view_delivery_reviews", "view_deivery_review"]} />}>
               <Route path="/delivery-reviews" element={<DeliveryReviews />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} allowedPermissions={["manage_global_loyalty_settings"]} />}>
+              <Route path="/global-loyalty-settings" element={<LoyaltySettings scope="global" />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_loyalty_settings"]} />}>
+              <Route path="/loyalty-settings" element={<LoyaltySettings scope="restaurant" />} />
             </Route>
           </Route>
         </Route>
@@ -258,7 +266,7 @@ function App() {
             />
         </Route>
 
-        <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
+        <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders"]} />}>
             <Route
                 path="/kitchen/dine-in-service"
                 element={<WaiterDashboard embedded />}
@@ -369,7 +377,7 @@ function App() {
               />
             </Route>
 
-            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders", "process_payments"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["serve_dine_in_orders"]} />}>
               <Route
                 path="/manager/dine-in-service"
                 element={<WaiterDashboard embedded />}
@@ -387,6 +395,13 @@ function App() {
               <Route
                 path="/manager/restaurants"
                 element={<RestaurantsManagements />}
+              />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedPermissions={["manage_loyalty_settings"]} />}>
+              <Route
+                path="/manager/loyalty-settings"
+                element={<LoyaltySettings scope="restaurant" />}
               />
             </Route>
 

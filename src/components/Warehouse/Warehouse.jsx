@@ -8,6 +8,62 @@ import PermissionToast from "../Shared/PermissionToast";
 import WarehouseList from "./WarehouseList";
 import WarehouseModal from "./WarehouseModal";
 
+const getList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data?.data)) return data.data.data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.ingredients)) return data.ingredients;
+    if (Array.isArray(data?.data?.ingredients)) return data.data.ingredients;
+    return [];
+};
+
+const getPagination = (data) => {
+    const source = data?.meta || data?.data?.meta || data?.pagination || data?.data;
+
+    return {
+        currentPage: Number(
+            source?.current_page ??
+                source?.currentPage ??
+                data?.current_page ??
+                data?.currentPage ??
+                1
+        ),
+        lastPage: Number(
+            source?.last_page ??
+                source?.lastPage ??
+                source?.total_pages ??
+                source?.totalPages ??
+                data?.last_page ??
+                data?.lastPage ??
+                1
+        ),
+    };
+};
+
+async function fetchAllRestaurantIngredients(restaurantId) {
+    const firstResponse = await api.get(`/restaurants/${restaurantId}/ingredients`, {
+        params: { page: 1, per_page: 100 },
+    });
+    const firstItems = getList(firstResponse.data);
+    const pagination = getPagination(firstResponse.data);
+    const remainingPages = Array.from(
+        { length: Math.max(0, Math.max(1, pagination.lastPage) - 1) },
+        (_, index) => index + 2
+    );
+    const remainingResponses = await Promise.all(
+        remainingPages.map((pageNumber) =>
+            api.get(`/restaurants/${restaurantId}/ingredients`, {
+                params: { page: pageNumber, per_page: 100 },
+            })
+        )
+    );
+
+    return [
+        ...firstItems,
+        ...remainingResponses.flatMap((response) => getList(response.data)),
+    ];
+}
+
 function Warehouse() {
     const [selectedIngredient, setSelectedIngredient] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -48,8 +104,7 @@ function Warehouse() {
             return;
         }
 
-        const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
-        setInventory(res.data.data);
+        setInventory(await fetchAllRestaurantIngredients(restaurantId));
     }, [getActiveRestaurantId]);
 
     useEffect(() => {
@@ -247,7 +302,7 @@ function Warehouse() {
             />
 
             {isDeleteOpen && deleteIngredient && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
                     <div className="w-full max-w-[420px] rounded-[28px] border border-white/10 bg-[#12191C] p-6 text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]">
                         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#7F1D1D]/14 text-[#7F1D1D]">
                             !

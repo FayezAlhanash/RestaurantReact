@@ -7,7 +7,7 @@ const navigation = [
     { id: "menu", label: "Menu", icon: House, permissions: ["manage_takeaway_orders"] },
     { id: "catalog", label: "Catalog", icon: BookOpen, permissions: ["manage_takeaway_orders"] },
     { id: "orders", label: "Orders", icon: ReceiptText, permissions: ["manage_takeaway_orders"] },
-    { id: "serveOrders", label: "Dine-in", icon: CheckCircle2, permissions: ["serve_dine_in_orders", "process_payments"] },
+    { id: "serveOrders", label: "Dine-in", icon: CheckCircle2, permissions: ["serve_dine_in_orders"] },
     { id: "inventory", label: "Inventory", icon: Package, permissions: ["monitor_inventory"] },
     { id: "stockActions", label: "Stock", icon: ClipboardList, permissions: ["monitor_inventory"] },
     { id: "lowStock", label: "Low", icon: TriangleAlert, permissions: ["monitor_inventory"] },

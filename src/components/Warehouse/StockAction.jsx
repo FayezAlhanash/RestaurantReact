@@ -184,29 +184,12 @@ function StockActions() {
         await getMovements();   // 🔥 مهم
         const updatedIngredient =
             nextIngredients.find(i => String(i.id) === String(previousIngredient?.id)) || null;
-        const isNowLowStock =
-            Number(updatedIngredient?.current_quantity ?? 0) <=
-            Number(updatedIngredient?.min_quantity ?? 0);
 
         setAction(null);
         setIngredients(nextIngredients);
 
         // 🔥 أهم سطر
         setSelectedIngredient(updatedIngredient);
-
-        if (updatedIngredient && isNowLowStock) {
-            window.dispatchEvent(
-                new CustomEvent("big4:low-stock", {
-                    detail: {
-                        id: updatedIngredient.id,
-                        name: updatedIngredient.name,
-                        current_quantity: updatedIngredient.current_quantity,
-                        min_quantity: updatedIngredient.min_quantity,
-                        unit: updatedIngredient.unit,
-                    },
-                })
-            );
-        }
 
         setAction(null);
     };

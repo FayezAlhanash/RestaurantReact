@@ -1,22 +1,31 @@
 import { Boxes, Building2, CirclePlus, PackageCheck, TriangleAlert, Warehouse } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import WarehouseCard from "./WarehouseCard";
 import { useTheme } from "../../context/ThemeContext";
 
-function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
+function StatCard({ title, value, helper, icon: Icon, tone = "red", onClick }) {
     const { isLight } = useTheme();
     const styles = {
         red: "bg-[#7F1D1D]/14 text-[#7F1D1D]",
+        blue: isLight ? "bg-sky-100 text-sky-700" : "bg-sky-400/12 text-sky-300",
         yellow: "bg-[#FFD166]/14 text-[#FFD166]",
         green: isLight ? "bg-[#EAF6EF] text-[#2F7D55]" : "bg-emerald-400/12 text-emerald-300",
     };
     const borders = {
-        red: "border-[#7F1D1D]/45",
-        yellow: "border-[#FFD166]/45",
-        green: isLight ? "border-[#9FD8B7]" : "border-emerald-400/45",
+        red: "border-[#7F1D1D]/75",
+        blue: isLight ? "border-sky-300/75" : "border-sky-400/70",
+        yellow: "border-[#FFD166]/70",
+        green: isLight ? "border-[#6FC596]" : "border-emerald-400/70",
     };
 
+    const Wrapper = onClick ? "button" : "div";
+
     return (
-        <div className={`rounded-[24px] border ${borders[tone]} bg-[#20292D]/88 p-5 shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm`}>
+        <Wrapper
+            type={onClick ? "button" : undefined}
+            onClick={onClick}
+            className={`w-full rounded-[24px] border-2 ${borders[tone]} bg-[#20292D]/88 p-5 text-left shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_24px_52px_rgba(0,0,0,0.28)] active:scale-[0.99] ${onClick ? "cursor-pointer" : ""}`}
+        >
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <p className="text-sm font-bold text-white/50">{title}</p>
@@ -27,7 +36,7 @@ function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
                 </div>
             </div>
             <p className="mt-4 text-sm font-medium text-white/45">{helper}</p>
-        </div>
+        </Wrapper>
     );
 }
 
@@ -44,6 +53,7 @@ function WarehouseList({
     selectedRestaurantId = "",
     onRestaurantChange,
 }) {
+    const navigate = useNavigate();
     const fallbackStats = {
         total: inventory.length,
         lowStock: inventory.filter(
@@ -69,7 +79,7 @@ function WarehouseList({
                     value={displayStats.total || 0}
                     helper="Tracked in this restaurant"
                     icon={Warehouse}
-                    tone="red"
+                    tone="blue"
                 />
                 <StatCard
                     title="Healthy Stock"
@@ -83,7 +93,8 @@ function WarehouseList({
                     value={displayStats.lowStock || 0}
                     helper="Needs purchasing soon"
                     icon={TriangleAlert}
-                    tone="yellow"
+                    tone="red"
+                    onClick={() => navigate(isAdmin ? "/low-stock" : "/warehouse/low-stock")}
                 />
             </div>
 

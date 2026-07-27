@@ -90,6 +90,8 @@ function Employee() {
     const [roles, setRoles] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [spotlightIndex, setSpotlightIndex] = useState(0);
+    const [roleSpotlightIndex, setRoleSpotlightIndex] = useState(0);
 
     const roleOptions = useMemo(
         () =>
@@ -140,6 +142,50 @@ function Employee() {
 
         return () => window.clearTimeout(timeoutId);
     }, [getEmployees]);
+
+    useEffect(() => {
+        if (employees.length <= 1) return undefined;
+
+        const intervalId = window.setInterval(() => {
+            setSpotlightIndex((currentIndex) => (currentIndex + 1) % employees.length);
+        }, 5000);
+
+        return () => window.clearInterval(intervalId);
+    }, [employees.length]);
+
+    useEffect(() => {
+        if (spotlightIndex >= employees.length) {
+            setSpotlightIndex(0);
+        }
+    }, [employees.length, spotlightIndex]);
+
+    const roleCounts = useMemo(() => {
+        const counts = new Map();
+
+        employees.forEach((employee) => {
+            const roleName = getRoleName(employee, roleOptions);
+
+            counts.set(roleName, (counts.get(roleName) ?? 0) + 1);
+        });
+
+        return Array.from(counts, ([name, count]) => ({ name, count }));
+    }, [employees, roleOptions]);
+
+    useEffect(() => {
+        if (roleCounts.length <= 1) return undefined;
+
+        const intervalId = window.setInterval(() => {
+            setRoleSpotlightIndex((currentIndex) => (currentIndex + 1) % roleCounts.length);
+        }, 5000);
+
+        return () => window.clearInterval(intervalId);
+    }, [roleCounts.length]);
+
+    useEffect(() => {
+        if (roleSpotlightIndex >= roleCounts.length) {
+            setRoleSpotlightIndex(0);
+        }
+    }, [roleCounts.length, roleSpotlightIndex]);
 
     const openEditModal = (employee) => {
         setSelectedEmployee(employee);
@@ -209,9 +255,12 @@ function Employee() {
         );
     }, [employees, restaurants, roleFilter, roleOptions, searchQuery]);
 
+    const roleFilterRoles = roleOptions.filter(
+        (role) => String(role.name ?? "").toLowerCase() !== "admin"
+    );
     const roleFilterOptions = [
         { value: "all", label: "All", count: employees.length },
-        ...roleOptions.map((role) => ({
+        ...roleFilterRoles.map((role) => ({
             value: String(role.id),
             label: role.name,
             count: employees.filter(
@@ -229,6 +278,9 @@ function Employee() {
         setRoleFilter("all");
     };
 
+    const spotlightEmployee = employees[spotlightIndex] ?? null;
+    const spotlightRole = roleCounts[roleSpotlightIndex] ?? null;
+
     const stats = [
         {
             label: "All Employees",
@@ -244,24 +296,30 @@ function Employee() {
             helperClass: isLight ? "text-[#2E8B61]" : "text-emerald-300",
         },
         {
-            label: "Delivery Employees",
-            value: employees.filter((employee) =>
-                String(getRoleName(employee, roleOptions)).toLowerCase().includes("delivery")
-            ).length,
-            helper: "Assigned to delivery flow",
+            label: "Role Breakdown",
+            value: spotlightRole?.name ?? "No roles",
+            helper: spotlightRole ? `${spotlightRole.count} employees` : "0 employees",
             icon: Truck,
-            card: "border-[#FFD166]/25 bg-[linear-gradient(145deg,rgba(255,209,102,0.18),rgba(32,43,47,0.94))] text-white",
+            card: isLight
+                ? "border-[#D8A22D]/45 bg-[#FFF4DA] text-[#241815] shadow-[0_18px_42px_rgba(216,162,45,0.14)]"
+                : "border-[#FFD166]/25 bg-[linear-gradient(145deg,rgba(255,209,102,0.18),rgba(32,43,47,0.94))] text-white",
             iconBox: "border border-[#FFD166]/35 bg-[#FFD166]/10 text-[#FFD166] shadow-[0_12px_28px_rgba(255,209,102,0.12)]",
             helperClass: "text-[#FFD166]",
+            isRoleSpotlight: true,
+            spotlightKey: spotlightRole?.name ?? roleSpotlightIndex,
         },
         {
-            label: "Active Employees",
-            value: employees.filter(isActive).length,
-            helper: "Currently enabled",
+            label: "Staff Spotlight",
+            value: getEmployeeName(spotlightEmployee) || "No employees",
+            helper: spotlightEmployee ? getRoleName(spotlightEmployee, roleOptions) : "No role",
             icon: BadgeCheck,
-            card: "border-[#7F1D1D]/25 bg-[linear-gradient(145deg,rgba(127,29,29,0.18),rgba(32,43,47,0.94))] text-white",
-            iconBox: "border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] shadow-[0_12px_28px_rgba(127,29,29,0.12)]",
+            card: isLight
+                ? "border-[#7F1D1D]/35 bg-[#F9ECEC] text-[#241815] shadow-[0_18px_42px_rgba(127,29,29,0.12)]"
+                : "border-[#7F1D1D]/35 bg-[linear-gradient(145deg,rgba(127,29,29,0.14),rgba(32,43,47,0.94))] text-white",
+            iconBox: "border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D] shadow-[0_12px_28px_rgba(127,29,29,0.12)]",
             helperClass: "text-[#7F1D1D]",
+            isSpotlight: true,
+            spotlightKey: spotlightEmployee?.id ?? spotlightIndex,
         },
     ];
 
@@ -312,17 +370,33 @@ function Employee() {
                                         <p className="text-xs font-black uppercase tracking-[0.12em] opacity-70">
                                             {card.label}
                                         </p>
-                                        <h2 className="mt-3 text-4xl font-black tabular-nums">
-                                            {card.value}
-                                        </h2>
+                                        {card.isSpotlight || card.isRoleSpotlight ? (
+                                            <div
+                                                key={card.spotlightKey}
+                                                className="employee-spotlight-cycle mt-3 min-h-[72px]"
+                                            >
+                                                <h2 className="max-w-[310px] text-3xl font-black leading-tight">
+                                                    {card.value}
+                                                </h2>
+                                                <p className={`mt-2 text-base font-black ${card.isSpotlight ? "capitalize" : ""} ${card.helperClass}`}>
+                                                    {card.helper}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <h2 className="mt-3 text-4xl font-black tabular-nums">
+                                                {card.value}
+                                            </h2>
+                                        )}
                                     </div>
                                     <div className={`grid h-11 w-11 place-items-center rounded-2xl ${card.iconBox}`}>
                                         <Icon size={21} />
                                     </div>
                                 </div>
-                                <p className={`mt-4 text-sm font-semibold ${card.helperClass}`}>
-                                    {card.helper}
-                                </p>
+                                {!card.isSpotlight && !card.isRoleSpotlight && (
+                                    <p className={`mt-4 text-sm font-semibold ${card.helperClass}`}>
+                                        {card.helper}
+                                    </p>
+                                )}
                             </article>
                         );
                     })}
@@ -568,7 +642,7 @@ function Employee() {
             />
 
             {isInfoOpen && selectedEmployee && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-black">Employee Details</h2>
@@ -592,7 +666,7 @@ function Employee() {
             )}
 
             {isEditOpen && selectedEmployee && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-black">Edit Employee</h2>
@@ -678,7 +752,7 @@ function Employee() {
             )}
 
             {isDeleteOpen && employeeToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-center text-white shadow-2xl">
                         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]">
                             <Trash2 size={28} />

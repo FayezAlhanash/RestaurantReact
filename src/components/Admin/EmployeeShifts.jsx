@@ -85,6 +85,16 @@ function getRoleName(employee) {
     return employee?.role?.name || employee?.role_name || "Staff";
 }
 
+function getEmployeeApiId(employee) {
+    return (
+        employee?.employee_id ??
+        employee?.employeeId ??
+        employee?.employee?.id ??
+        employee?.staff?.id ??
+        employee?.id
+    );
+}
+
 function getEmployeeInitials(employee) {
     const nameParts = getEmployeeName(employee)
         .split(" ")
@@ -156,7 +166,7 @@ function EmployeeShifts() {
     const [successMessage, setSuccessMessage] = useState("");
 
     const selectedEmployee = employees.find(
-        (employee) => String(employee.id) === String(selectedEmployeeId)
+        (employee) => String(getEmployeeApiId(employee)) === String(selectedEmployeeId)
     );
 
     const bookedShiftDays = useMemo(
@@ -270,7 +280,7 @@ function EmployeeShifts() {
         setEmployeeShifts([]);
 
         try {
-            const response = await api.get(`/users/${employeeId}/shifts`);
+            const response = await api.get(`/employees/${employeeId}/shifts`);
             const shifts = getShiftList(response.data);
             const shiftDays = new Set(
                 shifts.map((shift) => normalizeDay(getShiftDay(shift))).filter(Boolean)
@@ -319,7 +329,6 @@ function EmployeeShifts() {
             return;
         }
 
-        formData.append("_method", "PATCH");
         formData.append("start_time", editStartTime);
         formData.append("end_time", editEndTime);
         formData.append("is_active", "1");
@@ -329,7 +338,7 @@ function EmployeeShifts() {
         setErrorMessage("");
 
         try {
-            await api.post(`/users/${selectedEmployeeId}/shifts/${shiftId}`, formData);
+            await api.put(`/employees/${selectedEmployeeId}/shifts/${shiftId}`, formData);
             setSuccessMessage(`${getShiftDay(shift)} shift updated.`);
             cancelEditShift();
             fetchEmployeeShifts(selectedEmployeeId);
@@ -355,20 +364,17 @@ function EmployeeShifts() {
 
     const handleDeleteShift = async (shift) => {
         const shiftId = getShiftId(shift);
-        const formData = new FormData();
-
         if (!shiftId) {
             setErrorMessage("Could not find this shift id.");
             return;
         }
 
-        formData.append("_method", "DELETE");
         setBusyShiftId(shiftId);
         setSuccessMessage("");
         setErrorMessage("");
 
         try {
-            await api.post(`/users/${selectedEmployeeId}/shifts/${shiftId}`, formData);
+            await api.delete(`/employees/${selectedEmployeeId}/shifts/${shiftId}`);
             setSuccessMessage(`${getShiftDay(shift)} shift deleted.`);
             setPendingDeleteShiftId("");
             fetchEmployeeShifts(selectedEmployeeId);
@@ -458,7 +464,7 @@ function EmployeeShifts() {
         try {
             for (const day of selectedDays) {
                 await api.post(
-                    `/users/${selectedEmployeeId}/shifts`,
+                    `/employees/${selectedEmployeeId}/shifts`,
                     buildShiftFormData(day)
                 );
             }
@@ -570,22 +576,23 @@ function EmployeeShifts() {
                             </div>
                         ) : filteredEmployees.length ? (
                             filteredEmployees.map((employee) => {
+                                const employeeApiId = getEmployeeApiId(employee);
                                 const isSelected =
-                                    String(employee.id) === String(selectedEmployeeId);
+                                    String(employeeApiId) === String(selectedEmployeeId);
 
                                 return (
                                     <button
-                                        key={employee.id}
+                                        key={employeeApiId}
                                         type="button"
                                         onClick={() => {
-                                            setSelectedEmployeeId(employee.id);
+                                            setSelectedEmployeeId(employeeApiId);
                                             setEditingShiftId("");
                                             setEditStartTime("");
                                             setEditEndTime("");
                                             setPendingDeleteShiftId("");
                                             setSuccessMessage("");
                                             setErrorMessage("");
-                                            fetchEmployeeShifts(employee.id);
+                                            fetchEmployeeShifts(employeeApiId);
                                         }}
                                         className={`group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.99] ${
                                             isSelected
@@ -614,7 +621,7 @@ function EmployeeShifts() {
                                                     {getRoleName(employee)}
                                                 </span>
                                                 <span className="h-1 w-1 shrink-0 rounded-full bg-current opacity-45" />
-                                                <span className="shrink-0">EMP-{employee.id}</span>
+                                                <span className="shrink-0">EMP-{employeeApiId}</span>
                                             </span>
                                         </span>
                                         <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border transition ${
@@ -652,7 +659,7 @@ function EmployeeShifts() {
                                 </h2>
                                 {selectedEmployee && (
                                     <p className={`mt-1 text-sm font-bold ${mutedText}`}>
-                                        {getRoleName(selectedEmployee)} · EMP-{selectedEmployee.id}
+                                        {getRoleName(selectedEmployee)} · EMP-{selectedEmployeeId}
                                     </p>
                                 )}
                             </div>

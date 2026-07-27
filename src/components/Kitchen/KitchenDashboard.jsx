@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BellRing, CheckCircle2, Flame, Utensils } from "lucide-react";
+import { BellRing, Building2, CheckCircle2, Flame, Utensils } from "lucide-react";
 
 import OrderCard from "../../components/Kitchen/OrderCard";
-import { getStoredUser } from "../../utils/auth";
+import api from "../../API/axios";
+import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import {
     fetchKitchenQueue,
     markKitchenOrderReady,
@@ -18,6 +19,8 @@ const normalizeStatus = (status) =>
 const isCompletedOrder = (order) =>
     ["ready", "completed", "done"].includes(normalizeStatus(order?.status));
 
+const ADMIN_ALL_RESTAURANTS = "all";
+
 export default function KitchenDashboard() {
     const [orders, setOrders] = useState([]);
     const [completedOrders, setCompletedOrders] = useState([]);
@@ -25,8 +28,14 @@ export default function KitchenDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [pendingOrderActions, setPendingOrderActions] = useState({});
+    const [restaurants, setRestaurants] = useState([]);
+    const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
     const shouldPollRef = useRef(true);
     const user = getStoredUser();
+    const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
+    const selectedRestaurant = restaurants.find(
+        (restaurant) => String(restaurant.id) === String(selectedRestaurantId)
+    );
 
     const chefName =
         user?.name ||
@@ -35,7 +44,35 @@ export default function KitchenDashboard() {
 
     const loadQueue = useCallback(async () => {
         try {
-            const queue = await fetchKitchenQueue();
+            if (isAdmin && !selectedRestaurantId) {
+                setOrders([]);
+                setCompletedOrders([]);
+                setErrorMessage("");
+                setIsLoading(false);
+                return;
+            }
+
+            const queue =
+                isAdmin && selectedRestaurantId === ADMIN_ALL_RESTAURANTS
+                    ? (
+                          await Promise.allSettled(
+                              restaurants.map(async (restaurant) => {
+                                  const restaurantQueue = await fetchKitchenQueue(
+                                      restaurant.id
+                                  );
+
+                                  return restaurantQueue.map((order) => ({
+                                      ...order,
+                                      sourceRestaurantId: restaurant.id,
+                                  }));
+                              })
+                          )
+                      ).flatMap((result) =>
+                          result.status === "fulfilled" ? result.value : []
+                      )
+                    : await fetchKitchenQueue(
+                          isAdmin ? selectedRestaurantId : undefined
+                      );
             const activeQueue = queue.filter((order) => !isCompletedOrder(order));
             const readyQueue = queue.filter(isCompletedOrder);
 
@@ -66,7 +103,30 @@ export default function KitchenDashboard() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [isAdmin, restaurants, selectedRestaurantId]);
+
+    useEffect(() => {
+        if (!isAdmin) return undefined;
+
+        const fetchRestaurants = async () => {
+            try {
+                const response = await api.get("/restaurants");
+                const restaurantList = response.data.restaurants || response.data.data || [];
+
+                setRestaurants(restaurantList);
+                setSelectedRestaurantId((current) =>
+                    current || (restaurantList.length ? ADMIN_ALL_RESTAURANTS : "")
+                );
+            } catch (error) {
+                setErrorMessage(
+                    error.response?.data?.message || "تعذر جلب قائمة المطاعم"
+                );
+            }
+        };
+
+        fetchRestaurants();
+        return undefined;
+    }, [isAdmin]);
 
     useEffect(() => {
         const initialLoadId = window.setTimeout(loadQueue, 0);
@@ -215,7 +275,11 @@ export default function KitchenDashboard() {
                 <div className="flex items-center gap-4 text-right">
                     <div>
                         <p className="text-lg font-black text-[#f8ded8]">
-                            مطبخ فرع 4
+                            {selectedRestaurant?.name
+                                ? `مطبخ ${selectedRestaurant.name}`
+                                : isAdmin && selectedRestaurantId === ADMIN_ALL_RESTAURANTS
+                                  ? "كل المطابخ"
+                                  : "مطبخ الفرع"}
                         </p>
                         <p className="mt-1 text-sm font-extrabold text-[#bbb4aa]">
                             المحطة الرئيسية ·{" "}
@@ -231,6 +295,70 @@ export default function KitchenDashboard() {
             </header>
 
             <section className="px-5 py-6 lg:px-8">
+                {isAdmin && restaurants.length > 0 && (
+                    <div className="mb-5 rounded-2xl border border-[#FFD166]/25 bg-[#2a2f34] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.20)]">
+                        <div className="mb-3 flex items-center gap-3 text-right">
+                            <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
+                                <Building2 size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
+                                    Admin kitchen view
+                                </p>
+                                <h2 className="text-lg font-black text-white">
+                                    اختر مطعم لعرض مطبخه
+                                </h2>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {restaurants.map((restaurant) => {
+                                const active =
+                                    String(selectedRestaurantId) === String(restaurant.id);
+
+                                return (
+                                    <button
+                                        key={restaurant.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedRestaurantId(restaurant.id);
+                                            setOrders([]);
+                                            setCompletedOrders([]);
+                                            setShowCompleted(false);
+                                            setIsLoading(true);
+                                            shouldPollRef.current = true;
+                                        }}
+                                        className={`rounded-xl border px-4 py-2 text-sm font-black transition hover:-translate-y-0.5 ${
+                                            active
+                                                ? "border-[#FFD166] bg-[#FFD166] text-[#1f1804] shadow-[0_10px_20px_rgba(255,209,102,0.18)]"
+                                                : "border-white/15 bg-[#1f2326] text-white hover:border-[#FFD166]/45 hover:text-[#FFD166]"
+                                        }`}
+                                    >
+                                        {restaurant.name || `Restaurant #${restaurant.id}`}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedRestaurantId(ADMIN_ALL_RESTAURANTS);
+                                    setOrders([]);
+                                    setCompletedOrders([]);
+                                    setShowCompleted(false);
+                                    setIsLoading(true);
+                                    shouldPollRef.current = true;
+                                }}
+                                className={`rounded-xl border px-4 py-2 text-sm font-black transition hover:-translate-y-0.5 ${
+                                    selectedRestaurantId === ADMIN_ALL_RESTAURANTS
+                                        ? "border-[#FFD166] bg-[#FFD166] text-[#1f1804] shadow-[0_10px_20px_rgba(255,209,102,0.18)]"
+                                        : "border-white/15 bg-[#1f2326] text-white hover:border-[#FFD166]/45 hover:text-[#FFD166]"
+                                }`}
+                            >
+                                All Kitchens
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#2a2f34] px-4 py-3 shadow-[0_8px_18px_rgba(0,0,0,0.18)]">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#78330f] text-[#ffe3cc]">
@@ -273,7 +401,7 @@ export default function KitchenDashboard() {
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
                             {completedOrders.map((order) => (
                                 <OrderCard
-                                    key={order.id}
+                                    key={`${order.sourceRestaurantId || selectedRestaurantId}-${order.id}`}
                                     order={order}
                                     className="opacity-90"
                                 />
@@ -288,7 +416,7 @@ export default function KitchenDashboard() {
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
                         {orders.map((order) => (
                             <OrderCard
-                                key={order.id}
+                                key={`${order.sourceRestaurantId || selectedRestaurantId}-${order.id}`}
                                 order={order}
                                 onStartPreparing={handleStartPreparing}
                                 onReady={handleReady}

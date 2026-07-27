@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  Lock,
   Pencil,
   Loader2,
   Plus,
@@ -12,6 +13,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import axios from "axios";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, storeUser } from "../../utils/auth";
@@ -46,6 +48,24 @@ const getPermissionKey = (permission = {}) =>
 const getPermissionIdByKey = (permissions, key) =>
   permissions.find((permission) => getPermissionKey(permission) === key)?.id;
 
+const getLoginIdentifier = (user) =>
+  user?.email || user?.username || user?.login || user?.phone || user?.name || "";
+
+const LOCKED_PERMISSION_KEYS = ["manage_roles", "manage_permissions"];
+
+const getUniquePermissions = (roles = []) => {
+  const seen = new Set();
+
+  return roles.flatMap(getRolePermissionList).filter((permission) => {
+    const key = String(permission.id ?? getPermissionKey(permission));
+
+    if (!key || seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+};
+
 const formatPermissionLabel = (permission = {}) =>
   getPermissionKey(permission)
     .replace(/_/g, " ")
@@ -56,6 +76,7 @@ export default function RolesPermission() {
   const [roles, setRoles] = useState([]);
   const [isRolesLoading, setIsRolesLoading] = useState(true);
   const [permissions, setPermissions] = useState([]);
+  const [permissionsLoadError, setPermissionsLoadError] = useState("");
   const [selectedRole, setSelectedRole] = useState(null);
   const [rolePermissions, setRolePermissions] = useState([]);
   const [permissionError, setPermissionError] = useState("");
@@ -63,6 +84,8 @@ export default function RolesPermission() {
   const [roleSearch, setRoleSearch] = useState("");
   const [permissionSearch, setPermissionSearch] = useState("");
   const [showCreateRole, setShowCreateRole] = useState(false);
+  const [isCreateRoleShown, setIsCreateRoleShown] = useState(false);
+  const createRoleCloseTimerRef = useRef(null);
   const [createRoleForm, setCreateRoleForm] = useState({
     name: "",
     description: "",
@@ -79,6 +102,22 @@ export default function RolesPermission() {
   const [editRoleError, setEditRoleError] = useState("");
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [isDeletingRole, setIsDeletingRole] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState(null);
+  const [isDeleteRoleShown, setIsDeleteRoleShown] = useState(false);
+  const deleteRoleCloseTimerRef = useRef(null);
+  const [deleteRolePassword, setDeleteRolePassword] = useState("");
+  const [deleteRoleError, setDeleteRoleError] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (createRoleCloseTimerRef.current) {
+        window.clearTimeout(createRoleCloseTimerRef.current);
+      }
+      if (deleteRoleCloseTimerRef.current) {
+        window.clearTimeout(deleteRoleCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   const refreshCurrentUserPermissions = async () => {
     const currentUser = getStoredUser();
@@ -112,8 +151,21 @@ export default function RolesPermission() {
   };
 
   const fetchPermissions = async () => {
-    const res = await api.get("/admin/permissions");
-    setPermissions(getList(res.data, "permissions"));
+    try {
+      const res = await api.get("/admin/permissions");
+      setPermissions(getList(res.data, "permissions"));
+      setPermissionsLoadError("");
+    } catch (error) {
+      const status = error.response?.status;
+      setPermissions([]);
+      setPermissionsLoadError(
+        status === 401 || status === 403
+          ? "Showing current role permissions only. Restore Manage Permissions to edit role permissions."
+          : error.response?.data?.message ||
+              "Permissions could not be loaded. Please try again."
+      );
+      console.log(error.response?.data || error);
+    }
   };
 
   // load roles + permissions
@@ -154,6 +206,40 @@ export default function RolesPermission() {
       requires_restaurant: false,
     });
     setCreateRoleError("");
+  };
+
+  const openCreateRolePanel = () => {
+    if (createRoleCloseTimerRef.current) {
+      window.clearTimeout(createRoleCloseTimerRef.current);
+      createRoleCloseTimerRef.current = null;
+    }
+
+    setShowCreateRole(true);
+    setIsCreateRoleShown(false);
+    requestAnimationFrame(() => setIsCreateRoleShown(true));
+  };
+
+  const closeCreateRolePanel = ({ resetForm = false } = {}) => {
+    setIsCreateRoleShown(false);
+
+    createRoleCloseTimerRef.current = window.setTimeout(() => {
+      setShowCreateRole(false);
+      createRoleCloseTimerRef.current = null;
+
+      if (resetForm) {
+        resetCreateRoleForm();
+      }
+    }, 160);
+  };
+
+  const toggleCreateRolePanel = () => {
+    if (showCreateRole) {
+      closeCreateRolePanel();
+      return;
+    }
+
+    setCreateRoleError("");
+    openCreateRolePanel();
   };
 
   const startEditRole = () => {
@@ -229,33 +315,86 @@ export default function RolesPermission() {
     }
   };
 
-  const handleDeleteRole = async () => {
+  const openDeleteRoleModal = () => {
     if (!selectedRole || isDeletingRole) return;
 
-    const confirmed = window.confirm(
-      `Delete role "${selectedRole.name}"? This cannot be undone.`
-    );
+    if (deleteRoleCloseTimerRef.current) {
+      window.clearTimeout(deleteRoleCloseTimerRef.current);
+      deleteRoleCloseTimerRef.current = null;
+    }
 
-    if (!confirmed) return;
+    setRoleToDelete(selectedRole);
+    setIsDeleteRoleShown(false);
+    setDeleteRolePassword("");
+    setDeleteRoleError("");
+    requestAnimationFrame(() => setIsDeleteRoleShown(true));
+  };
+
+  const closeDeleteRoleModal = () => {
+    if (isDeletingRole) return;
+
+    setIsDeleteRoleShown(false);
+
+    deleteRoleCloseTimerRef.current = window.setTimeout(() => {
+      setRoleToDelete(null);
+      setDeleteRolePassword("");
+      setDeleteRoleError("");
+      deleteRoleCloseTimerRef.current = null;
+    }, 180);
+  };
+
+  const handleDeleteRole = async (event) => {
+    event.preventDefault();
+
+    if (!roleToDelete || isDeletingRole) return;
+
+    if (!deleteRolePassword.trim()) {
+      setDeleteRoleError("Account password is required.");
+      return;
+    }
 
     setIsDeletingRole(true);
     setPermissionError("");
     setEditRoleError("");
+    setDeleteRoleError("");
 
     try {
-      await api.delete(`/admin/roles/${selectedRole.id}`);
+      const currentUser = getStoredUser();
+      const loginIdentifier = getLoginIdentifier(currentUser);
+
+      if (!loginIdentifier) {
+        setDeleteRoleError("Could not identify the current account.");
+        return;
+      }
+
+      const verifyFormData = new FormData();
+
+      verifyFormData.append("login", loginIdentifier);
+      verifyFormData.append("password", deleteRolePassword);
+
+      await axios.post("https://big4.me/api/login", verifyFormData);
+
+      await api.delete(`/admin/roles/${roleToDelete.id}`);
       const rolesRes = await api.get("/admin/roles");
 
       setRoles(getList(rolesRes.data, "roles"));
       setSelectedRole(null);
       setRolePermissions([]);
       setIsEditingRole(false);
+      setIsDeleteRoleShown(false);
+      window.setTimeout(() => {
+        setRoleToDelete(null);
+        setDeleteRolePassword("");
+        setDeleteRoleError("");
+      }, 180);
       await refreshCurrentUserPermissions();
     } catch (error) {
-      setPermissionError(
-        error.response?.data?.message ||
-          "Role could not be deleted. Please try again."
-      );
+      const isPasswordError =
+        error.config?.url === "https://big4.me/api/login" ||
+        error.response?.status === 401 ||
+        error.response?.status === 422;
+
+      setDeleteRoleError(isPasswordError ? "Incorrect password." : "Role could not be deleted. Please try again.");
       console.log(error.response?.data || error);
     } finally {
       setIsDeletingRole(false);
@@ -304,7 +443,7 @@ export default function RolesPermission() {
       }
 
       resetCreateRoleForm();
-      setShowCreateRole(false);
+      closeCreateRolePanel();
     } catch (error) {
       setCreateRoleError(
         error.response?.data?.message ||
@@ -316,26 +455,55 @@ export default function RolesPermission() {
     }
   };
 
+  const permissionCatalog = permissions.length
+    ? permissions
+    : getUniquePermissions(roles);
+  const isPermissionEditorReadOnly = Boolean(permissionsLoadError);
+
   // toggle permission
   const togglePermission = async (permissionId) => {
     if (!selectedRole) return;
 
-    const permission = permissions.find((item) => item.id === permissionId);
+    if (isPermissionEditorReadOnly) {
+      setPermissionError(
+        "Role permissions are read-only until Manage Permissions is restored."
+      );
+      return;
+    }
+
+    const permission = permissionCatalog.find((item) => item.id === permissionId);
     if (!canAssignPermissionToRole(selectedRole, permission)) return;
 
     const selectedPermissionKey = getPermissionKey(permission);
     const monitorInventoryId = getPermissionIdByKey(
-      permissions,
+      permissionCatalog,
       "monitor_inventory"
     );
     const manageInventoryId = getPermissionIdByKey(
-      permissions,
+      permissionCatalog,
       "manage_inventory"
     );
-    const viewRecipesId = getPermissionIdByKey(permissions, "view_recipes");
-    const manageRecipesId = getPermissionIdByKey(permissions, "manage_recipes");
+    const viewRecipesId = getPermissionIdByKey(permissionCatalog, "view_recipes");
+    const manageRecipesId = getPermissionIdByKey(
+      permissionCatalog,
+      "manage_recipes"
+    );
+    const processPaymentsId = getPermissionIdByKey(
+      permissionCatalog,
+      "process_payments"
+    );
     const permissionKey = String(permissionId);
     const hasPermission = rolePermissions.includes(permissionKey);
+    const isLockedPermission = LOCKED_PERMISSION_KEYS.includes(
+      selectedPermissionKey
+    );
+
+    if (hasPermission && isLockedPermission) {
+      setPermissionError(
+        "Manage Roles and Manage Permissions can't be removed from roles because this page needs both permissions to work."
+      );
+      return;
+    }
 
     setPermissionError("");
     setUpdatingPermissionId(permissionId);
@@ -360,6 +528,22 @@ export default function RolesPermission() {
       ) {
         setPermissionError(
           "Remove manage_recipes before removing view_recipes."
+        );
+        return;
+      }
+
+      if (
+        selectedPermissionKey === "process_payments" &&
+        rolePermissions.some((id) => {
+          const item = permissionCatalog.find(
+            (permission) => String(permission.id) === String(id)
+          );
+
+          return getPermissionKey(item) === "serve_dine_in_orders";
+        })
+      ) {
+        setPermissionError(
+          "Remove Serve Dine In Orders before removing Process Payments."
         );
         return;
       }
@@ -433,6 +617,22 @@ export default function RolesPermission() {
         ]);
       }
 
+      if (
+        selectedPermissionKey === "serve_dine_in_orders" &&
+        processPaymentsId &&
+        !rolePermissions.includes(String(processPaymentsId))
+      ) {
+        const processPaymentsFormData = new FormData();
+        processPaymentsFormData.append("permission_id", processPaymentsId);
+        await api.post(
+          `/admin/roles/${selectedRole.id}/permissions`,
+          processPaymentsFormData
+        );
+        setRolePermissions((prev) => [
+          ...new Set([...prev, String(processPaymentsId)]),
+        ]);
+      }
+
       const formData = new FormData();
       formData.append("permission_id", permissionId);
 
@@ -474,9 +674,20 @@ export default function RolesPermission() {
     }
       await fetchRoles();
     } catch (error) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+      const unauthorizedLockedPermissionRemoval =
+        hasPermission &&
+        isLockedPermission &&
+        (status === 401 || status === 403 || message === "Unauthorized.");
+
       setPermissionError(
-        error.response?.data?.message ||
-          "Permission could not be updated. Please try again."
+        unauthorizedLockedPermissionRemoval
+          ? "Manage Roles and Manage Permissions can't be removed from roles because this page needs both permissions to work."
+          : status === 401 || status === 403 || message === "Unauthorized."
+            ? "You need Manage Permissions to update role permissions."
+            : message ||
+              "Permission could not be updated. Please try again."
       );
       console.log(error.response?.data || error);
     } finally {
@@ -491,7 +702,7 @@ export default function RolesPermission() {
     String(role.name ?? "").toLowerCase().includes(normalizedRoleSearch)
   );
   const assignablePermissions = selectedRole
-    ? filterPermissionsForRole(selectedRole, permissions)
+    ? filterPermissionsForRole(selectedRole, permissionCatalog)
     : [];
   const visiblePermissions = assignablePermissions.filter((permission) =>
     getPermissionKey(permission)
@@ -585,7 +796,7 @@ export default function RolesPermission() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
-        <aside className={`overflow-hidden rounded-[24px] border ${panelSurface}`}>
+        <aside className={`overflow-visible rounded-[24px] border ${panelSurface}`}>
           <div className={`border-b p-4 ${panelHeader}`}>
             <div className="flex items-center gap-3">
               <div className={`grid h-10 w-10 place-items-center rounded-xl border ${goldBorder} ${goldBackgroundSoft} ${goldText} shadow-sm`}>
@@ -597,77 +808,100 @@ export default function RolesPermission() {
                 </p>
                 <h2 className={`text-lg font-black ${titleText}`}>Roles</h2>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateRole((prev) => !prev);
-                  setCreateRoleError("");
-                }}
-                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition active:scale-95 ${goldButton}`}
-                aria-label={showCreateRole ? "Close add role form" : "Add role"}
-                title={showCreateRole ? "Close" : "Add role"}
-              >
-                {showCreateRole ? <X size={18} /> : <Plus size={18} />}
-              </button>
-            </div>
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={toggleCreateRolePanel}
+                  className={`grid h-10 w-10 place-items-center rounded-xl border transition active:scale-95 ${goldButton}`}
+                  aria-label={showCreateRole ? "Close add role form" : "Add role"}
+                  title={showCreateRole ? "Close" : "Add role"}
+                  aria-expanded={showCreateRole}
+                >
+                  {showCreateRole ? <X size={18} /> : <Plus size={18} />}
+                </button>
 
-            {showCreateRole && (
-              <form
-                onSubmit={handleCreateRole}
-                className={`mt-4 rounded-2xl border p-3 shadow-sm ${formSurface}`}
-              >
-                <div className="grid gap-3">
-                  <input
-                    name="name"
-                    value={createRoleForm.name}
-                    onChange={handleCreateRoleChange}
-                    placeholder="Role name"
-                    className={`w-full rounded-xl border px-3 py-2.5 text-sm font-bold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
-                    disabled={isCreatingRole}
-                  />
-                  <textarea
-                    name="description"
-                    value={createRoleForm.description}
-                    onChange={handleCreateRoleChange}
-                    placeholder="Description"
-                    rows={3}
-                    className={`w-full resize-none rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
-                    disabled={isCreatingRole}
-                  />
-                  <label className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
-                    <input
-                      type="checkbox"
-                      name="requires_restaurant"
-                      checked={createRoleForm.requires_restaurant}
-                      onChange={handleCreateRoleChange}
-                      className="h-4 w-4 accent-[#7F1D1D]"
-                      disabled={isCreatingRole}
-                    />
-                    Requires restaurant
-                  </label>
-
-                  {createRoleError && (
-                    <p className="flex items-start gap-2 rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-bold text-[#7F1D1D]">
-                      <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                      <span>{createRoleError}</span>
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isCreatingRole}
-                    className={`flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 ${goldButton}`}
+                {showCreateRole && (
+                  <form
+                    onSubmit={handleCreateRole}
+                    className={`absolute right-0 top-[calc(100%+0.7rem)] z-50 w-[min(82vw,320px)] origin-top-right overflow-hidden rounded-2xl border shadow-[0_28px_70px_rgba(70,45,30,0.18)] ring-1 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      isCreateRoleShown
+                        ? "translate-y-0 scale-100 opacity-100"
+                        : "translate-y-1 scale-95 opacity-0"
+                    } ${formSurface} ${isLight ? "ring-[#7F1D1D]/10" : "ring-white/[0.04]"}`}
                   >
-                    {isCreatingRole ? (
-                      <Loader2 size={17} className="animate-spin" />
-                    ) : (
-                      <Plus size={17} />
-                    )}
-                    Add role
-                  </button>
-                </div>
-              </form>
-            )}
+                    <div className={`flex items-center justify-between border-b px-3.5 py-3 ${panelHeader}`}>
+                      <div>
+                        <p className={`text-sm font-black ${goldText}`}>
+                          Add role
+                        </p>
+                        <p className={`text-xs font-bold ${mutedText}`}>
+                          Create a new permission group
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => closeCreateRolePanel()}
+                        aria-label="Close add role form"
+                        className={`grid h-9 w-9 place-items-center rounded-xl border transition active:scale-95 ${goldBorder} ${goldBackgroundSoft} ${goldText}`}
+                      >
+                        <X size={17} />
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 p-3.5">
+                      <input
+                        name="name"
+                        value={createRoleForm.name}
+                        onChange={handleCreateRoleChange}
+                        placeholder="Role name"
+                        className={`w-full rounded-xl border px-3 py-2.5 text-sm font-bold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
+                        disabled={isCreatingRole}
+                      />
+                      <textarea
+                        name="description"
+                        value={createRoleForm.description}
+                        onChange={handleCreateRoleChange}
+                        placeholder="Description"
+                        rows={3}
+                        className={`w-full resize-none rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
+                        disabled={isCreatingRole}
+                      />
+                      <label className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
+                        <input
+                          type="checkbox"
+                          name="requires_restaurant"
+                          checked={createRoleForm.requires_restaurant}
+                          onChange={handleCreateRoleChange}
+                          className="h-4 w-4 accent-[#7F1D1D]"
+                          disabled={isCreatingRole}
+                        />
+                        Requires restaurant
+                      </label>
+
+                      {createRoleError && (
+                        <p className="flex items-start gap-2 rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-bold text-[#7F1D1D]">
+                          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                          <span>{createRoleError}</span>
+                        </p>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isCreatingRole}
+                        className={`flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 ${goldButton}`}
+                      >
+                        {isCreatingRole ? (
+                          <Loader2 size={17} className="animate-spin" />
+                        ) : (
+                          <Plus size={17} />
+                        )}
+                        Add role
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
 
             <div className={`mt-4 flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-inner ${fieldSurface}`}>
               <Search size={17} className={`shrink-0 ${goldText}`} />
@@ -757,7 +991,7 @@ export default function RolesPermission() {
                     </button>
                     <button
                       type="button"
-                      onClick={handleDeleteRole}
+                      onClick={openDeleteRoleModal}
                       disabled={isUpdatingRole || isDeletingRole}
                       className="grid h-11 w-11 place-items-center rounded-xl border border-red-400/70 bg-[#7F1D1D] text-white shadow-[0_12px_24px_rgba(127,29,29,0.32)] transition hover:border-red-300 hover:bg-[#9B2C2C] hover:shadow-[0_14px_30px_rgba(127,29,29,0.42)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       aria-label="Delete role"
@@ -846,6 +1080,12 @@ export default function RolesPermission() {
                 {permissionError}
               </p>
             )}
+
+            {permissionsLoadError && (
+              <p className="mt-4 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#7F1D1D]">
+                {permissionsLoadError}
+              </p>
+            )}
           </div>
 
           {!selectedRole ? (
@@ -867,15 +1107,26 @@ export default function RolesPermission() {
               {visiblePermissions.map((perm) => {
                 const checked = rolePermissions.includes(String(perm.id));
                 const isUpdating = updatingPermissionId === perm.id;
+                const isLockedPermission = LOCKED_PERMISSION_KEYS.includes(
+                  getPermissionKey(perm)
+                );
+                const isDisabled =
+                  isUpdating ||
+                  isPermissionEditorReadOnly ||
+                  (checked && isLockedPermission);
 
                 return (
                   <label
                     key={perm.id}
-                    className={`group flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 active:scale-[0.99] ${
+                    className={`group flex min-w-0 items-center gap-3 rounded-2xl border p-3 transition ${
+                      isDisabled
+                        ? "cursor-not-allowed opacity-70"
+                        : "cursor-pointer hover:-translate-y-0.5 active:scale-[0.99]"
+                    } ${
                       checked
                         ? selectedPermissionSurface
                         : "border-white/10 bg-[#101A1D] hover:border-white/16 hover:bg-[#142125]"
-                    } ${isUpdating ? "opacity-70" : ""}`}
+                    }`}
                   >
                     <span
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition ${
@@ -892,18 +1143,15 @@ export default function RolesPermission() {
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 text-[clamp(0.88rem,0.72rem+0.28vw,1rem)] font-black leading-tight text-white">
+                      <span className="line-clamp-2 text-[clamp(1rem,0.9rem+0.24vw,1.15rem)] font-black leading-tight text-white">
                         {formatPermissionLabel(perm)}
-                      </span>
-                      <span className="mt-1 line-clamp-2 break-words text-[clamp(0.72rem,0.64rem+0.18vw,0.82rem)] font-semibold leading-tight text-white/42">
-                        {getPermissionKey(perm)}
                       </span>
                     </span>
 
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={isUpdating}
+                      disabled={isDisabled}
                       onChange={() => togglePermission(perm.id)}
                       className="h-5 w-5 shrink-0 accent-[#7F1D1D]"
                     />
@@ -911,7 +1159,7 @@ export default function RolesPermission() {
                 );
               })}
 
-              {!visiblePermissions.length && (
+              {!visiblePermissions.length && !permissionsLoadError && (
                 <div className={`col-span-full rounded-2xl border border-dashed p-10 text-center ${emptySurface}`}>
                   <h3 className={`text-lg font-black ${titleText}`}>
                     No permissions found
@@ -925,6 +1173,102 @@ export default function RolesPermission() {
           )}
         </section>
       </section>
+
+      {roleToDelete && (
+        <div
+          className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-6 ${
+            isDeleteRoleShown ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <form
+            onSubmit={handleDeleteRole}
+            className={`w-full max-w-md origin-center overflow-hidden rounded-[26px] border border-white/10 bg-[#182124] text-white shadow-2xl transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isDeleteRoleShown
+                ? "translate-y-0 scale-100 opacity-100"
+                : "translate-y-2 scale-95 opacity-0"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(185,28,28,0.24),transparent_36%),rgba(24,33,36,0.96)] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#B91C1C]/40 bg-[#B91C1C]/14 text-[#EF4444]">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
+                    Confirm delete
+                  </p>
+                  <h2 className="text-xl font-black text-white">
+                    Delete {roleToDelete.name}
+                  </h2>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeDeleteRoleModal}
+                disabled={isDeletingRole}
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/55 transition hover:scale-110 hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
+                aria-label="Close delete confirmation"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              <p className="text-sm font-semibold leading-6 text-white/58">
+                Enter your account password to delete this role. This action cannot be undone.
+              </p>
+
+              <label className="block">
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                  Account password
+                </span>
+                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
+                  <Lock size={18} className="shrink-0 text-white/35" />
+                  <input
+                    type="password"
+                    value={deleteRolePassword}
+                    onChange={(event) => {
+                      setDeleteRolePassword(event.target.value);
+                      setDeleteRoleError("");
+                    }}
+                    autoComplete="current-password"
+                    placeholder="Enter password"
+                    className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30"
+                    autoFocus
+                  />
+                </div>
+              </label>
+
+              {deleteRoleError && (
+                <p className="rounded-2xl border border-[#B91C1C]/35 bg-[#B91C1C]/12 px-4 py-3 text-sm font-bold text-[#EF4444]">
+                  {deleteRoleError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-white/[0.08] bg-[#0D1214]/45 p-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeDeleteRoleModal}
+                disabled={isDeletingRole}
+                className="h-11 rounded-2xl border border-white/10 px-6 text-sm font-black text-white/65 transition hover:scale-[1.03] hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={isDeletingRole || !deleteRolePassword.trim()}
+                className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#DC2626_0%,#B91C1C_52%,#991B1B_100%)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgba(185,28,28,0.28)] transition hover:scale-[1.03] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeletingRole && <Loader2 size={17} className="animate-spin" />}
+                Delete Role
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

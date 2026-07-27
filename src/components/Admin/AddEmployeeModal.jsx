@@ -186,7 +186,7 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
         }
     };
     return (
-        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4">
+        <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4">
             <div className="modal-panel-enter w-full max-w-2xl max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-[28px] border border-white/10 bg-[#182124] text-white shadow-2xl">
                 <div className="relative border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.16),transparent_34%),rgba(255,255,255,0.03)] px-6 py-4 text-white">
                     <h2 className="text-2xl font-bold text-center">

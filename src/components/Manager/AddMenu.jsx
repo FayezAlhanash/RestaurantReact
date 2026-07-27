@@ -17,6 +17,7 @@ import CategoryModal from "./CategoryModal";
 import ModifierGroupModal from "./ModifierGroupModal";
 import ModifierOptionModal from "./ModifierOptionModal";
 import api from "../../API/axios";
+import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import {
   ensureManagerRestaurantId,
   filterCategoriesByRestaurant,
@@ -117,6 +118,21 @@ const getRelationPrice = (option) =>
   option?.option_price ??
   option?.price;
 
+const getItemRestaurantId = (item) =>
+  item?.restaurant_id ??
+  item?.restaurantId ??
+  item?.restaurant?.id ??
+  item?.pivot?.restaurant_id ??
+  item?.pivot?.restaurantId ??
+  null;
+
+const withRestaurantContext = (items, restaurant) =>
+  items.map((item) => ({
+    ...item,
+    restaurant_id: getItemRestaurantId(item) ?? restaurant?.id,
+    restaurant: item?.restaurant ?? restaurant,
+  }));
+
 const getAttachSettings = (settings, groupId, optionCount = 1) =>
   settings[groupId] ?? {
     max_select: String(Math.min(1, Math.max(optionCount, 1))),
@@ -190,6 +206,8 @@ const saveModifierPriceDraft = (foodId, groupId, settings) => {
 
 export default function AddMenu() {
   const { search = "" } = useOutletContext() ?? {};
+  const user = getStoredUser();
+  const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
   const [activeTab, setActiveTab] = useState("categories");
   const [openCategoryModal, setOpenCategoryModal] = useState(false);
   const [openGroupModal, setOpenGroupModal] = useState(false);
@@ -208,6 +226,46 @@ export default function AddMenu() {
   const [attachingGroupId, setAttachingGroupId] = useState(null);
   const [openFoodPickerGroupId, setOpenFoodPickerGroupId] = useState(null);
 
+  const fetchRestaurantsForAdmin = async () => {
+    if (!isAdmin) return [];
+
+    const res = await api.get("/restaurants");
+    return getResponseList(res.data, ["restaurants"]);
+  };
+
+  const fetchRestaurantScopedList = async (endpoint, keys) => {
+    const restaurantId = await ensureManagerRestaurantId();
+
+    if (restaurantId) {
+      const res = await api.get(endpoint, {
+        params: { restaurant_id: restaurantId },
+      });
+
+      return getResponseList(res.data, keys);
+    }
+
+    if (!isAdmin) return [];
+
+    const restaurants = await fetchRestaurantsForAdmin();
+    const responses = await Promise.allSettled(
+      restaurants.map((restaurant) =>
+        api.get(endpoint, { params: { restaurant_id: restaurant.id } })
+      )
+    );
+
+    return responses.flatMap((result, index) => {
+      if (result.status !== "fulfilled") {
+        console.error(result.reason?.response?.data || result.reason);
+        return [];
+      }
+
+      return withRestaurantContext(
+        getResponseList(result.value.data, keys),
+        restaurants[index]
+      );
+    });
+  };
+
   const fetchCategories = async () => {
     try {
       const restaurantId = await ensureManagerRestaurantId();
@@ -224,13 +282,8 @@ export default function AddMenu() {
 
   const fetchModifierGroups = async () => {
     try {
-      const restaurantId = await ensureManagerRestaurantId();
-      const res = await api.get("/modifier-groups", {
-        params: { restaurant_id: restaurantId },
-      });
-
       setModifierGroups(
-        getResponseList(res.data, [
+        await fetchRestaurantScopedList("/modifier-groups", [
           "modifier_groups",
           "modifierGroups",
           "groups",
@@ -244,12 +297,7 @@ export default function AddMenu() {
 
   const fetchFoods = async () => {
     try {
-      const restaurantId = await ensureManagerRestaurantId();
-      const res = await api.get("/food", {
-        params: { restaurant_id: restaurantId },
-      });
-
-      setFoods(getResponseList(res.data, ["food", "foods"]));
+      setFoods(await fetchRestaurantScopedList("/food", ["food", "foods"]));
     } catch (err) {
       console.error(err.response?.data || err);
     }
@@ -257,13 +305,8 @@ export default function AddMenu() {
 
   const fetchModifierOptions = async () => {
     try {
-      const restaurantId = await ensureManagerRestaurantId();
-      const res = await api.get("/modifier-options", {
-        params: { restaurant_id: restaurantId },
-      });
-
       setModifierOptions(
-        getResponseList(res.data, [
+        await fetchRestaurantScopedList("/modifier-options", [
           "modifier_options",
           "modifierOptions",
           "options",
@@ -609,27 +652,38 @@ export default function AddMenu() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`group rounded-[24px] border p-4 text-left transition duration-200 hover:-translate-y-1 active:scale-[0.99] ${
+              className={`group relative overflow-hidden rounded-[24px] border p-4 text-left transition duration-200 hover:-translate-y-1 active:scale-[0.99] ${
                 isActive
-                  ? "border-[#7F1D1D]/55 bg-[#7F1D1D]/10 text-[#241815] shadow-[0_16px_34px_rgba(127,29,29,0.12)]"
+                  ? "border-[#7F1D1D] bg-[#FFF1E8] text-[#231815] shadow-[0_18px_38px_rgba(127,29,29,0.18)] ring-2 ring-[#7F1D1D]/18"
                   : "border-white/10 bg-[#202B2F] text-white/72 shadow-[0_14px_32px_rgba(0,0,0,0.18)] hover:border-white/18 hover:bg-[#253236]"
               }`}
             >
+              {isActive && (
+                <span className="absolute inset-x-0 top-0 h-1.5 bg-[#7F1D1D]" />
+              )}
               <div className="mb-4 flex items-center justify-between gap-3">
-                <Icon
-                  size={21}
-                  className={`transition duration-200 group-hover:scale-110 group-hover:-rotate-6 ${
-                    isActive ? "text-[#7F1D1D]" : "text-white/55"
+                <span
+                  className={`grid h-10 w-10 place-items-center rounded-2xl border transition duration-200 group-hover:scale-105 ${
+                    isActive
+                      ? "border-[#7F1D1D]/25 bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.24)]"
+                      : "border-white/10 bg-white/[0.04] text-white/55"
                   }`}
-                />
-                {isActive && <CheckCircle2 size={18} className="text-[#7F1D1D]" />}
+                >
+                  <Icon size={20} className="transition duration-200 group-hover:-rotate-6" />
+                </span>
+                {isActive && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#7F1D1D] px-3 py-1 text-xs font-black uppercase tracking-[0.10em] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)]">
+                    <CheckCircle2 size={14} />
+                    Selected
+                  </span>
+                )}
               </div>
-              <h2 className={`font-black ${isActive ? "text-[#241815]" : ""}`}>
+              <h2 className={`font-black ${isActive ? "text-[#231815]" : ""}`}>
                 {tab.label}
               </h2>
               <p
                 className={`mt-2 text-sm leading-5 ${
-                  isActive ? "text-[#6E5E58]" : "text-white/48"
+                  isActive ? "text-[#6F5D55]" : "text-white/48"
                 }`}
               >
                 {tab.description}
@@ -726,7 +780,7 @@ export default function AddMenu() {
                     <tr key={category.id} className="transition duration-200 hover:bg-white/[0.035]">
                       <td className="px-5 py-5">
                         <div className="flex items-center gap-4">
-                          <div className="grid h-12 w-12 place-items-center rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/10 text-[#7F1D1D]">
+                          <div className="grid h-12 w-12 place-items-center rounded-2xl border border-[#EF4444]/45 bg-[#DC2626]/18 text-[#F87171] shadow-[0_10px_22px_rgba(220,38,38,0.16)]">
                             <Tags size={21} />
                           </div>
                           <span className="text-lg font-black text-white">{category.name}</span>
@@ -737,8 +791,8 @@ export default function AddMenu() {
                         <span
                           className={`inline-flex rounded-full px-4 py-1.5 text-sm font-black ${
                             category.is_active
-                              ? "border border-[#166534]/35 bg-[#166534]/10 text-[#166534]"
-                              : "border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D]"
+                              ? "border border-[#10B981]/65 bg-[#064E3B] text-[#D1FAE5] shadow-[0_10px_22px_rgba(6,78,59,0.28)]"
+                              : "border border-[#EF4444]/45 bg-[#DC2626]/14 text-[#FCA5A5]"
                           }`}
                         >
                           {category.is_active ? "Active" : "Inactive"}
@@ -753,7 +807,7 @@ export default function AddMenu() {
                               Edit
                             </span>
                           </button>
-                          <button className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95">
+                          <button className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#EF4444]/45 bg-[#2A1719] text-[#F87171] transition duration-200 hover:scale-110 hover:border-[#FCA5A5]/70 hover:bg-[#DC2626]/20 hover:text-[#FCA5A5] active:scale-95">
                             <Trash2 size={16} className="transition duration-200 group-hover:rotate-6" />
                             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-stone-950 px-2 py-1 text-xs font-bold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100">
                               Delete

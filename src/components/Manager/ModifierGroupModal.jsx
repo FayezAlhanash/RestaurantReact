@@ -30,7 +30,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
   };
 
   return (
-    <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="modal-panel-enter w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#182124] text-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(255,209,102,0.16),transparent_34%),rgba(255,255,255,0.03)] px-5 py-4">
           <div className="flex items-center gap-3">

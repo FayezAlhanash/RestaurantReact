@@ -1,10 +1,13 @@
 import {
     ArrowLeft,
     Camera,
+    CalendarDays,
     KeyRound,
     Loader2,
     Mail,
     Moon,
+    Pencil,
+    Phone,
     Save,
     ShieldCheck,
     Sun,
@@ -12,7 +15,7 @@ import {
     X,
 } from "lucide-react";
 import axios from "axios";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, storeUser } from "../../utils/auth";
@@ -67,6 +70,28 @@ function getProfileImage(user) {
 
 function getRoleName(user) {
     return user?.role?.name || user?.role_name || user?.roleName || "Employee";
+}
+
+function getPhoneNumber(user) {
+    return user?.phone_number || user?.phoneNumber || user?.phone || user?.mobile || "";
+}
+
+function getDateOfBirth(user) {
+    return user?.date_of_birth || user?.dateOfBirth || user?.birth_date || user?.birthDate || "";
+}
+
+function formatDate(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return date.toLocaleDateString([], {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
 }
 
 function buildFormState(user) {
@@ -132,6 +157,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     const [passwordStep, setPasswordStep] = useState("current");
     const [profile, setProfile] = useState(() => getStoredUser() || {});
     const [form, setForm] = useState(() => buildFormState(getStoredUser() || {}));
+    const [isEditingName, setIsEditingName] = useState(false);
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState("");
     const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
@@ -145,6 +171,8 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     const displayUser = profile || {};
     const userName = getUserName(displayUser);
     const roleName = getRoleName(displayUser);
+    const phoneNumber = getPhoneNumber(displayUser);
+    const dateOfBirth = getDateOfBirth(displayUser);
     const initials = getInitials(userName);
     const profileImage = imagePreview || getProfileImage(displayUser);
     const panelClass = isLight
@@ -160,15 +188,19 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     const fieldClass = isLight
         ? "h-10 rounded-xl border border-[#E4CFC3] bg-white px-3 text-sm font-bold text-[#241815] outline-none transition placeholder:text-[#9A8A82] focus:border-[#D8A22D]/60 focus:ring-4 focus:ring-[#D8A22D]/12"
         : "h-10 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-bold text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/45 focus:ring-4 focus:ring-[#FFD166]/10";
+    const nameFieldClass =
+        "profile-name-input block h-10 w-full rounded-xl border border-[#E4CFC3] bg-white px-3 text-sm font-bold text-[#241815] outline-none transition focus:border-[#D8A22D]/60 focus:ring-4 focus:ring-[#D8A22D]/12";
     const closeButtonClass = isLight
         ? "grid h-9 w-9 place-items-center rounded-xl border border-[#E4CFC3] bg-white text-[#7A6A64] transition hover:bg-[#FFF4EA] hover:text-[#7F1D1D]"
         : "grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/10 hover:text-white";
     const openProfile = async () => {
+        window.dispatchEvent(new CustomEvent("big4:close-notifications"));
         setIsOpen(true);
         setIsShown(false);
         setIsClosing(false);
         setActivePanel("profile");
         setPasswordStep("current");
+        setIsEditingName(false);
         setMessage("");
         setError("");
         setIsLoading(true);
@@ -186,6 +218,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
 
             setProfile(nextProfile);
             setForm(buildFormState(nextProfile));
+            setIsEditingName(false);
             setImageFile(null);
             setImagePreview("");
         } catch (requestError) {
@@ -212,8 +245,21 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             setIsClosing(false);
             setActivePanel("profile");
             setPasswordStep("current");
+            setIsEditingName(false);
         }, 180);
     };
+
+    useEffect(() => {
+        const handleCloseProfile = () => {
+            if (isOpen) closeProfile();
+        };
+
+        window.addEventListener("big4:close-profile", handleCloseProfile);
+
+        return () => {
+            window.removeEventListener("big4:close-profile", handleCloseProfile);
+        };
+    }, [isOpen]);
 
     const handleFieldChange = (field, value) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -299,6 +345,8 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             setProfile(updatedProfile);
             setImageFile(null);
             setImagePreview("");
+            setIsEditingName(false);
+            setActivePanel("profile");
             storeUser(updatedProfile, { data: updatedProfile });
             setMessage("Profile updated.");
         } catch (requestError) {
@@ -398,14 +446,18 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                         <div className="flex min-w-0 items-center gap-3">
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-black text-[#FFD166]">
-                                    {activePanel === "profile"
-                                        ? "Employee profile"
-                                        : "Change password"}
+                                    {activePanel === "password"
+                                        ? "Change password"
+                                        : activePanel === "name"
+                                            ? "Edit name"
+                                            : "Employee profile"}
                                 </p>
                                 <p className={`truncate text-xs font-bold ${mutedTextClass}`}>
-                                    {activePanel === "profile"
-                                        ? "Personal information"
-                                        : "Secure your account"}
+                                    {activePanel === "password"
+                                        ? "Secure your account"
+                                        : activePanel === "name"
+                                            ? "Update personal name"
+                                            : "Personal information"}
                                 </p>
                             </div>
                             {activePanel === "profile" && (
@@ -425,8 +477,12 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                         </button>
                     </div>
 
-                    <div className={`overflow-hidden p-3.5 transition-[min-height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                        activePanel === "profile" ? "min-h-[430px]" : "min-h-[330px]"
+                    <div className={`relative overflow-hidden p-3.5 transition-[min-height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        activePanel === "password"
+                            ? "min-h-[330px]"
+                            : activePanel === "name"
+                                ? "min-h-[360px]"
+                                : "min-h-0"
                     }`}>
                         <div
                             className={`transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
@@ -492,45 +548,73 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                             </div>
                         ) : (
                             <div className="mt-4 grid gap-2.5">
-                                <label className={`grid gap-1.5 text-xs font-bold ${softTextClass}`}>
-                                    First name
-                                    <input
-                                        value={form.first_name}
-                                        onChange={(event) =>
-                                            handleFieldChange(
-                                                "first_name",
-                                                event.target.value
-                                            )
-                                        }
-                                        className={fieldClass}
-                                    />
-                                </label>
-                                <label className={`grid gap-1.5 text-xs font-bold ${softTextClass}`}>
-                                    Father name
-                                    <input
-                                        value={form.father_name}
-                                        onChange={(event) =>
-                                            handleFieldChange(
-                                                "father_name",
-                                                event.target.value
-                                            )
-                                        }
-                                        className={fieldClass}
-                                    />
-                                </label>
-                                <label className={`grid gap-1.5 text-xs font-bold ${softTextClass}`}>
-                                    Last name
-                                    <input
-                                        value={form.last_name}
-                                        onChange={(event) =>
-                                            handleFieldChange(
-                                                "last_name",
-                                                event.target.value
-                                            )
-                                        }
-                                        className={fieldClass}
-                                    />
-                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMessage("");
+                                        setError("");
+                                        setIsEditingName(true);
+                                        setActivePanel("name");
+                                    }}
+                                    className={`w-full rounded-2xl border p-3 text-left transition duration-200 hover:scale-[1.015] active:scale-[0.99] ${
+                                        isLight
+                                            ? "border-[#E4CFC3] bg-white"
+                                            : "border-white/10 bg-white/[0.05]"
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className={`text-xs font-bold ${mutedTextClass}`}>
+                                                Full name
+                                            </p>
+                                            <p className={`mt-1 break-words text-base font-black ${titleTextClass}`}>
+                                                {userName}
+                                            </p>
+                                        </div>
+                                        <span
+                                            className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition hover:scale-105 active:scale-95 ${
+                                                isLight
+                                                    ? "border-[#D8A22D]/35 bg-[#FFF4DA] text-[#7A4F00]"
+                                                    : "border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166]"
+                                            }`}
+                                        >
+                                            <Pencil size={16} />
+                                        </span>
+                                    </div>
+                                </button>
+
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <div
+                                        className={`rounded-2xl border p-3 ${
+                                            isLight
+                                                ? "border-[#E4CFC3] bg-white"
+                                                : "border-white/10 bg-white/[0.05]"
+                                        }`}
+                                    >
+                                        <p className={`flex items-center gap-2 text-xs font-bold ${mutedTextClass}`}>
+                                            <Phone size={14} />
+                                            Phone
+                                        </p>
+                                        <p className={`mt-1 break-words text-sm font-black ${titleTextClass}`}>
+                                            {phoneNumber || "Not provided"}
+                                        </p>
+                                    </div>
+                                    <div
+                                        className={`rounded-2xl border p-3 ${
+                                            isLight
+                                                ? "border-[#E4CFC3] bg-white"
+                                                : "border-white/10 bg-white/[0.05]"
+                                        }`}
+                                    >
+                                        <p className={`flex items-center gap-2 text-xs font-bold ${mutedTextClass}`}>
+                                            <CalendarDays size={14} />
+                                            Date of birth
+                                        </p>
+                                        <p className={`mt-1 break-words text-sm font-black ${titleTextClass}`}>
+                                            {formatDate(dateOfBirth) || "Not provided"}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -545,19 +629,21 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                             </p>
                         )}
 
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={isLoading || isSaving}
-                            className="profile-save-button mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.22)] transition duration-200 hover:scale-[1.02] hover:bg-[#681718] hover:shadow-[0_18px_34px_rgba(127,29,29,0.26)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100"
-                        >
-                            {isSaving ? (
-                                <Loader2 size={17} className="animate-spin" />
-                            ) : (
-                                <Save size={17} />
-                            )}
-                            Save profile
-                        </button>
+                        {imageFile && (
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={isLoading || isSaving}
+                                className="profile-save-button mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.22)] transition duration-200 hover:scale-[1.02] hover:bg-[#681718] hover:shadow-[0_18px_34px_rgba(127,29,29,0.26)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100"
+                            >
+                                {isSaving ? (
+                                    <Loader2 size={17} className="animate-spin" />
+                                ) : (
+                                    <Save size={17} />
+                                )}
+                                Save profile
+                            </button>
+                        )}
 
                         <button
                             type="button"
@@ -565,6 +651,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 setMessage("");
                                 setError("");
                                 setPasswordStep("current");
+                                setIsEditingName(false);
                                 setActivePanel("password");
                             }}
                             className={`profile-password-button mt-3 flex h-11 w-full items-center justify-between rounded-xl border px-3 text-left transition duration-200 hover:scale-[1.02] active:scale-[0.98] ${
@@ -578,6 +665,121 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 <span className="font-black">Change password</span>
                             </span>
                         </button>
+                        </div>
+
+                        <div
+                            className={`transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                                activePanel === "name"
+                                    ? "translate-x-0 opacity-100"
+                                    : "translate-x-8 opacity-0 pointer-events-none absolute"
+                            }`}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMessage("");
+                                    setError("");
+                                    setIsEditingName(false);
+                                    setForm(buildFormState(displayUser));
+                                    setActivePanel("profile");
+                                }}
+                                className={`mb-3 flex h-9 items-center gap-2 rounded-xl px-2.5 text-xs font-black transition duration-200 hover:scale-[1.04] active:scale-95 ${
+                                    isLight
+                                        ? "border border-[#D8A22D]/35 bg-[#FFF4DA] text-[#7A4F00] hover:bg-[#FFE9B5]"
+                                        : "bg-[#FFD166]/10 text-[#FFD166] hover:bg-[#FFD166]/16"
+                                }`}
+                            >
+                                <ArrowLeft size={15} />
+                                Profile details
+                            </button>
+
+                            <div className={`mb-3 rounded-2xl border p-3 ${dividerClass}`}>
+                                <p className={`text-xs font-bold ${mutedTextClass}`}>
+                                    Current full name
+                                </p>
+                                <p className={`mt-1 break-words text-base font-black ${titleTextClass}`}>
+                                    {userName}
+                                </p>
+                            </div>
+
+                            <div
+                                className={`profile-name-editor grid gap-2.5 rounded-2xl border p-3 ${
+                                    isLight
+                                        ? "border-[#D8A22D]/40 bg-[#FFF4DA]"
+                                        : "border-[#FFD166]/20 bg-[#FFD166]/8"
+                                }`}
+                            >
+                                <div>
+                                    <p className={`profile-name-label mb-1.5 text-xs font-bold ${softTextClass}`}>
+                                        First name
+                                    </p>
+                                    <input
+                                        value={form.first_name}
+                                        onChange={(event) =>
+                                            handleFieldChange(
+                                                "first_name",
+                                                event.target.value
+                                            )
+                                        }
+                                        className={nameFieldClass}
+                                    />
+                                </div>
+                                <div>
+                                    <p className={`profile-name-label mb-1.5 text-xs font-bold ${softTextClass}`}>
+                                        Father name
+                                    </p>
+                                    <input
+                                        value={form.father_name}
+                                        onChange={(event) =>
+                                            handleFieldChange(
+                                                "father_name",
+                                                event.target.value
+                                            )
+                                        }
+                                        className={nameFieldClass}
+                                    />
+                                </div>
+                                <div>
+                                    <p className={`profile-name-label mb-1.5 text-xs font-bold ${softTextClass}`}>
+                                        Last name
+                                    </p>
+                                    <input
+                                        value={form.last_name}
+                                        onChange={(event) =>
+                                            handleFieldChange(
+                                                "last_name",
+                                                event.target.value
+                                            )
+                                        }
+                                        className={nameFieldClass}
+                                    />
+                                </div>
+                            </div>
+
+                            {message && (
+                                <p className="mt-3 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-sm font-black text-emerald-200">
+                                    {message}
+                                </p>
+                            )}
+                            {error && (
+                                <p className="mt-3 rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/16 px-3 py-2 text-sm font-black text-[#ffb4b4]">
+                                    {error}
+                                </p>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={isLoading || isSaving || !isEditingName}
+                                className="profile-save-button mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.22)] transition duration-200 hover:scale-[1.02] hover:bg-[#681718] hover:shadow-[0_18px_34px_rgba(127,29,29,0.26)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100"
+                            >
+                                {isSaving ? (
+                                    <Loader2 size={17} className="animate-spin" />
+                                ) : (
+                                    <Save size={17} />
+                                )}
+                                Save name
+                            </button>
                         </div>
 
                         <div

@@ -115,7 +115,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out ${
+            className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out ${
                 isVisible ? "opacity-100" : "opacity-0"
             }`}
         >

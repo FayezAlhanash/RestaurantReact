@@ -53,7 +53,7 @@ export default function IngredientModal({
     "w-full rounded-lg border border-sky-200 bg-white p-3 text-sm font-semibold outline-none transition duration-200 hover:border-sky-400 focus:scale-[1.01] focus:border-sky-600 focus:ring-4 focus:ring-sky-100";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm">
       <div className="w-full max-w-2xl overflow-hidden rounded-lg bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-amber-200 bg-gradient-to-r from-[#7F1D1D] via-[#B93737] to-amber-500 px-5 py-4 text-white">
           <div className="flex items-center gap-3">

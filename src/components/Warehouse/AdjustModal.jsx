@@ -50,7 +50,7 @@ function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRes
     };
 
     return (
-        <div className={`${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"} fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md`}>
+        <div className={`${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"} fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md`}>
             <div className={`${isClosing ? "modal-panel-exit" : "modal-panel-enter"} w-full max-w-[400px] rounded-[24px] border border-white/10 bg-[#12191C] p-5 text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)] sm:p-6`}>
 
                 <div className="mb-4 flex items-center justify-between gap-3">

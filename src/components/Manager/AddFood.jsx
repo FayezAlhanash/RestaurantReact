@@ -21,6 +21,7 @@ import {
   getResponseList,
 } from "./managerHelpers";
 import { getUserPermissions } from "../../utils/permissions";
+import { getRoleId, getStoredUser, ROLE_IDS } from "../../utils/auth";
 
 const getFoodImageUrl = (image) => {
   if (!image) return "";
@@ -34,6 +35,15 @@ const getFoodImageUrl = (image) => {
 
   return `https://big4.me/storage/${cleanPath}`;
 };
+
+const isAdminUser = () => getRoleId(getStoredUser()) === ROLE_IDS.ADMIN;
+
+const getFoodList = (data) => getResponseList(data, ["food", "foods"]);
+
+const getEntityId = (entity) => entity?.id ?? entity?.restaurant_id ?? entity?.restaurantId ?? null;
+
+const getRestaurantScopeId = (item) =>
+  item?.restaurant_id ?? item?.restaurantId ?? item?.restaurant?.id ?? null;
 
 export default function AddFood() {
   const { search = "" } = useOutletContext() ?? {};
@@ -67,11 +77,47 @@ export default function AddFood() {
 
   const fetchFoods = async () => {
     try {
+      if (isAdminUser()) {
+        const restaurantsResponse = await api.get("/restaurants");
+        const restaurants = getResponseList(restaurantsResponse.data, ["restaurants"]);
+        const restaurantFoodResponses = await Promise.allSettled(
+          restaurants
+            .map((restaurant) => ({
+              restaurant,
+              restaurantId: getEntityId(restaurant),
+            }))
+            .filter(({ restaurantId }) => restaurantId)
+            .map(async ({ restaurant, restaurantId }) => {
+              const response = await api.get("/food", {
+                params: { restaurant_id: restaurantId },
+              });
+
+              return getFoodList(response.data).map((food) => ({
+                ...food,
+                restaurant_id: food.restaurant_id ?? restaurantId,
+                restaurant: food.restaurant ?? restaurant,
+              }));
+            })
+        );
+
+        setFoods(
+          restaurantFoodResponses.flatMap((result) =>
+            result.status === "fulfilled" ? result.value : []
+          )
+        );
+        return;
+      }
+
       const restaurantId = await ensureManagerRestaurantId();
+      if (!restaurantId) {
+        setFoods([]);
+        return;
+      }
+
       const res = await api.get("/food", {
         params: { restaurant_id: restaurantId },
       });
-      setFoods(res.data.food ?? []);
+      setFoods(getFoodList(res.data));
     } catch (err) {
       console.error(err.response?.data || err);
     }
@@ -134,7 +180,17 @@ export default function AddFood() {
       formData.append("is_diet", food.is_diet ? 1 : 0);
       formData.append("is_available", food.is_available ? 1 : 0);
 
-      const restaurantId = await ensureManagerRestaurantId();
+      const selectedCategory = categories.find(
+        (category) => String(category.id) === String(food.category_id)
+      );
+      const restaurantId = isAdminUser()
+        ? getRestaurantScopeId(selectedCategory) ?? getRestaurantScopeId(editingFood)
+        : await ensureManagerRestaurantId();
+
+      if (!restaurantId) {
+        throw new Error("Restaurant id is required for this food.");
+      }
+
       formData.append("restaurant_id", restaurantId);
 
       if (food.image) {
@@ -608,7 +664,7 @@ export default function AddFood() {
       />
 
       {deleteFood && (
-        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="modal-panel-enter w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
             <div className="flex items-start gap-4">
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D]">
@@ -654,7 +710,7 @@ export default function AddFood() {
       )}
 
       {isSavingFood && (
-        <div className="modal-backdrop-enter fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="modal-panel-enter w-full max-w-sm rounded-[28px] border border-white/10 bg-[#182124] p-6 text-center text-white shadow-2xl">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)]">
               <Loader2 size={28} className="animate-spin" />

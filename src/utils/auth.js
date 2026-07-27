@@ -108,10 +108,14 @@ export function getPermissionHomePath(user = {}) {
     if (can("monitor_inventory", "manage_inventory")) return "/inventory";
     if (can("manage_takeaway_orders")) return "/takeaway-orders";
     if (can("manage_kitchen_orders")) return "/kitchen-orders";
-    if (can("serve_dine_in_orders", "process_payments")) return "/dine-in-service";
+    if (can("serve_dine_in_orders")) return "/dine-in-service";
     if (can("manage_menu")) return "/add-menu";
     if (can("view_recipes", "manage_recipes")) return "/ingredients";
     if (can("view_reports", "view_global_reports")) return "/reports";
+    if (isAdmin && can("manage_global_loyalty_settings")) {
+        return "/global-loyalty-settings";
+    }
+    if (can("manage_loyalty_settings")) return "/loyalty-settings";
     if (can("view_delivery_review", "view_delivery_reviews", "view_deivery_review")) {
         return "/delivery-reviews";
     }

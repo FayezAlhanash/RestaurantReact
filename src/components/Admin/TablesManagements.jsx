@@ -26,11 +26,11 @@ const normalizeActiveValue = (value) =>
 function StatCard({ icon: Icon, label, value, helper, tone, isLight }) {
     const tones = isLight ? {
         total: "border-sky-300/45 bg-sky-100/80 text-sky-700",
-        pending: "border-[#7F1D1D]/20 bg-[#7F1D1D]/8 text-[#7F1D1D]",
+        pending: "border-[#7F1D1D]/45 bg-[#F9ECEC] text-[#7F1D1D]",
         active: "border-emerald-300/50 bg-emerald-100/80 text-emerald-700",
     } : {
         total: "border-sky-400/25 bg-sky-400/10 text-sky-300",
-        pending: "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]",
+        pending: "border-[#7F1D1D]/65 bg-[#7F1D1D]/22 text-[#FFB4A8]",
         active: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
     };
     const textColor = isLight ? "text-[#241815]" : "text-white";
@@ -42,12 +42,12 @@ function StatCard({ icon: Icon, label, value, helper, tone, isLight }) {
                 <div className="grid h-12 w-12 place-items-center rounded-2xl border border-current/25 bg-current/10 shadow-sm">
                     <Icon size={22} />
                 </div>
-                <p className={`text-xs font-black uppercase tracking-[0.14em] ${mutedColor}`}>
+                <p className={`text-xs font-black uppercase tracking-[0.14em] ${tone === "pending" ? "text-current" : mutedColor}`}>
                     {label}
                 </p>
             </div>
             <strong className={`mt-6 block text-5xl font-black leading-none tabular-nums ${textColor}`}>{value}</strong>
-            <p className={`mt-2 text-sm font-semibold ${mutedColor}`}>{helper}</p>
+            <p className={`mt-2 text-sm font-semibold ${tone === "pending" ? "text-current" : mutedColor}`}>{helper}</p>
         </div>
     );
 }
@@ -303,7 +303,7 @@ function TablesManagements() {
             />
 
             {isViewOpen && selectedTable && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-6 text-white shadow-2xl">
                         <div className="flex items-start justify-between gap-4">
                             <div>

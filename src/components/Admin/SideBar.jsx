@@ -18,6 +18,8 @@ import {
     Store,
     Flame,
     MessageSquareText,
+    BadgePercent,
+    Globe2,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -107,7 +109,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             icon: Store,
             title: "Restaurants",
             path: "/restaurants",
-            permissions: ["manage_restaurants", "monitor_restaurant"],
+            permissions: ["manage_restaurants"],
             adminOnly: true,
         },
         {
@@ -174,7 +176,7 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             icon: CheckCircle2,
             title: "Dine-in Service",
             path: "/dine-in-service",
-            permissions: ["serve_dine_in_orders", "process_payments"],
+            permissions: ["serve_dine_in_orders"],
         },
         {
             icon: LayoutDashboard,
@@ -187,6 +189,19 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             title: "Delivery Reviews",
             path: "/delivery-reviews",
             permissions: ["view_delivery_review", "view_delivery_reviews", "view_deivery_review"],
+        },
+        {
+            icon: Globe2,
+            title: "Global Loyalty Settings",
+            path: "/global-loyalty-settings",
+            permissions: ["manage_global_loyalty_settings"],
+            adminOnly: true,
+        },
+        {
+            icon: BadgePercent,
+            title: "Loyalty Settings",
+            path: "/loyalty-settings",
+            permissions: ["manage_loyalty_settings"],
         },
     ];
 
@@ -288,36 +303,64 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                 </button>
 
                 <div className={`${isCollapsed ? "lg:px-3" : ""} px-5 pb-3 pt-7`}>
-                    <div className={`flex items-center gap-4 ${isCollapsed ? "lg:justify-center" : ""}`}>
-                        <BrandLogo className="h-[52px] w-[52px]" rounded="rounded-[6px]" />
+                    <div className={`flex items-center gap-3.5 ${isCollapsed ? "lg:justify-center" : ""}`}>
+                        <BrandLogo className="h-[52px] w-[52px]" rounded="rounded-[7px]" />
                         <div className={`min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
-                            <h1 className="truncate pb-0.5 font-merriweather text-3xl font-black leading-none text-[#f2d35b]">
+                            <h1
+                                className={`truncate pb-0.5 font-merriweather text-3xl font-black leading-none ${
+                                    isLight ? "text-[#D8A22D]" : "text-[#f2d35b]"
+                                }`}
+                            >
                                 Big-4
                             </h1>
-                            <p className="mt-1 truncate text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                                Restaurant Ops
+                            <p
+                                className={`mt-1 truncate text-xs font-black uppercase tracking-[0.18em] ${
+                                    isLight ? "text-[#2F2520]" : "text-white"
+                                }`}
+                            >
+                                Restaurant System
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className={`mx-5 mt-6 rounded-[8px] border border-white/10 bg-white/[0.06] p-4 ${isCollapsed ? "lg:hidden" : ""}`}>
-                    <div className="flex items-center gap-4">
-                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-[#121212] text-[#d7b52f]">
+                <div
+                    className={`mx-5 mt-5 overflow-hidden rounded-2xl border px-3 py-3 shadow-[0_14px_30px_rgba(0,0,0,0.10)] ${
+                        isLight
+                            ? "border-[#E8D8C8] border-l-[#D8A22D] border-l-4 bg-white/58 shadow-[0_14px_30px_rgba(70,45,30,0.07)]"
+                            : "border-[#2D2924] border-l-[#d7b52f] border-l-4 bg-[#151515] ring-1 ring-white/[0.06]"
+                    } ${isCollapsed ? "lg:hidden" : ""}`}
+                >
+                    <div className="flex items-center gap-3">
+                        <div
+                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${
+                                isLight
+                                    ? "border-[#E8C567]/45 bg-[#FFF4DA] text-[#8F5F00]"
+                                    : "border-[#d7b52f]/20 bg-[#d7b52f]/12 text-[#d7b52f]"
+                            }`}
+                        >
                             <Flame size={18} />
                         </div>
                         <div className="min-w-0 leading-tight">
-                            <p className="truncate text-base font-black capitalize text-white">
+                            <p
+                                className={`truncate text-sm font-black capitalize ${
+                                    isLight ? "text-[#241815]" : "text-white"
+                                }`}
+                            >
                                 {workspaceLabel}
                             </p>
-                            <p className="mt-1 text-xs font-semibold uppercase text-white/70">
+                            <p
+                                className={`mt-1 text-[11px] font-bold uppercase tracking-wide ${
+                                    isLight ? "text-[#7A6A64]" : "text-white/45"
+                                }`}
+                            >
                                 {visibleMenu.length} sections
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <nav className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-14">
+                <nav className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-8">
                     <div className={`mb-4 flex items-center justify-between px-0 ${isCollapsed ? "lg:hidden" : ""}`}>
                         <p className="text-[12px] font-semibold uppercase tracking-[0.34em] text-[#81786d]">
                             Workspace
@@ -400,11 +443,11 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className={`flex h-14 w-full items-center justify-center gap-3 rounded-[8px] border border-[#b4000b] bg-[#b4000b] text-sm font-black tracking-[0.12em] text-white shadow-[0_12px_26px_rgba(180,0,11,0.28)] transition hover:-translate-y-0.5 hover:bg-[#9c0009] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
+                        className={`admin-logout-button flex h-14 w-full items-center justify-center gap-3 rounded-[8px] border border-[#7F1D1D] bg-[#7F1D1D] text-sm font-black tracking-[0.12em] !text-white shadow-[0_12px_26px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:bg-[#681718] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
                         title={isCollapsed ? "Logout" : undefined}
                     >
-                        <LogOut size={18} />
-                        <span className={isCollapsed ? "lg:hidden" : ""}>Logout</span>
+                        <LogOut size={18} className="!text-white" />
+                        <span className={`${isCollapsed ? "lg:hidden" : ""} !text-white`}>Logout</span>
                     </button>
                 </div>
             </aside>

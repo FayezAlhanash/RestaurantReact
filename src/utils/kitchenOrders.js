@@ -227,6 +227,116 @@ function getKitchenBackendOrderId(order) {
     );
 }
 
+function getOrderRestaurantId(order) {
+    return (
+        order?.restaurant_id ??
+        order?.restaurantId ??
+        order?.restaurant?.id ??
+        order?.food?.restaurant_id ??
+        order?.food?.restaurant?.id ??
+        order?.menu_item?.restaurant_id ??
+        order?.menu_item?.restaurant?.id ??
+        order?.order?.restaurant_id ??
+        order?.order?.restaurantId ??
+        order?.order?.restaurant?.id ??
+        order?.cashier_order?.restaurant_id ??
+        order?.cashier_order?.restaurantId ??
+        order?.cashierOrder?.restaurant_id ??
+        order?.cashierOrder?.restaurantId ??
+        order?.restaurant_order?.restaurant_id ??
+        order?.restaurant_order?.restaurantId ??
+        order?.restaurant_order?.restaurant?.id ??
+        order?.restaurantOrder?.restaurant_id ??
+        order?.restaurantOrder?.restaurantId ??
+        order?.restaurantOrder?.restaurant?.id ??
+        order?.invoice?.restaurant_id ??
+        order?.restaurant_invoice?.restaurant_id ??
+        order?.restaurant_invoice?.restaurant?.id ??
+        order?.restaurantInvoice?.restaurant_id ??
+        order?.restaurantInvoice?.restaurant?.id ??
+        null
+    );
+}
+
+function getKitchenItems(order) {
+    const candidateGroups = [
+        [
+            order?.items,
+            order?.order_items,
+            order?.orderItems,
+            order?.details,
+            order?.foods,
+        ],
+        [
+            order?.restaurant_order?.items,
+            order?.restaurant_order?.order_items,
+            order?.restaurant_order?.orderItems,
+            order?.restaurantOrder?.items,
+            order?.restaurantOrder?.order_items,
+            order?.restaurantOrder?.orderItems,
+        ],
+        [
+            order?.order?.items,
+            order?.order?.order_items,
+            order?.order?.orderItems,
+            order?.cashier_order?.items,
+            order?.cashier_order?.order_items,
+            order?.cashier_order?.orderItems,
+            order?.cashierOrder?.items,
+            order?.cashierOrder?.order_items,
+            order?.cashierOrder?.orderItems,
+        ],
+    ];
+
+    for (const candidates of candidateGroups) {
+        const items = candidates.flatMap(getList);
+
+        if (items.length) return items;
+    }
+
+    return [];
+}
+
+function hasItemForRestaurant(order, restaurantId) {
+    return getKitchenItems(order).some(
+        (item) => String(getOrderRestaurantId(item)) === String(restaurantId)
+    );
+}
+
+function getKitchenRecordsForRestaurant(order, restaurantId) {
+    const restaurantOrders = [
+        ...getList(order?.restaurant_orders),
+        ...getList(order?.restaurantOrders),
+        ...(order?.restaurant_order && typeof order.restaurant_order === "object"
+            ? [order.restaurant_order]
+            : []),
+        ...(order?.restaurantOrder && typeof order.restaurantOrder === "object"
+            ? [order.restaurantOrder]
+            : []),
+    ];
+
+    if (restaurantOrders.length) {
+        return restaurantOrders
+            .filter(
+                (restaurantOrder) =>
+                    String(getOrderRestaurantId(restaurantOrder)) ===
+                        String(restaurantId) ||
+                    hasItemForRestaurant(restaurantOrder, restaurantId)
+            )
+            .map((restaurantOrder) => ({
+                ...restaurantOrder,
+                cashier_order: order,
+                cashierOrder: order,
+                order: restaurantOrder.order ?? order,
+            }));
+    }
+
+    return String(getOrderRestaurantId(order)) === String(restaurantId) ||
+        hasItemForRestaurant(order, restaurantId)
+        ? [order]
+        : [];
+}
+
 function getKitchenOrderCandidateIds(order) {
     return [
         getKitchenParentOrderId(order),
@@ -315,18 +425,10 @@ async function ensureKitchenRestaurantId() {
 }
 
 export function normalizeKitchenOrder(order) {
-    const items =
-        order.items ||
-        order.order_items ||
-        order.orderItems ||
-        order.details ||
-        order.foods ||
-        [];
-
     const backendId = getKitchenBackendOrderId(order);
     const parentOrderId = getKitchenParentOrderId(order);
 
-    const normalizedItems = getList(items).map(normalizeKitchenItem);
+    const normalizedItems = getKitchenItems(order).map(normalizeKitchenItem);
     const hasTypeSignal = Boolean(getOrderTypeValue(order));
     const hasLocationSignal =
         hasDineInTableSignal(order, normalizedItems) ||
@@ -470,11 +572,61 @@ async function enrichKitchenOrdersWithOrderDetails(orders) {
     return enrichedOrders;
 }
 
-export async function fetchKitchenQueue() {
-    const restaurantId = await ensureKitchenRestaurantId();
-    const response = await api.get("/kitchen/queue", {
-        params: restaurantId ? { restaurant_id: restaurantId } : undefined,
-    });
+async function fetchCashierKitchenQueueFallback(restaurantId) {
+    const cashierRequests = [
+        api.get("/cashier/orders", {
+            params: restaurantId ? { restaurant_id: restaurantId } : undefined,
+        }),
+    ];
+
+    if (restaurantId) {
+        cashierRequests.push(api.get("/cashier/orders"));
+    }
+
+    const cashierResponses = await Promise.allSettled(cashierRequests);
+    const cashierOrders = cashierResponses
+        .flatMap((result) =>
+            result.status === "fulfilled" ? getList(result.value.data) : []
+        )
+        .map(getRecord);
+    const kitchenRecords = restaurantId
+        ? cashierOrders.flatMap((order) =>
+              getKitchenRecordsForRestaurant(order, restaurantId)
+          )
+        : cashierOrders;
+    const mergedFallbackOrders = mergeKitchenOrders(
+        kitchenRecords.map(normalizeKitchenOrder)
+    );
+
+    return enrichKitchenOrdersWithOrderDetails(mergedFallbackOrders);
+}
+
+export async function fetchKitchenQueue(restaurantIdOverride = undefined) {
+    const restaurantId =
+        restaurantIdOverride === undefined
+            ? await ensureKitchenRestaurantId()
+            : restaurantIdOverride;
+    let response;
+
+    try {
+        response = await api.get("/kitchen/queue", {
+            params: restaurantId ? { restaurant_id: restaurantId } : undefined,
+        });
+    } catch (error) {
+        if (restaurantIdOverride && error.response?.status === 403) {
+            return fetchCashierKitchenQueueFallback(restaurantId);
+        }
+
+        if (!restaurantIdOverride) {
+            throw error;
+        }
+
+        const fallbackOrders = await fetchCashierKitchenQueueFallback(restaurantId);
+
+        if (fallbackOrders.length || !error.response) return fallbackOrders;
+
+        throw error;
+    }
 
     const mergedOrders = mergeKitchenOrders(
         getList(response.data).map(normalizeKitchenOrder)

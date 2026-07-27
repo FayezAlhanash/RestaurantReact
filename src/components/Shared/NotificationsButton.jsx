@@ -170,14 +170,46 @@ export default function NotificationsButton() {
         const initialLoadId = window.setTimeout(loadUnreadCount, 0);
 
         const intervalId = window.setInterval(loadUnreadCount, 30000);
+        const handleNotificationsUpdated = () => {
+            loadUnreadCount();
+            if (isOpen) loadNotifications();
+        };
+
+        window.addEventListener(
+            "big4:notifications-updated",
+            handleNotificationsUpdated
+        );
 
         return () => {
             window.clearTimeout(initialLoadId);
             window.clearInterval(intervalId);
+            window.removeEventListener(
+                "big4:notifications-updated",
+                handleNotificationsUpdated
+            );
         };
-    }, []);
+    }, [isOpen]);
+
+    useEffect(() => {
+        const handleCloseNotifications = () => {
+            if (isOpen) closePanel();
+        };
+
+        window.addEventListener(
+            "big4:close-notifications",
+            handleCloseNotifications
+        );
+
+        return () => {
+            window.removeEventListener(
+                "big4:close-notifications",
+                handleCloseNotifications
+            );
+        };
+    }, [isOpen]);
 
     const openPanel = () => {
+        window.dispatchEvent(new CustomEvent("big4:close-profile"));
         setIsOpen(true);
         setIsShown(false);
         requestAnimationFrame(() => setIsShown(true));
@@ -257,14 +289,16 @@ export default function NotificationsButton() {
                 type="button"
                 aria-label="Notifications"
                 onClick={isOpen ? closePanel : openPanel}
-                className="relative grid h-11 w-11 place-items-center rounded-none border-r border-white/10 text-[#d8d1c5] transition hover:text-[#d7b52f] active:scale-95"
+                className={`notification-bell-button relative grid h-11 w-11 place-items-center rounded-xl border text-[#d8d1c5] shadow-sm transition hover:text-[#d7b52f] active:scale-95 ${
+                    unreadCount > 0 ? "has-unread" : ""
+                }`}
             >
                 {unreadCount > 0 && (
-                    <span className="absolute right-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#7F1D1D] px-1.5 text-[10px] font-black text-white ring-2 ring-white/80">
+                    <span className="notification-bell-badge absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#7F1D1D] px-1.5 text-[10px] font-black text-white ring-2 ring-white/80">
                         {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                 )}
-                <Bell size={19} />
+                <Bell className="notification-bell-icon" size={19} />
             </button>
 
             {isOpen && (

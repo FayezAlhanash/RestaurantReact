@@ -5,6 +5,8 @@ const ADMIN_DEFAULT_PERMISSIONS = [
     "manage_employee_shifts",
     "manage_roles",
     "manage_permissions",
+    "manage_global_loyalty_settings",
+    "manage_loyalty_settings",
 ];
 
 function getRevokedPermissions(data = {}) {

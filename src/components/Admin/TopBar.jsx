@@ -26,14 +26,14 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
     });
 
     return (
-        <div className="admin-topbar sticky top-0 z-[140] border-b border-white/10 bg-[#101010]/95 px-3 py-3 backdrop-blur-xl sm:px-5 lg:px-10">
+        <div className="admin-topbar sticky top-0 z-[140] border-b border-[#FFD166]/18 bg-[#101010]/88 px-3 py-3 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:px-5 lg:px-10">
             <div className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
                 <div className="flex shrink-0 items-center gap-3">
                 <button
                     type="button"
                     onClick={onMenu}
                     aria-label="Open menu"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-white/10 bg-[#191919] text-[#d8d1c5] shadow-sm transition hover:border-[#d7b52f]/40 hover:bg-[#202020] hover:text-white active:scale-95 lg:hidden"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-white/10 bg-white/[0.07] text-[#D7B52F] shadow-sm transition hover:border-[#FFD166]/35 hover:bg-white/10 hover:text-[#FFD166] active:scale-95 lg:hidden"
                 >
                     <Menu size={21} />
                 </button>
@@ -42,7 +42,7 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
                     type="button"
                     onClick={onToggleSidebar}
                     aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    className="hidden h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-white/10 bg-[#191919] text-[#d8d1c5] shadow-sm transition hover:border-[#d7b52f]/35 hover:bg-[#202020] hover:text-[#d7b52f] active:scale-95 lg:grid"
+                    className="hidden h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-white/10 bg-white/[0.07] text-[#D7B52F] shadow-sm transition hover:border-[#FFD166]/35 hover:bg-white/10 hover:text-[#FFD166] active:scale-95 lg:grid"
                 >
                     {isSidebarCollapsed ? <PanelLeftOpen size={21} /> : <PanelLeftClose size={21} />}
                 </button>
@@ -54,11 +54,11 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
                 </div>
 
                 <div className="topbar-welcome flex h-14 min-w-0 items-center justify-center overflow-hidden px-4 text-center">
-                    <div className="flex min-w-0 items-baseline justify-center gap-4">
-                        <span className="topbar-welcome-word text-3xl font-black uppercase tracking-[0.12em] text-[#d7b52f] sm:text-4xl lg:text-5xl">
+                    <div className="flex min-w-0 items-baseline justify-center gap-3">
+                        <span className="topbar-welcome-word text-2xl font-black uppercase tracking-[0.12em] text-[#D7B52F] sm:text-3xl lg:text-4xl">
                             Welcome
                         </span>
-                        <span className="topbar-welcome-name min-w-0 truncate text-4xl font-black text-white sm:text-5xl lg:text-6xl">
+                        <span className="topbar-welcome-name min-w-0 truncate text-3xl font-black text-white sm:text-4xl lg:text-5xl">
                             {firstName}
                         </span>
                     </div>

@@ -390,6 +390,13 @@ function CustomerFoodCard({ item, onOpen }) {
     const imageUrl =
         item.image ||
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
+    const isDiet =
+        item?.is_diet ??
+        item?.isDiet ??
+        item?.diet ??
+        item?.diet_food ??
+        item?.dietFood ??
+        item?.is_diet_food;
 
     return (
         <article className="customer-food-card group grid grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] sm:block sm:rounded-[26px] sm:hover:-translate-y-1">
@@ -400,8 +407,14 @@ function CustomerFoodCard({ item, onOpen }) {
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent" />
-                <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-[#7F1D1D] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px]">
-                    {item.categoryName || "Menu"}
+                <span
+                    className={`absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px] ${
+                        isDiet
+                            ? "bg-[#047857] text-[#D1FAE5]"
+                            : "bg-[#334155] text-white"
+                    }`}
+                >
+                    {isDiet ? "Diet" : "Regular"}
                 </span>
                 <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-[#FFD166] backdrop-blur sm:bottom-3 sm:right-3 sm:px-3 sm:text-sm">
                     ${Number(item.price ?? 0).toFixed(2)}
@@ -930,7 +943,7 @@ function MobileOrderBar({
         <div>
             {isOpen && (
                 <div
-                    className={`${isClosing ? "order-backdrop-exit" : "order-backdrop-enter"} fixed inset-0 z-40 flex items-end justify-center bg-black/35 p-3 backdrop-blur-[2px] sm:p-5`}
+                    className={`${isClosing ? "order-backdrop-exit" : "order-backdrop-enter"} fixed inset-0 z-[300] flex items-end justify-center bg-black/35 p-3 backdrop-blur-[2px] sm:p-5`}
                     onClick={closeBill}
                 >
                     <div
@@ -1015,7 +1028,7 @@ function ConfirmOrderModal({
     );
 
     return (
-        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
+        <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
             <div className="modal-panel-enter w-full max-w-[520px] overflow-hidden rounded-[28px] border border-white/10 bg-[#151A1D] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]">
                 <div className="border-b border-white/10 bg-white/[0.04] p-5">
                     <div className="flex items-start justify-between gap-4">

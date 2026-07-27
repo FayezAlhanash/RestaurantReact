@@ -57,7 +57,7 @@ function WarehouseModal({ isOpen, onClose, onSave, ingredient }) {
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 backdrop-blur-md transition-opacity duration-200 ease-out sm:p-6 ${
+            className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-3 backdrop-blur-md transition-opacity duration-200 ease-out sm:p-6 ${
                 isVisible ? "opacity-100" : "opacity-0"
             }`}
         >

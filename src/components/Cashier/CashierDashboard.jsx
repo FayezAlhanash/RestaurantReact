@@ -255,8 +255,7 @@ function CashierDashboard({ embedded = false }) {
     }, []);
 
     const canManageTakeawayOrders = permissions.includes("manage_takeaway_orders");
-    const canProcessPayments =
-        canManageTakeawayOrders || permissions.includes("process_payments");
+    const canProcessPayments = permissions.includes("process_payments");
     const cashierVariant = isLight ? "light" : "dark";
     const embeddedNavigation = [
         { id: "menu", label: "Menu", icon: House },
@@ -517,10 +516,7 @@ function CashierDashboard({ embedded = false }) {
                     <CatalogOrders />
                 ) : activeView === "orders" ? (
                     <PickupOrders />
-                ) : activeView === "serveOrders" && (
-                    permissions.includes("serve_dine_in_orders") ||
-                    permissions.includes("process_payments")
-                ) ? (
+                ) : activeView === "serveOrders" && permissions.includes("serve_dine_in_orders") ? (
                     <WaiterDashboard embedded />
                 ) : activeView === "inventory" && permissions.includes("monitor_inventory") ? (
                     <Warehouse />
@@ -544,7 +540,7 @@ function CashierDashboard({ embedded = false }) {
 
                         <div
                             ref={restaurantFilterTrackRef}
-                            className="customer-order-scroll relative mb-8 flex gap-2 overflow-x-auto rounded-[22px] border border-white/10 bg-white/[0.035] p-1 pb-2"
+                            className="customer-order-scroll relative mb-8 inline-flex max-w-full gap-2 overflow-x-auto rounded-[22px] border border-white/10 bg-white/[0.035] p-1 pb-2"
                         >
                             <span
                                 className="pointer-events-none absolute top-1 z-0 h-14 rounded-2xl bg-[#FFD166] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition-[opacity,transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"

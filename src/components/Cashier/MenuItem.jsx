@@ -199,6 +199,16 @@ const getSizeModifierOptions = (item) => {
     }));
 };
 
+const isDietItem = (item) =>
+    Boolean(
+        item?.is_diet ??
+            item?.isDiet ??
+            item?.diet ??
+            item?.diet_food ??
+            item?.dietFood ??
+            item?.is_diet_food
+    );
+
 function MenuItemCard({ item, onOpen }) {
     const imageUrl =
         item.image ||
@@ -221,8 +231,14 @@ function MenuItemCard({ item, onOpen }) {
                 <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-[#101517]/78 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur">
                     <Star size={13} className="fill-[#F7C948] text-[#F7C948]" /> 4.8
                 </span>
-                <span className="absolute right-3 top-3 rounded-full bg-[#7F1D1D] px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_10px_24px_rgba(127,29,29,0.20)]">
-                    Popular
+                <span
+                    className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] ${
+                        isDietItem(item)
+                            ? "bg-[#047857] text-[#D1FAE5]"
+                            : "bg-[#334155] text-white"
+                    }`}
+                >
+                    {isDietItem(item) ? "Diet" : "Regular"}
                 </span>
             </div>
 

@@ -29,7 +29,7 @@ function DeletePasswordModal({
     if (!restaurant) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-6">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-6">
             <form
                 onSubmit={onConfirm}
                 className="w-full max-w-md overflow-hidden rounded-[26px] border border-white/10 bg-[#182124] text-white shadow-2xl"

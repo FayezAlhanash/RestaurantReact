@@ -50,7 +50,7 @@ function WasteModal({ onClose, ingredient, onSuccess, restaurantId: selectedRest
     };
 
     return (
-        <div className={`${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"} fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md`}>
+        <div className={`${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"} fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md`}>
             <div className={`${isClosing ? "modal-panel-exit" : "modal-panel-enter"} w-full max-w-[400px] rounded-[24px] border border-white/10 bg-[#12191C] p-5 text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)] sm:p-6`}>
 
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -92,7 +92,7 @@ function WasteModal({ onClose, ingredient, onSuccess, restaurantId: selectedRest
                     type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full rounded-xl !bg-[#7F1D1D] py-3 font-bold !text-white shadow-[0_14px_28px_rgba(127,29,29,0.22)] transition hover:!bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#9C8A82] disabled:!text-white/70"
+                    className="warehouse-waste-save-button w-full rounded-xl !bg-[#7F1D1D] py-3 font-bold !text-white shadow-[0_14px_28px_rgba(127,29,29,0.22)] transition hover:!bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#9C8A82] disabled:!text-white/70"
                 >
                     {isSubmitting ? "Please wait..." : "Save"}
                 </button>

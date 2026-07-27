@@ -143,7 +143,7 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-200 ease-out sm:p-6 ${
+            className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-200 ease-out sm:p-6 ${
                 isVisible ? "opacity-100" : "opacity-0"
             }`}
         >

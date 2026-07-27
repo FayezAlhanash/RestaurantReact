@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../API/axios";
 import { getStoredToken, getStoredUser, ROLE_IDS } from "../utils/auth";
-import { getUserPermissions } from "../utils/permissions";
-import { ensureCurrentRestaurantId } from "../utils/restaurant";
 import {
     listenForForegroundMessages,
     requestFcmToken,
@@ -11,62 +9,59 @@ import {
 
 const FCM_TOKEN_STORAGE_KEY = "big4:fcm-token";
 const FCM_USER_STORAGE_KEY = "big4:fcm-user-id";
-const NOTIFICATION_POLL_INTERVAL_MS = 15000;
-const READY_PICKUP_STATUSES = new Set([
-    "ready",
-    "prepared",
-    "ready_for_pickup",
-    "waiting_pickup",
-]);
+const BACKEND_NOTIFICATION_POLL_INTERVAL_MS = 3000;
 
 let registrationPromise = null;
-let operationalPollerStarted = false;
-const recentOperationalNotificationIds = new Set();
+let backendNotificationsPollerStarted = false;
 
 const getList = (data) => {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.orders)) return data.orders;
-    if (Array.isArray(data?.data?.orders)) return data.data.orders;
+    if (Array.isArray(data?.notifications)) return data.notifications;
+    if (Array.isArray(data?.data?.notifications)) return data.data.notifications;
     if (Array.isArray(data?.items)) return data.items;
-    if (Array.isArray(data?.ingredients)) return data.ingredients;
-    if (Array.isArray(data?.alerts)) return data.alerts;
-    if (Array.isArray(data?.data?.alerts)) return data.data.alerts;
     if (Array.isArray(data?.data?.items)) return data.data.items;
-    if (Array.isArray(data?.data?.ingredients)) return data.data.ingredients;
 
     return [];
 };
 
-const normalizeValue = (value) =>
-    String(value || "")
-        .toLowerCase()
-        .replaceAll("-", "_")
-        .replaceAll(" ", "_");
+const getNotificationId = (notification) =>
+    notification?.id ??
+    notification?.notification_id ??
+    notification?.uuid ??
+    [
+        notification?.title,
+        notification?.body || notification?.message,
+        notification?.created_at || notification?.createdAt || notification?.time,
+    ]
+        .filter(Boolean)
+        .join(":");
 
-const getOrderId = (order) =>
-    order?.id ??
-    order?.order_id ??
-    order?.restaurant_order_id ??
-    order?.restaurantOrderId ??
-    order?.restaurant_order?.id ??
-    order?.restaurantOrder?.id;
+const getNotificationTitle = (notification) =>
+    notification?.title ||
+    notification?.data?.title ||
+    notification?.notification?.title ||
+    notification?.type ||
+    "Big-4";
 
-const getOrderNumber = (order) =>
-    order?.number ?? order?.code ?? getOrderId(order) ?? "";
+const getNotificationBody = (notification) =>
+    notification?.body ||
+    notification?.message ||
+    notification?.data?.body ||
+    notification?.data?.message ||
+    notification?.notification?.body ||
+    "You have a new notification.";
 
-const getTableNumber = (order) =>
-    order?.table_number ??
-    order?.table?.table_number ??
-    order?.restaurant_order?.table_number ??
-    order?.restaurantOrder?.table_number ??
-    "";
+const getNotificationUrl = (notification) =>
+    notification?.url || notification?.data?.url || notification?.link || window.location.pathname;
 
-const getInventoryId = (item) =>
-    item?.id ?? item?.ingredient_id ?? item?.inventory_id ?? item?.ingredient?.id;
+const isUnreadNotification = (notification) => {
+    if (notification?.read_at || notification?.readAt) return false;
+    if (typeof notification?.is_read === "boolean") return !notification.is_read;
+    if (typeof notification?.read === "boolean") return !notification.read;
 
-const getInventoryName = (item) =>
-    item?.name ?? item?.ingredient?.name ?? item?.item_name ?? "Inventory item";
+    return true;
+};
 
 const roleScopedRoutes = {
     takeawayOrders: {
@@ -106,14 +101,6 @@ function getRoleScopedRoute(routeKey, fallbackPath = "/") {
     }
 
     return fallbackPath;
-}
-
-function appendUrlParam(url, key, value) {
-    if (!value) return url;
-
-    const separator = String(url).includes("?") ? "&" : "?";
-
-    return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
 }
 
 function resolveNotificationUrl(url = window.location.pathname) {
@@ -173,7 +160,23 @@ function showForegroundNotification(payload) {
     };
 }
 
-async function showOperationalNotification(title, body, url = window.location.pathname) {
+async function markNotificationAsRead(notificationId) {
+    if (!notificationId) return;
+
+    try {
+        await api.post(`/notifications/mark-as-read/${notificationId}`);
+        window.dispatchEvent(new CustomEvent("big4:notifications-updated"));
+    } catch {
+        // Keep click navigation responsive even if read-state syncing fails.
+    }
+}
+
+async function showBrowserNotification(
+    title,
+    body,
+    url = window.location.pathname,
+    notificationId = ""
+) {
     if (!("Notification" in window)) return;
 
     const permission =
@@ -190,36 +193,14 @@ async function showOperationalNotification(title, body, url = window.location.pa
         data: { url: targetUrl },
     };
 
-    if ("serviceWorker" in navigator) {
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            await registration.showNotification(title, options);
-            return;
-        } catch {
-            // Fall back to the page Notification API below.
-        }
-    }
-
     const notification = new Notification(title, options);
 
-    notification.onclick = () => {
+    notification.onclick = async () => {
+        await markNotificationAsRead(notificationId);
         window.focus();
         window.location.assign(targetUrl);
         notification.close();
     };
-}
-
-function showOperationalNotificationOnce(id, title, body, url) {
-    if (id && recentOperationalNotificationIds.has(id)) return;
-
-    if (id) {
-        recentOperationalNotificationIds.add(id);
-        window.setTimeout(() => {
-            recentOperationalNotificationIds.delete(id);
-        }, 60000);
-    }
-
-    showOperationalNotification(title, body, url);
 }
 
 async function sendTokenToBackend(token, userId) {
@@ -265,192 +246,78 @@ async function registerNotifications() {
     await sendTokenToBackend(token, user.id);
 }
 
-async function fetchReadyPickupOrders() {
-    const response = await api.get("/cashier/orders", {
-        params: {
-            type: "takeaway",
-            order_type: "takeaway",
-        },
-    });
-
-    return getList(response.data).filter((order) => {
-        const orderType = normalizeValue(
-            order?.type || order?.order_type || order?.service_type
-        );
-        const status = normalizeValue(order?.status || order?.kitchen_status);
-        const isTakeaway =
-            !orderType || ["takeaway", "take_away", "takeout"].includes(orderType);
-
-        return isTakeaway && READY_PICKUP_STATUSES.has(status);
-    });
-}
-
-async function fetchReadyDineInOrders() {
-    const response = await api.get("/waiter/ready-restaurant-orders");
+async function fetchBackendNotifications() {
+    const response = await api.get("/notifications");
 
     return getList(response.data);
 }
 
-async function fetchLowStockItems() {
-    const restaurantId = await ensureCurrentRestaurantId();
+function startBackendNotificationsPoller() {
+    if (backendNotificationsPollerStarted) return () => {};
 
-    if (!restaurantId) return [];
-
-    const response = await api.get(
-        `/restaurants/${restaurantId}/inventory-alerts/low-stock`
-    );
-
-    return getList(response.data);
-}
-
-function notifyNewItems({ items, seenIds, initialized, buildId, notify }) {
-    const nextSeenIds = new Set(seenIds);
-    const newItems = [];
-
-    items.forEach((item) => {
-        const id = buildId(item);
-
-        if (!id) return;
-        if (!seenIds.has(id)) newItems.push(item);
-        nextSeenIds.add(id);
-    });
-
-    if (initialized) {
-        newItems.forEach(notify);
-    }
-
-    return nextSeenIds;
-}
-
-function startOperationalNotificationPoller() {
-    if (operationalPollerStarted) return () => {};
-
-    operationalPollerStarted = true;
+    backendNotificationsPollerStarted = true;
 
     let isStopped = false;
-    let isPickupInitialized = false;
-    let isDineInInitialized = false;
-    let isLowStockInitialized = false;
-    let seenPickupIds = new Set();
-    let seenDineInIds = new Set();
-    let seenLowStockIds = new Set();
+    let initialized = false;
+    let seenNotificationIds = new Set();
 
     const poll = async () => {
         if (isStopped || !getStoredToken()) return;
-        if (Notification.permission !== "granted") return;
-
-        const permissions = getUserPermissions();
-        const user = getStoredUser();
-        const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
-        const tasks = [];
-
-        if (permissions.includes("manage_takeaway_orders")) {
-            tasks.push(
-                fetchReadyPickupOrders()
-                    .then((orders) => {
-                        seenPickupIds = notifyNewItems({
-                            items: orders,
-                            seenIds: seenPickupIds,
-                            initialized: isPickupInitialized,
-                            buildId: (order) => String(getOrderId(order) || ""),
-                            notify: (order) => {
-                                const orderNumber = getOrderNumber(order);
-
-                                showOperationalNotificationOnce(
-                                    `pickup:${getOrderId(order)}`,
-                                    "Pickup order is ready",
-                                    `Order #${orderNumber} is ready for customer pickup.`,
-                                    appendUrlParam(
-                                        getRoleScopedRoute("takeawayOrders", "/takeaway-orders?view=orders"),
-                                        "orderId",
-                                        getOrderId(order)
-                                    )
-                                );
-                            },
-                        });
-                        isPickupInitialized = true;
-                    })
-                    .catch(() => {})
-            );
+        if (!("Notification" in window) || Notification.permission !== "granted") {
+            return;
         }
 
-        if (permissions.includes("serve_dine_in_orders")) {
-            tasks.push(
-                fetchReadyDineInOrders()
-                    .then((orders) => {
-                        seenDineInIds = notifyNewItems({
-                            items: orders,
-                            seenIds: seenDineInIds,
-                            initialized: isDineInInitialized,
-                            buildId: (order) => String(getOrderId(order) || ""),
-                            notify: (order) => {
-                                const tableNumber = getTableNumber(order);
-                                const orderNumber = getOrderNumber(order);
-                                const suffix = tableNumber
-                                    ? `Table ${tableNumber}`
-                                    : `Order #${orderNumber}`;
+        try {
+            const notifications = await fetchBackendNotifications();
+            const unreadNotifications = notifications.filter(isUnreadNotification);
+            const nextSeenIds = new Set(seenNotificationIds);
 
-                                showOperationalNotificationOnce(
-                                    `dine-in:${getOrderId(order)}`,
-                                    "Dine-in order is ready",
-                                    `${suffix} is ready to serve.`,
-                                    getRoleScopedRoute("dineInService", "/dine-in-service")
-                                );
-                            },
-                        });
-                        isDineInInitialized = true;
-                    })
-                    .catch(() => {})
-            );
+            unreadNotifications.forEach((notification) => {
+                const id = String(getNotificationId(notification) || "");
+
+                if (!id) return;
+
+                if (initialized && !seenNotificationIds.has(id)) {
+                    showBrowserNotification(
+                        getNotificationTitle(notification),
+                        getNotificationBody(notification),
+                        getNotificationUrl(notification),
+                        id
+                    );
+                }
+
+                nextSeenIds.add(id);
+            });
+
+            seenNotificationIds = nextSeenIds;
+            initialized = true;
+        } catch {
+            // The bell panel already shows loading errors when the user opens it.
         }
-
-        if (
-            isAdmin ||
-            permissions.includes("monitor_inventory") ||
-            permissions.includes("manage_inventory")
-        ) {
-            tasks.push(
-                fetchLowStockItems()
-                    .then((items) => {
-                        seenLowStockIds = notifyNewItems({
-                            items,
-                            seenIds: seenLowStockIds,
-                            initialized: isLowStockInitialized,
-                            buildId: (item) => String(getInventoryId(item) || ""),
-                            notify: (item) => {
-                                showOperationalNotificationOnce(
-                                    `low-stock:${getInventoryId(item)}`,
-                                    "Low stock alert",
-                                    `${getInventoryName(item)} is below minimum stock.`,
-                                    getRoleScopedRoute("lowStock", "/low-stock")
-                                );
-                            },
-                        });
-                        isLowStockInitialized = true;
-                    })
-                    .catch(() => {})
-            );
-        }
-
-        await Promise.allSettled(tasks);
     };
 
     poll();
 
-    const intervalId = window.setInterval(poll, NOTIFICATION_POLL_INTERVAL_MS);
+    const intervalId = window.setInterval(
+        poll,
+        BACKEND_NOTIFICATION_POLL_INTERVAL_MS
+    );
     const handleFocus = () => poll();
     const handleVisibilityChange = () => {
         if (!document.hidden) poll();
     };
+    const handlePollNow = () => poll();
 
     window.addEventListener("focus", handleFocus);
+    window.addEventListener("big4:poll-notifications-now", handlePollNow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
         isStopped = true;
-        operationalPollerStarted = false;
+        backendNotificationsPollerStarted = false;
         window.clearInterval(intervalId);
         window.removeEventListener("focus", handleFocus);
+        window.removeEventListener("big4:poll-notifications-now", handlePollNow);
         document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
 }
@@ -465,14 +332,6 @@ export default function NotificationManager() {
         registrationPromise.catch(() => {
             registrationPromise = null;
         });
-    }, [location.pathname]);
-
-    useEffect(() => {
-        if (!getStoredToken()) return undefined;
-
-        const stopPolling = startOperationalNotificationPoller();
-
-        return stopPolling;
     }, [location.pathname]);
 
     useEffect(() => {
@@ -497,47 +356,12 @@ export default function NotificationManager() {
     }, [location.pathname]);
 
     useEffect(() => {
-        const handleLowStockEvent = (event) => {
-            const item = event.detail || {};
+        if (!getStoredToken()) return undefined;
 
-            showOperationalNotificationOnce(
-                `low-stock:${getInventoryId(item)}`,
-                "Low stock alert",
-                `${getInventoryName(item)} is below minimum stock.`,
-                getRoleScopedRoute("lowStock", "/low-stock")
-            );
-        };
+        const stopPolling = startBackendNotificationsPoller();
 
-        window.addEventListener("big4:low-stock", handleLowStockEvent);
-
-        return () => {
-            window.removeEventListener("big4:low-stock", handleLowStockEvent);
-        };
-    }, []);
-
-    useEffect(() => {
-        const handleDineInReadyEvent = (event) => {
-            const order = event.detail || {};
-            const tableNumber = getTableNumber(order);
-            const orderNumber = getOrderNumber(order);
-            const suffix = tableNumber
-                ? `Table ${tableNumber}`
-                : `Order #${orderNumber}`;
-
-            showOperationalNotificationOnce(
-                `dine-in:${getOrderId(order) || orderNumber}`,
-                "Dine-in order is ready",
-                `${suffix} is ready to serve.`,
-                getRoleScopedRoute("dineInService", "/dine-in-service")
-            );
-        };
-
-        window.addEventListener("big4:dine-in-ready", handleDineInReadyEvent);
-
-        return () => {
-            window.removeEventListener("big4:dine-in-ready", handleDineInReadyEvent);
-        };
-    }, []);
+        return stopPolling;
+    }, [location.pathname]);
 
     return null;
 }

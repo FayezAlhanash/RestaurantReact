@@ -7,7 +7,7 @@ import {
     ReceiptText,
     Utensils,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import { clearSession, getStoredUser } from "../../utils/auth";
@@ -39,9 +39,6 @@ const getRestaurantOrderId = (item) =>
     item?.restaurantOrder?.id ??
     item?.id ??
     null;
-
-const getReadyOrderNotificationId = (item) =>
-    getRestaurantOrderId(item) ?? item?.order_id ?? item?.order?.id ?? null;
 
 const getTableNumber = (item) =>
     item?.table_number ??
@@ -115,8 +112,6 @@ function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, a
 export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [cashPayments, setCashPayments] = useState([]);
     const [readyOrders, setReadyOrders] = useState([]);
-    const readyOrderIdsRef = useRef(new Set());
-    const hasLoadedReadyOrdersRef = useRef(false);
     const permissions = getUserPermissions();
     const canServeDineInOrders = permissions.includes("serve_dine_in_orders");
     const canProcessPayments = permissions.includes("process_payments");
@@ -145,27 +140,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             ]);
 
             const nextReadyOrders = getList(readyResponse.data);
-            const nextReadyIds = new Set(
-                nextReadyOrders
-                    .map((order) => String(getReadyOrderNotificationId(order) || ""))
-                    .filter(Boolean)
-            );
-
-            if (hasLoadedReadyOrdersRef.current) {
-                nextReadyOrders.forEach((order) => {
-                    const id = String(getReadyOrderNotificationId(order) || "");
-
-                    if (!id || readyOrderIdsRef.current.has(id)) return;
-
-                    window.dispatchEvent(
-                        new CustomEvent("big4:dine-in-ready", { detail: order })
-                    );
-                });
-            }
-
-            readyOrderIdsRef.current = nextReadyIds;
-            hasLoadedReadyOrdersRef.current = true;
-
             setCashPayments(getList(cashResponse.data));
             setReadyOrders(nextReadyOrders);
             setErrorMessage("");

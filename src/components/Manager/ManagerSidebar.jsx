@@ -84,7 +84,7 @@ const navItems = [
     label: "Dine-in Service",
     description: "Serve orders and cash",
     icon: ChefHat,
-    permissions: ["serve_dine_in_orders", "process_payments"],
+    permissions: ["serve_dine_in_orders"],
   },
   {
     to: "/manager/tables",

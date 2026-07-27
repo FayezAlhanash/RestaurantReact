@@ -93,7 +93,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
         try {
             if (!canProcessPayments) {
                 throw new Error(
-                    "This account does not have permission to pay takeaway orders."
+                    "You need Process Payments permission to pay takeaway orders."
                 );
             }
 
@@ -134,6 +134,12 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                     ? `${orderLabel} paid and sent to kitchen`
                     : `${orderLabel} paid, but not in kitchen queue`
             );
+            window.dispatchEvent(new CustomEvent("big4:orders-updated"));
+            window.dispatchEvent(new CustomEvent("big4:poll-notifications-now"));
+            window.setTimeout(() => {
+                window.dispatchEvent(new CustomEvent("big4:orders-updated"));
+                window.dispatchEvent(new CustomEvent("big4:poll-notifications-now"));
+            }, 1200);
 
             window.setTimeout(() => {
                 setSuccessMessage("");
@@ -143,11 +149,15 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             const firstValidationError = validationErrors
                 ? Object.values(validationErrors).flat().find(Boolean)
                 : "";
+            const status = error.response?.status;
+            const message = error.response?.data?.message;
 
             setErrorMessage(
                 firstValidationError ||
-                error.response?.data?.message ||
-                error.message ||
+                (status === 401 || status === 403 || message === "Unauthorized."
+                    ? "You need Process Payments permission to pay takeaway orders."
+                    : message) ||
+                    error.message ||
                     "Order was not sent. Check the cashier order API."
             );
         } finally {
@@ -165,7 +175,9 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                     </div>
                     <p className="mt-1 text-sm font-medium text-white/45">Takeaway · New order</p>
                 </div>
-                <span className="rounded-full bg-[#7F1D1D]/14 px-2.5 py-1 text-xs font-black text-[#7F1D1D]">{itemCount} items</span>
+                <span className="rounded-full border border-[#FF6B6B]/30 bg-[#7F1D1D]/28 px-2.5 py-1 text-xs font-black text-[#FFB3B3]">
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                </span>
             </div>
 
             <div className="cashier-scroll flex-1 space-y-3 overflow-y-auto px-3.5 py-3 sm:px-4">
@@ -265,13 +277,13 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                     </p>
                 )}
                 {errorMessage && (
-                    <p className="mb-2 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-2.5 text-center text-sm font-extrabold text-[#7F1D1D]">
+                    <p className="mb-2 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
                         {errorMessage}
                     </p>
                 )}
                 {!canProcessPayments && (
-                    <p className="mb-2 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-2.5 text-center text-sm font-extrabold text-[#7F1D1D]">
-                        Payment is unavailable for this account.
+                    <p className="mb-2 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
+                        You need Process Payments permission to pay takeaway orders.
                     </p>
                 )}
                 <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 disabled:shadow-none">

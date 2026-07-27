@@ -187,7 +187,7 @@ function WarehouseSideBar({ onAdd, stats, permissions = [] }) {
                         </NavLink>
                     )}
 
-                    {canShow(["serve_dine_in_orders", "process_payments"]) && (
+                    {canShow(["serve_dine_in_orders"]) && (
                         <NavLink
                             to="/warehouse/dine-in-service"
                             className={({ isActive }) =>
