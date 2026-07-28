@@ -154,6 +154,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [cashPayments, setCashPayments] = useState([]);
     const [readyOrders, setReadyOrders] = useState([]);
     const [tableSessionNumber, setTableSessionNumber] = useState("");
+    const [tableDeviceKey, setTableDeviceKey] = useState("");
     const permissions = getUserPermissions();
     const canServeDineInOrders = permissions.includes("serve_dine_in_orders");
     const canProcessPayments = permissions.includes("process_payments");
@@ -253,9 +254,16 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         };
 
         const fetchCurrentSessionFromStoredDevice = async () => {
-            const deviceKey = getStoredDeviceKey(tableId);
+            const deviceKey = tableDeviceKey.trim() || getStoredDeviceKey(tableId);
 
             if (!deviceKey) return null;
+
+            if (tableDeviceKey.trim()) {
+                localStorage.setItem(
+                    `waiter-table-device-key:${tableId}`,
+                    tableDeviceKey.trim()
+                );
+            }
 
             const response = await api.get("/table-device/current-session", {
                 headers: {
@@ -277,7 +285,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
             return nextOpenedSession?.sessionToken
                 ? `Session opened for table ${tableId}. Token is shown below.`
-                : `Session opened for table ${tableId}. Token was not returned by the API.`;
+                : `Session opened for table ${tableId}. Add the device key temporarily to show the token here.`;
         } catch (error) {
             if (error.response?.status === 409) {
                 const sessionId = error.response?.data?.session_id;
@@ -294,7 +302,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
                 return sessionId
                     ? `Table ${tableId} already has active session #${sessionId}. Token was not returned by the API.`
-                    : `Table ${tableId} already has an active session. Token was not returned by the API.`;
+                    : `Table ${tableId} already has an active session. Add the device key temporarily to show the token here.`;
             }
 
             if (error.response?.status === 422) {
@@ -499,7 +507,14 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                 <input
                                     value={tableSessionNumber}
                                     onChange={(event) => {
-                                        setTableSessionNumber(event.target.value);
+                                        const nextTableId = event.target.value;
+
+                                        setTableSessionNumber(nextTableId);
+                                        setTableDeviceKey(
+                                            localStorage.getItem(
+                                                `waiter-table-device-key:${nextTableId.trim()}`
+                                            ) || ""
+                                        );
                                         setOpenedSession(null);
                                     }}
                                     placeholder="Table ID"
@@ -540,6 +555,18 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                     {busyKey === "session:close" ? "Closing..." : "Close session"}
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="mt-4">
+                            <input
+                                value={tableDeviceKey}
+                                onChange={(event) => setTableDeviceKey(event.target.value)}
+                                placeholder="Temporary device key for this table (TDEV-...)"
+                                className="h-12 w-full rounded-2xl border border-white/10 bg-[#101517] px-4 text-sm font-bold text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                            />
+                            <p className="mt-2 text-xs font-bold text-white/42">
+                                Temporary helper: paste the table display device key so the waiter screen can fetch and show the session token.
+                            </p>
                         </div>
 
                         {openedSession?.sessionToken && (
