@@ -7,14 +7,20 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use((config) => {
+    const shouldSkipUserContext = config.headers["X-Skip-User-Context"];
+
+    if (shouldSkipUserContext) {
+        delete config.headers["X-Skip-User-Context"];
+    }
+
     const token = getStoredToken();
 
-    if (token) {
+    if (token && !shouldSkipUserContext && !config.headers.Authorization) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Add user context for backend permission checks.
-    const user = getStoredUser();
+    const user = shouldSkipUserContext ? null : getStoredUser();
 
     if (user) {
         config.headers["X-User-Id"] = user.id;

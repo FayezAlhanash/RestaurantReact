@@ -10,6 +10,7 @@ import AdminLayout from "./components/Admin/AdminLayout";
 import MainContent from "./components/Admin/MainContent";
 import RestaurantsManagements from "./components/Admin/RestaurantsManagements";
 import EmployeesManagements from "./components/Admin/EmployeesManagements";
+import RestaurantStaff from "./components/Admin/RestaurantStaff";
 import RolesPermission from "./components/Admin/Roles&Permission";
 import UserPermission from "./components/Admin/UserPermission";
 import DeliveryReviews from "./components/Admin/DeliveryReviews";
@@ -39,8 +40,19 @@ import { ThemeProvider } from "./context/ThemeContext";
 import api from "./API/axios";
 import { getStoredToken } from "./utils/auth";
 import NotificationManager from "./notifications/NotificationManager";
+import RealtimeManager from "./components/Realtime/RealtimeManager";
+
+const RESTAURANT_STAFF_PERMISSIONS = [
+  "manage_restaurant_staff",
+  "view_restaurant_staff",
+  "list_staff_user_restaurant",
+  "list_staff_users_restaurant",
+  "List-staff-User-restaurant",
+  "Manage Restaurant Staff",
+];
 
 const OPERATIONS_WORKSPACE_PERMISSIONS = [
+  ...RESTAURANT_STAFF_PERMISSIONS,
   "manage_menu",
   "view_recipes",
   "manage_recipes",
@@ -63,6 +75,7 @@ function SessionWatcher() {
     const isPublicPage = () =>
       window.location.pathname === "/" ||
       window.location.pathname === "/help" ||
+      window.location.pathname === "/info" ||
       window.location.pathname.startsWith("/table/") ||
       window.location.pathname.startsWith("/tables/") ||
       window.location.pathname.startsWith("/dine-in/");
@@ -101,12 +114,14 @@ function App() {
     <ThemeProvider>
     <BrowserRouter >
       <SessionWatcher />
+      <RealtimeManager />
       <NotificationManager />
 
       <Routes>
 
         <Route path="/" element={<Login />} />
-        <Route path="/help" element={<RolesLanding />} />
+        <Route path="/help" element={<Navigate to="/info" replace />} />
+        <Route path="/info" element={<RolesLanding />} />
 
         {/* Customer QR ordering */}
         <Route path="/table/:tableId" element={<DineInOrder />} />
@@ -188,6 +203,9 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["manage_users"]} />}>
               <Route path="/employees" element={<EmployeesManagements />} />
               <Route path="/employee" element={<Employee />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedPermissions={RESTAURANT_STAFF_PERMISSIONS} />}>
+              <Route path="/restaurant-staff" element={<RestaurantStaff />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["manage_employee_shifts", "manage_users"]} />}>
               <Route path="/employee-shifts" element={<EmployeeShifts />} />

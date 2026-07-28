@@ -3,6 +3,7 @@ import { BellRing, Building2, CheckCircle2, Flame, Utensils } from "lucide-react
 
 import OrderCard from "../../components/Kitchen/OrderCard";
 import api from "../../API/axios";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import {
     fetchKitchenQueue,
@@ -142,6 +143,11 @@ export default function KitchenDashboard() {
             window.clearInterval(intervalId);
         };
     }, [loadQueue]);
+
+    useRealtimeRefresh(() => {
+        shouldPollRef.current = true;
+        loadQueue();
+    });
 
     const handleStartPreparing = async (orderId) => {
         if (pendingOrderActions[String(orderId)]) return;

@@ -223,7 +223,7 @@ const heroPreviewScreenshots = roles.flatMap((role) =>
 
 const heroPreviewRole = {
     name: "Role gallery",
-    path: "/help#roles",
+    path: "/info#roles",
     screenshots: [
         ...heroPreviewScreenshots.filter((screenshot) => screenshot.path === "/cashier"),
         ...heroPreviewScreenshots.filter((screenshot) => screenshot.path !== "/cashier"),
@@ -700,7 +700,7 @@ export default function RolesLanding() {
                             <span>© 2026 Big-4 Restaurant System</span>
                             <span className="inline-flex items-center gap-2">
                                 <Headset size={16} />
-                                Internal operations help
+                                Internal operations info
                             </span>
                         </div>
                     </div>

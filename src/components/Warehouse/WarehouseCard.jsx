@@ -1,8 +1,11 @@
+import { useEffect, useRef, useState } from "react";
 import { Package, Pencil, Trash2, TrendingDown, TrendingUp } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
-function WarehouseCard({ item, onEdit, onDelete }) {
+function WarehouseCard({ item, onEdit, onDelete, revealDelay = 0 }) {
     const { isLight } = useTheme();
+    const cardRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
     const current = Number(item.current_quantity || 0);
     const minimum = Number(item.min_quantity || 0);
     const isLow = current <= minimum;
@@ -15,12 +18,50 @@ function WarehouseCard({ item, onEdit, onDelete }) {
         : "border-emerald-400/45 bg-emerald-400/14 text-emerald-300";
     const healthyBarClass = isLight ? "bg-[#3C9A6B]" : "bg-emerald-400";
 
+    useEffect(() => {
+        const card = cardRef.current;
+
+        if (!card) return undefined;
+
+        if (
+            window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
+            !("IntersectionObserver" in window)
+        ) {
+            setIsVisible(true);
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) return;
+
+                setIsVisible(true);
+                observer.unobserve(entry.target);
+            },
+            {
+                root: null,
+                rootMargin: "0px 0px -10% 0px",
+                threshold: 0.16,
+            }
+        );
+
+        observer.observe(card);
+
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <article className={`rounded-[24px] border p-4 shadow-[0_16px_34px_rgba(0,0,0,0.20)] ring-1 transition hover:-translate-y-0.5 sm:p-5 ${
+        <article
+            ref={cardRef}
+            style={{ transitionDelay: isVisible ? `${Math.min(revealDelay, 180)}ms` : "0ms" }}
+            className={`rounded-[24px] border p-4 shadow-[0_16px_34px_rgba(0,0,0,0.20)] ring-1 transition duration-700 ease-out hover:-translate-y-0.5 sm:p-5 ${
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+        } ${
             isLight
                 ? "border-[#E4CFC3] bg-[#FFF9F2] text-[#241815] ring-[#7F1D1D]/5 hover:border-[#D8B8AA] hover:bg-white hover:shadow-[0_24px_48px_rgba(127,29,29,0.12)]"
                 : "border-[#3C484C] bg-[#222C30] text-white ring-white/[0.045] hover:border-[#FFD166]/32 hover:bg-[#273236] hover:shadow-[0_24px_48px_rgba(0,0,0,0.28)]"
-        }`}>
+        }`}
+        >
             <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-4">
                     <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${isLow ? "bg-[#7F1D1D]/14 text-[#7F1D1D]" : healthyIconClass}`}>

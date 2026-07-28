@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import api from "../../API/axios";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
@@ -111,6 +112,11 @@ function Warehouse() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         getIngredients();
     }, [getIngredients]);
+
+    useRealtimeRefresh(() => {
+        getIngredients();
+        outletContext.refreshWarehouseStats?.();
+    });
 
     useEffect(() => {
         if (!isAdmin) return undefined;

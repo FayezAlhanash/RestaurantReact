@@ -1,3 +1,5 @@
+import { AUTH_CHANGED_EVENT } from "../services/realtime";
+
 export const ROLE_IDS = {
     ADMIN: 1,
     MANAGER: 3,
@@ -192,6 +194,18 @@ export function getPermissionHomePath(user = {}) {
         requiredPermissions.some((permission) => permissions.includes(permission));
 
     if (can("manage_users")) return "/employee";
+    if (
+        can(
+            "manage_restaurant_staff",
+            "view_restaurant_staff",
+            "list_staff_user_restaurant",
+            "list_staff_users_restaurant",
+            "List-staff-User-restaurant",
+            "Manage Restaurant Staff"
+        )
+    ) {
+        return "/restaurant-staff";
+    }
     if (can("manage_employee_shifts")) return "/employee-shifts";
     if (can("manage_roles", "manage_permissions")) return "/roles";
     if (isAdmin && can("manage_restaurants", "monitor_restaurant")) return "/restaurants";
@@ -262,6 +276,7 @@ export function getStoredToken() {
 export function storeToken(token) {
     sessionStorage.setItem("token", token);
     localStorage.removeItem("token");
+    window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
 
 export function storeUser(user, profile = {}) {
@@ -353,4 +368,5 @@ export function clearSession() {
     localStorage.removeItem("user");
     localStorage.removeItem("big4:fcm-token");
     localStorage.removeItem("big4:fcm-user-id");
+    window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }

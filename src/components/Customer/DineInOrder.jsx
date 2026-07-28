@@ -101,13 +101,21 @@ const appendIfPresent = (formData, key, value) => {
 
 const getFirstRecord = (data) => getList(data)[0] || data?.table || data?.data || data;
 
-const getTableToken = (table) =>
+const getSessionToken = (table) =>
+    table?.session_token ??
+    table?.sessionToken ??
+    table?.table_session_token ??
+    table?.tableSessionToken ??
+    table?.session?.session_token ??
+    table?.session?.sessionToken ??
+    table?.data?.session_token ??
+    table?.data?.sessionToken ??
+    table?.token ??
+    table?.table?.token ??
     table?.table_token ??
     table?.tableToken ??
     table?.table?.table_token ??
     table?.table?.tableToken ??
-    table?.table?.token ??
-    table?.token ??
     table?.qr_token ??
     table?.qrToken ??
     table?.dine_in_token ??
@@ -117,9 +125,13 @@ const getTableToken = (table) =>
 const getTableNumber = (table, fallback) =>
     table?.table_number ?? table?.tableNumber ?? table?.number ?? fallback;
 
-const getTableTokenFromUrl = (tableId, search) => {
+const getSessionTokenFromUrl = (tableId, search) => {
     const params = new URLSearchParams(search);
     const explicitToken =
+        params.get("session_token") ||
+        params.get("sessionToken") ||
+        params.get("table_session_token") ||
+        params.get("tableSessionToken") ||
         params.get("token") ||
         params.get("table_token") ||
         params.get("tableToken") ||
@@ -132,8 +144,16 @@ const getTableTokenFromUrl = (tableId, search) => {
     return "";
 };
 
-const getTableTokenHeaders = (tableToken) => ({
-    ...(tableToken ? { "Table-Token": tableToken } : {}),
+const getTableIdForRequest = (tableId) =>
+    tableId && /^\d+$/.test(String(tableId)) ? tableId : "";
+
+const getSessionTokenHeaders = (sessionToken) => ({
+    ...(sessionToken
+        ? {
+              "Table-Token": sessionToken,
+              "X-Skip-User-Context": "1",
+          }
+        : {}),
 });
 
 const fetchTableDetails = async (tableId) => {
@@ -178,9 +198,10 @@ const fetchRestaurantMenu = async (restaurant) => {
     );
 };
 
-const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
+const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
     const formData = new FormData();
     const restaurantId = cartItems.find((item) => item.restaurant_id)?.restaurant_id;
+    const requestTableId = getTableIdForRequest(tableId);
 
     appendIfPresent(formData, "order_type", orderType);
     appendIfPresent(formData, "type", orderType);
@@ -190,15 +211,19 @@ const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
     appendIfPresent(formData, "source", "dine_in");
     appendIfPresent(formData, "is_takeaway", 0);
     appendIfPresent(formData, "restaurant_id", restaurantId);
-    appendIfPresent(formData, "table_id", tableId);
-    appendIfPresent(formData, "table_number", tableId);
-    appendIfPresent(formData, "table_token", tableToken);
+    appendIfPresent(formData, "table_id", requestTableId);
+    appendIfPresent(formData, "table_number", requestTableId);
+    appendIfPresent(formData, "session_token", sessionToken);
+    appendIfPresent(formData, "table_session_token", sessionToken);
+    appendIfPresent(formData, "table_token", sessionToken);
+    appendIfPresent(formData, "token", sessionToken);
+    appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
 
     cartItems.forEach((item, index) => {
         const unitPrice = Number(item.price ?? 0);
         const quantity = Number(item.quantity ?? 1);
         const modifierOptions = item.selectedModifierOptions ?? [];
-        const notes = [`Table ${tableId}`, item.size, item.notes].filter(Boolean).join(" · ");
+        const notes = [`Table ${requestTableId || tableId}`, item.size, item.notes].filter(Boolean).join(" · ");
 
         appendIfPresent(formData, `items[${index}][food_id]`, item.food_id || item.id);
         appendIfPresent(formData, `items[${index}][menu_item_id]`, item.food_id || item.id);
@@ -228,7 +253,7 @@ const buildOrderFormData = (cartItems, tableId, orderType, tableToken) => {
     return formData;
 };
 
-const buildAddItemFormData = (item, tableToken) => {
+const buildAddItemFormData = (item, sessionToken) => {
     const formData = new FormData();
     const modifierOptions = item.selectedModifierOptions ?? [];
 
@@ -244,7 +269,11 @@ const buildAddItemFormData = (item, tableToken) => {
         Number(item.price ?? 0) * Number(item.quantity ?? 1)
     );
     appendIfPresent(formData, "notes", [item.size, item.notes].filter(Boolean).join(" · "));
-    appendIfPresent(formData, "table_token", tableToken);
+    appendIfPresent(formData, "session_token", sessionToken);
+    appendIfPresent(formData, "table_session_token", sessionToken);
+    appendIfPresent(formData, "table_token", sessionToken);
+    appendIfPresent(formData, "token", sessionToken);
+    appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
 
     modifierOptions.forEach((option, optionIndex) => {
         appendIfPresent(
@@ -310,12 +339,16 @@ const collectInvoiceIds = (value, ids = []) => {
 
 const getCreatedInvoiceId = (data) => collectInvoiceIds(data)[0] ?? null;
 
-async function selectDineInPayment(invoiceId, orderId, tableToken, paymentMethod) {
+async function selectDineInPayment(invoiceId, orderId, sessionToken, paymentMethod) {
     const formData = new FormData();
 
     appendIfPresent(formData, "invoice_id", invoiceId);
     appendIfPresent(formData, "order_id", orderId);
-    appendIfPresent(formData, "table_token", tableToken);
+    appendIfPresent(formData, "session_token", sessionToken);
+    appendIfPresent(formData, "table_session_token", sessionToken);
+    appendIfPresent(formData, "table_token", sessionToken);
+    appendIfPresent(formData, "token", sessionToken);
+    appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
 
     const endpoint =
         paymentMethod === "stripe"
@@ -323,7 +356,7 @@ async function selectDineInPayment(invoiceId, orderId, tableToken, paymentMethod
             : "/customer-dine-in/payments/cash";
 
     const response = await api.post(endpoint, formData, {
-        headers: getTableTokenHeaders(tableToken),
+        headers: getSessionTokenHeaders(sessionToken),
     });
     return response.data;
 }
@@ -331,14 +364,14 @@ async function selectDineInPayment(invoiceId, orderId, tableToken, paymentMethod
 async function selectDineInPaymentForCurrentOrder(
     invoiceId,
     orderId,
-    tableToken,
+    sessionToken,
     paymentMethod
 ) {
     try {
         return await selectDineInPayment(
             invoiceId || orderId,
             orderId,
-            tableToken,
+            sessionToken,
             paymentMethod
         );
     } catch (error) {
@@ -351,11 +384,11 @@ async function selectDineInPaymentForCurrentOrder(
 
         if (!shouldRetryWithOrderId) throw error;
 
-        return selectDineInPayment(orderId, orderId, tableToken, paymentMethod);
+        return selectDineInPayment(orderId, orderId, sessionToken, paymentMethod);
     }
 }
 
-async function createDineInOrder(cartItems, tableId, tableToken) {
+async function createDineInOrder(cartItems, tableId, sessionToken) {
     const typeVariants = ["dine-in", "dine_in", "dine in", "dinein", "DINE-IN"];
     let lastError;
 
@@ -363,9 +396,9 @@ async function createDineInOrder(cartItems, tableId, tableToken) {
         try {
             const response = await api.post(
                 "/customer-dine-in/orders",
-                buildOrderFormData(cartItems, tableId, orderType, tableToken),
+                buildOrderFormData(cartItems, tableId, orderType, sessionToken),
                 {
-                    headers: getTableTokenHeaders(tableToken),
+                    headers: getSessionTokenHeaders(sessionToken),
                 }
             );
             return response.data;
@@ -384,15 +417,15 @@ async function createDineInOrder(cartItems, tableId, tableToken) {
     throw lastError;
 }
 
-async function addItemsToDineInOrder(orderId, cartItems, tableToken) {
+async function addItemsToDineInOrder(orderId, cartItems, sessionToken) {
     const responses = [];
 
     for (const item of cartItems) {
         const response = await api.post(
             `/customer-dine-in/orders/${orderId}/items`,
-            buildAddItemFormData(item, tableToken),
+            buildAddItemFormData(item, sessionToken),
             {
-                headers: getTableTokenHeaders(tableToken),
+                headers: getSessionTokenHeaders(sessionToken),
             }
         );
 
@@ -424,7 +457,7 @@ function CustomerFoodCard({ item, onOpen }) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent" />
                 <span
-                    className={`absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px] ${
+                    className={`menu-type-badge absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px] ${
                         isDiet
                             ? "bg-[#047857] text-[#D1FAE5]"
                             : "bg-[#334155] text-white"
@@ -1336,18 +1369,18 @@ function DineInOrder() {
     const { isLight, toggleTheme } = useTheme();
     const { tableId = "1" } = useParams();
     const location = useLocation();
-    const tableTokenFromUrl = useMemo(
-        () => getTableTokenFromUrl(tableId, location.search),
+    const sessionTokenFromUrl = useMemo(
+        () => getSessionTokenFromUrl(tableId, location.search),
         [location.search, tableId]
     );
     const orderStorageKey = `customer-dine-in-order:${tableId}`;
     const invoiceStorageKey = `customer-dine-in-invoice:${tableId}`;
-    const tableTokenStorageKey = `customer-dine-in-table-token:${tableId}`;
+    const sessionTokenStorageKey = `customer-dine-in-session-token:${tableId}`;
     const onboardingStorageKey = `customer-dine-in-onboarding:${tableId}`;
     const [restaurants, setRestaurants] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
-    const [tableToken, setTableToken] = useState(() =>
-        sessionStorage.getItem(tableTokenStorageKey) || ""
+    const [sessionToken, setSessionToken] = useState(() =>
+        sessionStorage.getItem(sessionTokenStorageKey) || ""
     );
     const [tableNumber, setTableNumber] = useState(tableId);
     const [activeRestaurant, setActiveRestaurant] = useState("");
@@ -1383,22 +1416,22 @@ function DineInOrder() {
             setErrorMessage("");
 
             try {
-                if (tableTokenFromUrl) {
-                    sessionStorage.setItem(tableTokenStorageKey, String(tableTokenFromUrl));
-                    setTableToken(String(tableTokenFromUrl));
+                if (sessionTokenFromUrl) {
+                    sessionStorage.setItem(sessionTokenStorageKey, String(sessionTokenFromUrl));
+                    setSessionToken(String(sessionTokenFromUrl));
                 }
 
                 const tableDetails = await fetchTableDetails(tableId);
-                const nextTableToken = getTableToken(tableDetails);
-                const resolvedTableToken =
-                    nextTableToken ||
-                    tableTokenFromUrl ||
-                    sessionStorage.getItem(tableTokenStorageKey) ||
+                const nextSessionToken = getSessionToken(tableDetails);
+                const resolvedSessionToken =
+                    nextSessionToken ||
+                    sessionTokenFromUrl ||
+                    sessionStorage.getItem(sessionTokenStorageKey) ||
                     "";
 
-                if (nextTableToken) {
-                    sessionStorage.setItem(tableTokenStorageKey, String(nextTableToken));
-                    setTableToken(String(nextTableToken));
+                if (nextSessionToken) {
+                    sessionStorage.setItem(sessionTokenStorageKey, String(nextSessionToken));
+                    setSessionToken(String(nextSessionToken));
                 }
 
                 setTableNumber(getTableNumber(tableDetails, tableId));
@@ -1416,7 +1449,7 @@ function DineInOrder() {
                     )
                 );
 
-                if (!resolvedTableToken) {
+                if (!resolvedSessionToken) {
                     setErrorMessage("Open this page from a valid table QR link before placing an order.");
                 }
             } catch (error) {
@@ -1433,7 +1466,7 @@ function DineInOrder() {
                         )
                     );
 
-                    if (!tableTokenFromUrl && !sessionStorage.getItem(tableTokenStorageKey)) {
+                    if (!sessionTokenFromUrl && !sessionStorage.getItem(sessionTokenStorageKey)) {
                         setErrorMessage("Open this page from a valid table QR link before placing an order.");
                     }
                 } catch (fallbackError) {
@@ -1448,7 +1481,7 @@ function DineInOrder() {
         };
 
         loadMenu();
-    }, [tableId, tableTokenFromUrl, tableTokenStorageKey]);
+    }, [tableId, sessionTokenFromUrl, sessionTokenStorageKey]);
 
     useEffect(() => {
         const storedOrderId = sessionStorage.getItem(orderStorageKey);
@@ -1605,15 +1638,15 @@ function DineInOrder() {
         setSuccessMessage("");
 
         try {
-            if (!tableToken) {
-                throw new Error("Open this page from a valid table QR link before placing an order.");
+            if (!sessionToken) {
+                throw new Error("Open this page from a valid active table session before placing an order.");
             }
 
             if (paymentMethod === "stripe" && !isStripeReady) {
                 throw new Error("Stripe is still loading. Try again in a moment.");
             }
 
-            const response = await createDineInOrder(cartItems, tableId, tableToken);
+            const response = await createDineInOrder(cartItems, tableId, sessionToken);
             const createdOrderId = getCreatedOrderId(response);
             const invoiceId = getCreatedInvoiceId(response);
 
@@ -1629,7 +1662,7 @@ function DineInOrder() {
             const paymentResponse = await selectDineInPaymentForCurrentOrder(
                 invoiceId,
                 createdOrderId,
-                tableToken,
+                sessionToken,
                 paymentMethod
             );
 
@@ -1655,9 +1688,19 @@ function DineInOrder() {
                 : "";
 
             setIsConfirmOrderOpen(false);
+            const responseMessage = error.response?.data?.message || "";
+            const sessionExpired =
+                error.response?.status === 422 &&
+                responseMessage.toLowerCase().includes("session");
+
+            if (sessionExpired) {
+                sessionStorage.removeItem(sessionTokenStorageKey);
+                setSessionToken("");
+            }
+
             setErrorMessage(
                 firstValidationError ||
-                    error.response?.data?.message ||
+                    responseMessage ||
                     error.message ||
                     "Order could not be sent."
             );
@@ -1692,9 +1735,9 @@ function DineInOrder() {
 
     const openConfirmOrder = () => {
         if (!cartItems.length) return;
-        if (!tableToken) {
+        if (!sessionToken) {
             setSuccessMessage("");
-            setErrorMessage("Open this page from a valid table QR link before placing an order.");
+            setErrorMessage("Open this page from a valid active table session before placing an order.");
             return;
         }
 

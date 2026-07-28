@@ -3,6 +3,7 @@ import {
     LayoutDashboard,
     UtensilsCrossed,
     Users,
+    UsersRound,
     UserCog,
     ShieldCheck,
     Table,
@@ -65,7 +66,15 @@ function getRestaurantId(user) {
     );
 }
 
-function SideBar({ isOpen, onClose, isCollapsed = false }) {
+function SideBar({
+    isOpen,
+    onClose,
+    isCollapsed = false,
+    width = 320,
+    isResizing = false,
+    onResizeStart,
+    onResizeReset,
+}) {
     const { isLight } = useTheme();
     const navigate = useNavigate();
     const [sessionUser, setSessionUser] = useState(() => getStoredUser());
@@ -83,6 +92,14 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
     const workspaceLabel = restaurantLabel
         ? `${roleName} · ${restaurantLabel}`
         : roleName;
+    const restaurantStaffPermissions = [
+        "manage_restaurant_staff",
+        "view_restaurant_staff",
+        "list_staff_user_restaurant",
+        "list_staff_users_restaurant",
+        "List-staff-User-restaurant",
+        "Manage Restaurant Staff",
+    ];
 
     const menu = [
         {
@@ -121,6 +138,12 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             title: "Employees",
             path: "/employee",
             permissions: ["manage_users"],
+        },
+        {
+            icon: UsersRound,
+            title: "Restaurant Staff",
+            path: "/restaurant-staff",
+            permissions: restaurantStaffPermissions,
         },
         {
             icon: CalendarDays,
@@ -332,10 +355,34 @@ function SideBar({ isOpen, onClose, isCollapsed = false }) {
             />
 
             <aside
-                className={`fixed left-0 top-0 z-50 flex h-dvh w-[286px] flex-col border-r border-white/10 bg-[#1f1f1f] shadow-[18px_0_45px_rgba(0,0,0,0.28)] transition-[width,transform] duration-300 lg:sticky ${isCollapsed ? "lg:w-[92px]" : "lg:w-[320px]"} lg:translate-x-0 lg:shadow-none ${
+                style={{ "--sidebar-width": isCollapsed ? "92px" : `${width}px` }}
+                className={`fixed left-0 top-0 z-50 flex h-dvh w-[286px] flex-col border-r border-white/10 bg-[#1f1f1f] shadow-[18px_0_45px_rgba(0,0,0,0.28)] ${isResizing ? "transition-transform" : "transition-[width,transform] duration-300"} lg:sticky lg:w-[var(--sidebar-width)] lg:translate-x-0 lg:shadow-none ${
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
+                {!isCollapsed && (
+                    <button
+                        type="button"
+                        aria-label="Resize sidebar"
+                        title="Drag to resize sidebar. Double-click to reset."
+                        onPointerDown={onResizeStart}
+                        onDoubleClick={onResizeReset}
+                        className={`absolute -right-1.5 top-0 z-20 hidden h-full w-3 cursor-ew-resize touch-none items-center justify-center lg:flex ${
+                            isResizing ? "bg-[#D7B52F]/16" : "bg-transparent"
+                        }`}
+                    >
+                        <span
+                            className={`h-16 w-1 rounded-full transition ${
+                                isResizing
+                                    ? "bg-[#D7B52F]"
+                                    : isLight
+                                        ? "bg-[#D8A22D]/35 hover:bg-[#D8A22D]/75"
+                                        : "bg-white/12 hover:bg-[#D7B52F]/75"
+                            }`}
+                        />
+                    </button>
+                )}
+
                 <button
                     type="button"
                     aria-label="Close menu"

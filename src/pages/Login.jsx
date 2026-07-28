@@ -4,7 +4,7 @@ import {
     AlertCircle,
     ArrowRight,
     Eye,
-    HelpCircle,
+    Info,
     Loader2,
     Lock,
     Sparkles,
@@ -163,13 +163,13 @@ function Login() {
             <div className="login-backdrop-warm absolute inset-0" />
 
             <Link
-                to="/help"
+                to="/info"
                 className="login-help-button absolute right-5 top-5 z-20 inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition hover:-translate-y-0.5 active:translate-y-0"
             >
                 <span className="login-help-button-icon grid h-7 w-7 place-items-center rounded-lg">
-                    <HelpCircle size={17} />
+                    <Info size={17} />
                 </span>
-                Help
+                Info
             </Link>
 
             <section

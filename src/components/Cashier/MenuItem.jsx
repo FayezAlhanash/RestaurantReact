@@ -232,7 +232,7 @@ function MenuItemCard({ item, onOpen }) {
                     <Star size={13} className="fill-[#F7C948] text-[#F7C948]" /> 4.8
                 </span>
                 <span
-                    className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] ${
+                    className={`menu-type-badge absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] ${
                         isDietItem(item)
                             ? "bg-[#047857] text-[#D1FAE5]"
                             : "bg-[#334155] text-white"

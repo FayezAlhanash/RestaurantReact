@@ -99,7 +99,7 @@ function WarehouseList({
             </div>
 
             {isAdmin && (
-                <div className="mt-5 rounded-[24px] border border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] p-4 shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+                <div className="mt-5 rounded-[24px] border border-[#FFD166]/30 bg-[linear-gradient(135deg,#f7ebcf_0%,#efe4cf_34%,#3f4646_100%)] p-4 shadow-[0_18px_38px_rgba(70,45,30,0.14)] ring-1 ring-white/[0.04] dark:bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] dark:shadow-[0_18px_38px_rgba(0,0,0,0.20)]">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-3">
                             <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
@@ -166,12 +166,13 @@ function WarehouseList({
 
                 {inventory?.length ? (
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        {inventory.map((item) => (
+                        {inventory.map((item, index) => (
                             <WarehouseCard
                                 key={item.id}
                                 item={item}
                                 onEdit={onEdit}
                                 onDelete={onDelete}
+                                revealDelay={(index % 2) * 90}
                             />
                         ))}
                     </div>

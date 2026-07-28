@@ -917,6 +917,11 @@ img, svg {
     stroke: #ffffff !important;
 }
 
+[data-theme="light"] .menu-type-badge {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
 [data-theme="light"] .admin-topbar {
     background-color: rgba(255, 250, 243, 0.94) !important;
     border-color: rgba(127, 29, 29, 0.14) !important;
