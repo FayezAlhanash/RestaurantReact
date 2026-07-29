@@ -1136,6 +1136,12 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                 </p>
                             )}
 
+                            {!qrMessage && !qrDevices.length && (
+                                <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white/58">
+                                    No device keys are saved on this browser/domain. Save each table device key here to show its active QR.
+                                </p>
+                            )}
+
                             {qrDevices.length > 0 && (
                                 <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                     {qrDevices.map((device) => {
