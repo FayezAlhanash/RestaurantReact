@@ -5,6 +5,7 @@ import {
     Copy,
     DoorOpen,
     ExternalLink,
+    KeyRound,
     LogOut,
     RefreshCw,
     ReceiptText,
@@ -12,12 +13,17 @@ import {
     Utensils,
     XCircle,
 } from "lucide-react";
+import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { clearSession, getStoredUser } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
+
+const tableDeviceApi = axios.create({
+    baseURL: "https://big4.me/api",
+});
 
 const getList = (data) => {
     if (Array.isArray(data)) return data;
@@ -398,6 +404,119 @@ const getStoredDeviceKey = (tableId) => {
     }
 };
 
+const waiterQrDevicesStorageKey = "waiter-table-qr-devices";
+
+const getWaiterQrDevices = () => {
+    const devicesByTableId = new Map();
+
+    try {
+        const savedDevices = JSON.parse(
+            localStorage.getItem(waiterQrDevicesStorageKey) || "[]"
+        );
+
+        if (Array.isArray(savedDevices)) {
+            savedDevices.forEach((device) => {
+                if (!device?.tableId || !device?.deviceKey) return;
+
+                devicesByTableId.set(String(device.tableId), {
+                    tableId: String(device.tableId),
+                    tableNumber: String(device.tableNumber || device.tableId),
+                    deviceKey: String(device.deviceKey),
+                });
+            });
+        }
+    } catch {
+        // Ignore broken saved QR device records.
+    }
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const storageKey = localStorage.key(index);
+        const tableId = storageKey?.match(/^table-device:(.+)$/)?.[1];
+
+        if (!tableId || devicesByTableId.has(String(tableId))) continue;
+
+        try {
+            const storedDevice = JSON.parse(localStorage.getItem(storageKey) || "null");
+            const deviceKey =
+                storedDevice?.device_key ??
+                storedDevice?.device?.device_key ??
+                storedDevice?.table_device?.device_key ??
+                "";
+
+            if (!deviceKey) continue;
+
+            devicesByTableId.set(String(tableId), {
+                tableId: String(tableId),
+                tableNumber: String(
+                    storedDevice?.table_number ??
+                        storedDevice?.tableNumber ??
+                        storedDevice?.device?.table_number ??
+                        storedDevice?.device?.tableNumber ??
+                        tableId
+                ),
+                deviceKey: String(deviceKey),
+            });
+        } catch {
+            // Ignore invalid per-table device records.
+        }
+    }
+
+    return Array.from(devicesByTableId.values()).sort(
+        (a, b) => Number(a.tableId) - Number(b.tableId)
+    );
+};
+
+const saveWaiterQrDevices = (devices) => {
+    localStorage.setItem(waiterQrDevicesStorageKey, JSON.stringify(devices));
+};
+
+const getActiveSessionFromResponse = (data, device) => {
+    const hasActiveSession =
+        data?.has_active_session ??
+        data?.hasActiveSession ??
+        data?.data?.has_active_session ??
+        data?.data?.hasActiveSession;
+    const sessionToken = getSessionTokenFromResponse(data);
+
+    if (hasActiveSession !== true && hasActiveSession !== 1 && hasActiveSession !== "1") {
+        return {
+            ...device,
+            status: "inactive",
+            message: "No active session",
+        };
+    }
+
+    if (!sessionToken) {
+        return {
+            ...device,
+            status: "missing-token",
+            message: "Active session, but no token returned",
+        };
+    }
+
+    const table = data?.table ?? data?.data?.table ?? {};
+    const session = data?.session ?? data?.data?.session ?? {};
+    const tableNumber =
+        table?.table_number ??
+        table?.tableNumber ??
+        device.tableNumber ??
+        device.tableId;
+    const qrPath = getQrPathFromResponse(data, sessionToken);
+    const sessionUrl = buildSessionUrl(qrPath, sessionToken);
+
+    return {
+        ...device,
+        tableId: String(table?.id ?? device.tableId),
+        tableNumber: String(tableNumber),
+        sessionId: session?.id ?? "",
+        sessionToken,
+        sessionUrl,
+        qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=14&data=${encodeURIComponent(sessionUrl)}`,
+        status: "active",
+        message: "",
+    };
+};
+
 function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, action }) {
     return (
         <article className="flex min-h-[260px] min-w-0 flex-col rounded-[28px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
@@ -451,6 +570,12 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [message, setMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [openedSession, setOpenedSession] = useState(null);
+    const [qrDevices, setQrDevices] = useState(() => getWaiterQrDevices());
+    const [qrSessions, setQrSessions] = useState([]);
+    const [qrTableNumber, setQrTableNumber] = useState("");
+    const [qrDeviceKey, setQrDeviceKey] = useState("");
+    const [isQrLoading, setIsQrLoading] = useState(false);
+    const [qrMessage, setQrMessage] = useState("");
     const [isSessionCopied, setIsSessionCopied] = useState(false);
     const navigate = useNavigate();
     const user = getStoredUser();
@@ -537,7 +662,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
             if (!deviceKey) return null;
 
-            const response = await api.get("/table-device/current-session", {
+            const response = await tableDeviceApi.get("/table-device/current-session", {
                 headers: {
                     "X-Table-Device-Key": deviceKey,
                 },
@@ -641,6 +766,82 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         } catch {
             setErrorMessage("Session token is visible, but the browser blocked copying.");
         }
+    };
+
+    const saveQrDevice = () => {
+        const tableId = qrTableNumber.trim();
+        const deviceKey = qrDeviceKey.trim();
+
+        if (!tableId || !deviceKey) return;
+
+        const nextDevices = [
+            ...qrDevices.filter((device) => String(device.tableId) !== String(tableId)),
+            {
+                tableId,
+                tableNumber: tableId,
+                deviceKey,
+            },
+        ].sort((a, b) => Number(a.tableId) - Number(b.tableId));
+
+        saveWaiterQrDevices(nextDevices);
+        setQrDevices(nextDevices);
+        setQrTableNumber("");
+        setQrDeviceKey("");
+        setQrMessage("Device key saved. Refresh QR codes to check the active session.");
+    };
+
+    const removeQrDevice = (tableId) => {
+        const nextDevices = qrDevices.filter(
+            (device) => String(device.tableId) !== String(tableId)
+        );
+
+        saveWaiterQrDevices(nextDevices);
+        setQrDevices(nextDevices);
+        setQrSessions((sessions) =>
+            sessions.filter((session) => String(session.tableId) !== String(tableId))
+        );
+    };
+
+    const refreshQrSessions = async () => {
+        if (!qrDevices.length) {
+            setQrSessions([]);
+            setQrMessage("Add a table device key first.");
+            return;
+        }
+
+        setIsQrLoading(true);
+        setQrMessage("");
+
+        const results = await Promise.allSettled(
+            qrDevices.map(async (device) => {
+                const response = await tableDeviceApi.get("/table-device/current-session", {
+                    headers: {
+                        "X-Table-Device-Key": device.deviceKey,
+                    },
+                });
+
+                return getActiveSessionFromResponse(response.data, device);
+            })
+        );
+        const sessions = results.map((result, index) =>
+            result.status === "fulfilled"
+                ? result.value
+                : {
+                      ...qrDevices[index],
+                      status: "error",
+                      message:
+                          result.reason?.response?.data?.message ||
+                          "Could not check this table device",
+                  }
+        );
+
+        setQrSessions(sessions);
+        setQrMessage(
+            sessions.some((session) => session.status === "active")
+                ? ""
+                : "No active table sessions found."
+        );
+        setIsQrLoading(false);
     };
 
     const visibleTabs = [
@@ -874,6 +1075,136 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                 </p>
                             </div>
                         )}
+
+                        <div className="mt-5 rounded-2xl border border-white/10 bg-[#101517] p-4">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="min-w-0">
+                                    <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                                        <KeyRound size={17} />
+                                        Active table QR codes
+                                    </p>
+                                    <h3 className="mt-2 text-xl font-black text-white">
+                                        QR by table device key
+                                    </h3>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={refreshQrSessions}
+                                    disabled={isQrLoading}
+                                    className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 px-4 text-sm font-black text-[#FFD166] transition hover:bg-[#FFD166]/18 disabled:opacity-60"
+                                >
+                                    <RefreshCw size={17} />
+                                    {isQrLoading ? "Checking..." : "Refresh QR"}
+                                </button>
+                            </div>
+
+                            <div className="mt-4 grid gap-3 lg:grid-cols-[160px_1fr_auto]">
+                                <input
+                                    value={qrTableNumber}
+                                    onChange={(event) => setQrTableNumber(event.target.value)}
+                                    placeholder="Table number"
+                                    className="h-11 min-w-0 rounded-xl border border-white/10 bg-black/20 px-3 text-sm font-black text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                                <input
+                                    value={qrDeviceKey}
+                                    onChange={(event) => setQrDeviceKey(event.target.value)}
+                                    placeholder="Device key"
+                                    className="h-11 min-w-0 rounded-xl border border-white/10 bg-black/20 px-3 text-sm font-black text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={saveQrDevice}
+                                    disabled={!qrTableNumber.trim() || !qrDeviceKey.trim()}
+                                    className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#FFD166] px-4 text-sm font-black text-[#151A1D] transition hover:bg-[#ffdc82] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100"
+                                >
+                                    <KeyRound size={17} />
+                                    Save key
+                                </button>
+                            </div>
+
+                            {qrMessage && (
+                                <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white/58">
+                                    {qrMessage}
+                                </p>
+                            )}
+
+                            {qrDevices.length > 0 && (
+                                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                    {qrDevices.map((device) => {
+                                        const session =
+                                            qrSessions.find(
+                                                (item) => String(item.tableId) === String(device.tableId)
+                                            ) || device;
+                                        const isActive = session.status === "active";
+
+                                        return (
+                                            <article
+                                                key={device.tableId}
+                                                className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.05] p-4"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                                                            Table
+                                                        </p>
+                                                        <h4 className="mt-1 text-3xl font-black text-white">
+                                                            {session.tableNumber || device.tableNumber}
+                                                        </h4>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeQrDevice(device.tableId)}
+                                                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#FFB4A8] transition hover:bg-[#7F1D1D]/18"
+                                                        title="Remove device key"
+                                                    >
+                                                        <XCircle size={17} />
+                                                    </button>
+                                                </div>
+
+                                                {isActive ? (
+                                                    <>
+                                                        <div className="mt-4 rounded-2xl border border-white/10 bg-white p-2">
+                                                            <img
+                                                                src={session.qrImageUrl}
+                                                                alt={`QR code for table ${session.tableNumber}`}
+                                                                className="aspect-square w-full"
+                                                            />
+                                                        </div>
+                                                        <p className="mt-3 break-all text-xs font-bold leading-5 text-white/50">
+                                                            {session.sessionUrl}
+                                                        </p>
+                                                        <div className="mt-3 flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => navigator.clipboard?.writeText(session.sessionUrl)}
+                                                                className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
+                                                                title="Copy QR link"
+                                                            >
+                                                                <Copy size={17} />
+                                                            </button>
+                                                            <a
+                                                                href={session.sessionUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.10] hover:text-white"
+                                                                title="Open customer link"
+                                                            >
+                                                                <ExternalLink size={17} />
+                                                            </a>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <p className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-8 text-center text-sm font-black text-white/55">
+                                                        {session.message || "Refresh to check active session"}
+                                                    </p>
+                                                )}
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ) : isLoading ? (
                     <div className="rounded-[28px] border border-white/10 bg-[#252A2D] px-6 py-16 text-center text-xl font-black shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
