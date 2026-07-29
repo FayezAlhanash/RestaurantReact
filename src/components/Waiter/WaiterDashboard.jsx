@@ -86,54 +86,305 @@ const getFoodName = (item) => {
     return food?.name || food?.title || item?.name || item?.title || item?.food_name || "Item";
 };
 
-const getSessionTokenFromResponse = (data) =>
-    data?.session_token ??
-    data?.sessionToken ??
-    data?.table_session_token ??
-    data?.tableSessionToken ??
-    data?.session?.session_token ??
-    data?.session?.sessionToken ??
-    data?.session?.table_session_token ??
-    data?.session?.tableSessionToken ??
-    data?.session?.token ??
-    data?.table_session?.session_token ??
-    data?.table_session?.sessionToken ??
-    data?.table_session?.token ??
-    data?.data?.session_token ??
-    data?.data?.sessionToken ??
-    data?.data?.session?.session_token ??
-    data?.data?.session?.sessionToken ??
-    data?.data?.session?.table_session_token ??
-    data?.data?.session?.tableSessionToken ??
-    data?.data?.session?.token ??
-    data?.data?.table_session?.session_token ??
-    data?.data?.table_session?.sessionToken ??
-    data?.data?.table_session?.token ??
-    String(
-        data?.qr_path ??
-            data?.qrPath ??
-            data?.session?.qr_path ??
-            data?.session?.qrPath ??
-            data?.data?.qr_path ??
-            data?.data?.qrPath ??
-            data?.data?.session?.qr_path ??
-            data?.data?.session?.qrPath ??
-            ""
-    )
-        .split("/")
-        .find((part) => part.startsWith("TSES-")) ??
-    "";
+const normalizeResponseKey = (key) => String(key).toLowerCase().replace(/[_-]/g, "");
+
+const SESSION_TOKEN_KEYS = new Set(
+    [
+        "session_token",
+        "sessionToken",
+        "table_session_token",
+        "tableSessionToken",
+        "table_token",
+        "tableToken",
+        "qr_token",
+        "qrToken",
+        "dine_in_token",
+        "dineInToken",
+        "token",
+    ].map(normalizeResponseKey)
+);
+
+const SESSION_PATH_KEYS = new Set(
+    [
+        "qr_path",
+        "qrPath",
+        "qr_url",
+        "qrUrl",
+        "session_url",
+        "sessionUrl",
+        "customer_url",
+        "customerUrl",
+        "guest_url",
+        "guestUrl",
+        "url",
+        "link",
+    ].map(normalizeResponseKey)
+);
+
+const findFirstValueByKey = (value, keySet, seen = new WeakSet()) => {
+    if (!value || typeof value !== "object") return "";
+    if (seen.has(value)) return "";
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            const nestedValue = findFirstValueByKey(item, keySet, seen);
+
+            if (nestedValue !== undefined && nestedValue !== null && nestedValue !== "") {
+                return nestedValue;
+            }
+        }
+
+        return "";
+    }
+
+    for (const [key, nestedValue] of Object.entries(value)) {
+        if (
+            keySet.has(normalizeResponseKey(key)) &&
+            nestedValue !== undefined &&
+            nestedValue !== null &&
+            nestedValue !== ""
+        ) {
+            return nestedValue;
+        }
+    }
+
+    for (const nestedValue of Object.values(value)) {
+        const foundValue = findFirstValueByKey(nestedValue, keySet, seen);
+
+        if (foundValue !== undefined && foundValue !== null && foundValue !== "") {
+            return foundValue;
+        }
+    }
+
+    return "";
+};
+
+const getSessionTokenFromPath = (value) => {
+    const text = String(value ?? "").trim();
+
+    if (!text) return "";
+
+    const tsesMatch = text.match(/TSES-[A-Za-z0-9_-]+/);
+
+    if (tsesMatch?.[0]) return tsesMatch[0];
+
+    try {
+        const url = new URL(text, window.location.origin);
+        const params = new URLSearchParams(url.search);
+        const explicitToken =
+            params.get("session_token") ||
+            params.get("sessionToken") ||
+            params.get("table_session_token") ||
+            params.get("tableSessionToken") ||
+            params.get("table_token") ||
+            params.get("tableToken") ||
+            params.get("qr_token") ||
+            params.get("qrToken") ||
+            params.get("dine_in_token") ||
+            params.get("dineInToken") ||
+            params.get("token");
+
+        if (explicitToken) return explicitToken;
+
+        const segments = url.pathname.split("/").filter(Boolean);
+        const dineInIndex = segments.findIndex((segment) => segment === "dine-in");
+
+        if (dineInIndex >= 0 && segments[dineInIndex + 1]) {
+            return decodeURIComponent(segments[dineInIndex + 1]);
+        }
+    } catch {
+        const segments = text.split(/[/?#]/).filter(Boolean);
+        const dineInIndex = segments.findIndex((segment) => segment === "dine-in");
+
+        if (dineInIndex >= 0 && segments[dineInIndex + 1]) {
+            return decodeURIComponent(segments[dineInIndex + 1]);
+        }
+    }
+
+    return "";
+};
+
+const getFirstPresent = (...values) => {
+    const value = values.find((item) => item !== undefined && item !== null && item !== "");
+
+    return value === undefined || value === null ? "" : String(value);
+};
+
+const getSessionTokenFromResponse = (data) => {
+    const directToken = getFirstPresent(
+        data?.session_token,
+        data?.sessionToken,
+        data?.table_session_token,
+        data?.tableSessionToken,
+        data?.table_token,
+        data?.tableToken,
+        data?.qr_token,
+        data?.qrToken,
+        data?.dine_in_token,
+        data?.dineInToken,
+        data?.token,
+        data?.table?.session_token,
+        data?.table?.sessionToken,
+        data?.table?.table_session_token,
+        data?.table?.tableSessionToken,
+        data?.table?.table_token,
+        data?.table?.tableToken,
+        data?.table?.qr_token,
+        data?.table?.qrToken,
+        data?.table?.dine_in_token,
+        data?.table?.dineInToken,
+        data?.table?.token,
+        data?.session?.session_token,
+        data?.session?.sessionToken,
+        data?.session?.table_session_token,
+        data?.session?.tableSessionToken,
+        data?.session?.table_token,
+        data?.session?.tableToken,
+        data?.session?.qr_token,
+        data?.session?.qrToken,
+        data?.session?.dine_in_token,
+        data?.session?.dineInToken,
+        data?.session?.token,
+        data?.table_session?.session_token,
+        data?.table_session?.sessionToken,
+        data?.table_session?.table_session_token,
+        data?.table_session?.tableSessionToken,
+        data?.table_session?.table_token,
+        data?.table_session?.tableToken,
+        data?.table_session?.qr_token,
+        data?.table_session?.qrToken,
+        data?.table_session?.dine_in_token,
+        data?.table_session?.dineInToken,
+        data?.table_session?.token,
+        data?.data?.session_token,
+        data?.data?.sessionToken,
+        data?.data?.table_session_token,
+        data?.data?.tableSessionToken,
+        data?.data?.table_token,
+        data?.data?.tableToken,
+        data?.data?.qr_token,
+        data?.data?.qrToken,
+        data?.data?.dine_in_token,
+        data?.data?.dineInToken,
+        data?.data?.token,
+        data?.data?.table?.session_token,
+        data?.data?.table?.sessionToken,
+        data?.data?.table?.table_session_token,
+        data?.data?.table?.tableSessionToken,
+        data?.data?.table?.table_token,
+        data?.data?.table?.tableToken,
+        data?.data?.table?.qr_token,
+        data?.data?.table?.qrToken,
+        data?.data?.table?.dine_in_token,
+        data?.data?.table?.dineInToken,
+        data?.data?.table?.token,
+        data?.data?.session?.session_token,
+        data?.data?.session?.sessionToken,
+        data?.data?.session?.table_session_token,
+        data?.data?.session?.tableSessionToken,
+        data?.data?.session?.table_token,
+        data?.data?.session?.tableToken,
+        data?.data?.session?.qr_token,
+        data?.data?.session?.qrToken,
+        data?.data?.session?.dine_in_token,
+        data?.data?.session?.dineInToken,
+        data?.data?.session?.token,
+        data?.data?.table_session?.session_token,
+        data?.data?.table_session?.sessionToken,
+        data?.data?.table_session?.table_session_token,
+        data?.data?.table_session?.tableSessionToken,
+        data?.data?.table_session?.table_token,
+        data?.data?.table_session?.tableToken,
+        data?.data?.table_session?.qr_token,
+        data?.data?.table_session?.qrToken,
+        data?.data?.table_session?.dine_in_token,
+        data?.data?.table_session?.dineInToken,
+        data?.data?.table_session?.token,
+        findFirstValueByKey(data, SESSION_TOKEN_KEYS)
+    );
+
+    return directToken || getSessionTokenFromPath(findFirstValueByKey(data, SESSION_PATH_KEYS));
+};
 
 const getQrPathFromResponse = (data, sessionToken) =>
-    data?.qr_path ??
-    data?.qrPath ??
-    data?.session?.qr_path ??
-    data?.session?.qrPath ??
-    data?.data?.qr_path ??
-    data?.data?.qrPath ??
-    data?.data?.session?.qr_path ??
-    data?.data?.session?.qrPath ??
-    (sessionToken ? `/dine-in/${sessionToken}` : "");
+    getFirstPresent(
+        data?.qr_path,
+        data?.qrPath,
+        data?.qr_url,
+        data?.qrUrl,
+        data?.session_url,
+        data?.sessionUrl,
+        data?.customer_url,
+        data?.customerUrl,
+        data?.guest_url,
+        data?.guestUrl,
+        data?.session?.qr_path,
+        data?.session?.qrPath,
+        data?.session?.qr_url,
+        data?.session?.qrUrl,
+        data?.session?.session_url,
+        data?.session?.sessionUrl,
+        data?.session?.customer_url,
+        data?.session?.customerUrl,
+        data?.session?.guest_url,
+        data?.session?.guestUrl,
+        data?.table?.qr_path,
+        data?.table?.qrPath,
+        data?.table?.qr_url,
+        data?.table?.qrUrl,
+        data?.table?.session_url,
+        data?.table?.sessionUrl,
+        data?.table?.customer_url,
+        data?.table?.customerUrl,
+        data?.table?.guest_url,
+        data?.table?.guestUrl,
+        data?.data?.qr_path,
+        data?.data?.qrPath,
+        data?.data?.qr_url,
+        data?.data?.qrUrl,
+        data?.data?.session_url,
+        data?.data?.sessionUrl,
+        data?.data?.customer_url,
+        data?.data?.customerUrl,
+        data?.data?.guest_url,
+        data?.data?.guestUrl,
+        data?.data?.session?.qr_path,
+        data?.data?.session?.qrPath,
+        data?.data?.session?.qr_url,
+        data?.data?.session?.qrUrl,
+        data?.data?.session?.session_url,
+        data?.data?.session?.sessionUrl,
+        data?.data?.session?.customer_url,
+        data?.data?.session?.customerUrl,
+        data?.data?.session?.guest_url,
+        data?.data?.session?.guestUrl,
+        data?.data?.table?.qr_path,
+        data?.data?.table?.qrPath,
+        data?.data?.table?.qr_url,
+        data?.data?.table?.qrUrl,
+        data?.data?.table?.session_url,
+        data?.data?.table?.sessionUrl,
+        data?.data?.table?.customer_url,
+        data?.data?.table?.customerUrl,
+        data?.data?.table?.guest_url,
+        data?.data?.table?.guestUrl,
+        findFirstValueByKey(data, SESSION_PATH_KEYS),
+        sessionToken ? `/dine-in/${sessionToken}` : ""
+    );
+
+const buildSessionUrl = (qrPath, sessionToken) => {
+    const fallbackPath = sessionToken ? `/dine-in/${sessionToken}` : "";
+    const nextPath = String(qrPath || fallbackPath).trim();
+
+    if (!nextPath) return "";
+    if (nextPath.startsWith("http://") || nextPath.startsWith("https://")) return nextPath;
+
+    const normalizedPath = nextPath.startsWith("/") ? nextPath : `/${nextPath}`;
+
+    return `${window.location.origin}${normalizedPath}`;
+};
 
 const getStoredDeviceKey = (tableId) => {
     try {
@@ -277,7 +528,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 tableId,
                 sessionToken,
                 qrPath,
-                sessionUrl: `${window.location.origin}${qrPath}`,
+                sessionUrl: buildSessionUrl(qrPath, sessionToken),
             };
         };
 
@@ -295,10 +546,21 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             return buildOpenedSession(response.data);
         };
 
+        const fetchCurrentSessionFromTableDetails = async () => {
+            try {
+                const response = await api.get(`/tables/${tableId}`);
+
+                return buildOpenedSession(response.data);
+            } catch {
+                return null;
+            }
+        };
+
         try {
             const response = await api.post(`/tables/${tableId}/session/open`);
             const nextOpenedSession =
                 buildOpenedSession(response.data) ||
+                (await fetchCurrentSessionFromTableDetails()) ||
                 (await fetchCurrentSessionFromStoredDevice());
 
             setOpenedSession(nextOpenedSession);
@@ -310,7 +572,9 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         } catch (error) {
             if (error.response?.status === 409) {
                 const sessionId = error.response?.data?.session_id;
-                const nextOpenedSession = await fetchCurrentSessionFromStoredDevice();
+                const nextOpenedSession =
+                    (await fetchCurrentSessionFromTableDetails()) ||
+                    (await fetchCurrentSessionFromStoredDevice());
 
                 setOpenedSession(nextOpenedSession);
                 setIsSessionCopied(false);
