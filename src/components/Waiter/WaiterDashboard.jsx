@@ -93,17 +93,46 @@ const getSessionTokenFromResponse = (data) =>
     data?.tableSessionToken ??
     data?.session?.session_token ??
     data?.session?.sessionToken ??
+    data?.session?.table_session_token ??
+    data?.session?.tableSessionToken ??
+    data?.session?.token ??
+    data?.table_session?.session_token ??
+    data?.table_session?.sessionToken ??
+    data?.table_session?.token ??
     data?.data?.session_token ??
     data?.data?.sessionToken ??
     data?.data?.session?.session_token ??
     data?.data?.session?.sessionToken ??
+    data?.data?.session?.table_session_token ??
+    data?.data?.session?.tableSessionToken ??
+    data?.data?.session?.token ??
+    data?.data?.table_session?.session_token ??
+    data?.data?.table_session?.sessionToken ??
+    data?.data?.table_session?.token ??
+    String(
+        data?.qr_path ??
+            data?.qrPath ??
+            data?.session?.qr_path ??
+            data?.session?.qrPath ??
+            data?.data?.qr_path ??
+            data?.data?.qrPath ??
+            data?.data?.session?.qr_path ??
+            data?.data?.session?.qrPath ??
+            ""
+    )
+        .split("/")
+        .find((part) => part.startsWith("TSES-")) ??
     "";
 
 const getQrPathFromResponse = (data, sessionToken) =>
     data?.qr_path ??
     data?.qrPath ??
+    data?.session?.qr_path ??
+    data?.session?.qrPath ??
     data?.data?.qr_path ??
     data?.data?.qrPath ??
+    data?.data?.session?.qr_path ??
+    data?.data?.session?.qrPath ??
     (sessionToken ? `/dine-in/${sessionToken}` : "");
 
 const getStoredDeviceKey = (tableId) => {
@@ -154,7 +183,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [cashPayments, setCashPayments] = useState([]);
     const [readyOrders, setReadyOrders] = useState([]);
     const [tableSessionNumber, setTableSessionNumber] = useState("");
-    const [tableDeviceKey, setTableDeviceKey] = useState("");
     const permissions = getUserPermissions();
     const canServeDineInOrders = permissions.includes("serve_dine_in_orders");
     const canProcessPayments = permissions.includes("process_payments");
@@ -254,16 +282,9 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         };
 
         const fetchCurrentSessionFromStoredDevice = async () => {
-            const deviceKey = tableDeviceKey.trim() || getStoredDeviceKey(tableId);
+            const deviceKey = getStoredDeviceKey(tableId);
 
             if (!deviceKey) return null;
-
-            if (tableDeviceKey.trim()) {
-                localStorage.setItem(
-                    `waiter-table-device-key:${tableId}`,
-                    tableDeviceKey.trim()
-                );
-            }
 
             const response = await api.get("/table-device/current-session", {
                 headers: {
@@ -285,7 +306,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
             return nextOpenedSession?.sessionToken
                 ? `Session opened for table ${tableId}. Token is shown below.`
-                : `Session opened for table ${tableId}. Add the device key temporarily to show the token here.`;
+                : `Session opened for table ${tableId}. Open Session API did not return a session token.`;
         } catch (error) {
             if (error.response?.status === 409) {
                 const sessionId = error.response?.data?.session_id;
@@ -302,7 +323,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
                 return sessionId
                     ? `Table ${tableId} already has active session #${sessionId}. Token was not returned by the API.`
-                    : `Table ${tableId} already has an active session. Add the device key temporarily to show the token here.`;
+                    : `Table ${tableId} already has an active session. Open Session API did not return a session token.`;
             }
 
             if (error.response?.status === 422) {
@@ -499,7 +520,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                     Start a new dine-in session
                                 </h2>
                                 <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/58">
-                                    Enter the table ID, then the table display will receive the fresh session token through its registered device key.
+                                    Enter the table ID. The generated customer session token appears here after the session opens.
                                 </p>
                             </div>
 
@@ -510,11 +531,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                         const nextTableId = event.target.value;
 
                                         setTableSessionNumber(nextTableId);
-                                        setTableDeviceKey(
-                                            localStorage.getItem(
-                                                `waiter-table-device-key:${nextTableId.trim()}`
-                                            ) || ""
-                                        );
                                         setOpenedSession(null);
                                     }}
                                     placeholder="Table ID"
@@ -555,18 +571,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                     {busyKey === "session:close" ? "Closing..." : "Close session"}
                                 </button>
                             </div>
-                        </div>
-
-                        <div className="mt-4">
-                            <input
-                                value={tableDeviceKey}
-                                onChange={(event) => setTableDeviceKey(event.target.value)}
-                                placeholder="Temporary device key for this table (TDEV-...)"
-                                className="h-12 w-full rounded-2xl border border-white/10 bg-[#101517] px-4 text-sm font-bold text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                            />
-                            <p className="mt-2 text-xs font-bold text-white/42">
-                                Temporary helper: paste the table display device key so the waiter screen can fetch and show the session token.
-                            </p>
                         </div>
 
                         {openedSession?.sessionToken && (
