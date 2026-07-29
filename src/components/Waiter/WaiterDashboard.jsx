@@ -404,6 +404,32 @@ const getStoredDeviceKey = (tableId) => {
     }
 };
 
+const getDeviceKeyFromResponse = (data) =>
+    data?.device_key ??
+    data?.data?.device_key ??
+    data?.device?.device_key ??
+    data?.data?.device?.device_key ??
+    data?.table_device?.device_key ??
+    data?.data?.table_device?.device_key ??
+    "";
+
+const storeTableDeviceKey = (tableId, deviceKey) => {
+    if (!tableId || !deviceKey) return;
+
+    localStorage.setItem(
+        `table-device:${tableId}`,
+        JSON.stringify({
+            device_key: deviceKey,
+            table_number: tableId,
+            device: {
+                device_key: deviceKey,
+                device_name: `Table ${tableId} QR device`,
+            },
+            saved_at: new Date().toISOString(),
+        })
+    );
+};
+
 const waiterQrDevicesStorageKey = "waiter-table-qr-devices";
 
 const getWaiterQrDevices = () => {
@@ -649,16 +675,18 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
             if (!sessionToken) return null;
 
+            const sessionUrl = buildSessionUrl(qrPath, sessionToken);
+
             return {
                 tableId,
                 sessionToken,
                 qrPath,
-                sessionUrl: buildSessionUrl(qrPath, sessionToken),
+                sessionUrl,
+                qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=14&data=${encodeURIComponent(sessionUrl)}`,
             };
         };
 
-        const fetchCurrentSessionFromStoredDevice = async () => {
-            const deviceKey = getStoredDeviceKey(tableId);
+        const fetchCurrentSessionFromDeviceKey = async (deviceKey) => {
 
             if (!deviceKey) return null;
 
@@ -669,6 +697,39 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             });
 
             return buildOpenedSession(response.data);
+        };
+
+        const fetchCurrentSessionFromStoredDevice = async () =>
+            fetchCurrentSessionFromDeviceKey(getStoredDeviceKey(tableId));
+
+        const registerTableDeviceAndFetchSession = async () => {
+            try {
+                const formData = new FormData();
+                formData.append("device_name", `Table ${tableId} QR device`);
+
+                const response = await api.post(`/tables/${tableId}/device/register`, formData);
+                const deviceKey = getDeviceKeyFromResponse(response.data);
+
+                if (!deviceKey) return null;
+
+                storeTableDeviceKey(tableId, deviceKey);
+
+                const nextDevices = [
+                    ...qrDevices.filter((device) => String(device.tableId) !== String(tableId)),
+                    {
+                        tableId,
+                        tableNumber: tableId,
+                        deviceKey,
+                    },
+                ].sort((a, b) => Number(a.tableId) - Number(b.tableId));
+
+                saveWaiterQrDevices(nextDevices);
+                setQrDevices(nextDevices);
+
+                return await fetchCurrentSessionFromDeviceKey(deviceKey);
+            } catch {
+                return null;
+            }
         };
 
         const fetchCurrentSessionFromTableDetails = async () => {
@@ -686,7 +747,8 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             const nextOpenedSession =
                 buildOpenedSession(response.data) ||
                 (await fetchCurrentSessionFromTableDetails()) ||
-                (await fetchCurrentSessionFromStoredDevice());
+                (await fetchCurrentSessionFromStoredDevice()) ||
+                (await registerTableDeviceAndFetchSession());
 
             setOpenedSession(nextOpenedSession);
             setIsSessionCopied(false);
@@ -699,7 +761,8 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 const sessionId = error.response?.data?.session_id;
                 const nextOpenedSession =
                     (await fetchCurrentSessionFromTableDetails()) ||
-                    (await fetchCurrentSessionFromStoredDevice());
+                    (await fetchCurrentSessionFromStoredDevice()) ||
+                    (await registerTableDeviceAndFetchSession());
 
                 setOpenedSession(nextOpenedSession);
                 setIsSessionCopied(false);
@@ -1044,8 +1107,8 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
                         {openedSession?.sessionToken && (
                             <div className="mt-5 rounded-2xl border border-[#FFD166]/25 bg-[#101517] p-4">
-                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                    <div className="min-w-0">
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
                                             Temporary session token
                                         </p>
@@ -1054,7 +1117,14 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                         </code>
                                     </div>
 
-                                    <div className="flex shrink-0 gap-2">
+                                    <div className="flex shrink-0 items-center gap-3">
+                                        {openedSession.qrImageUrl && (
+                                            <img
+                                                src={openedSession.qrImageUrl}
+                                                alt={`QR code for table ${openedSession.tableId}`}
+                                                className="h-36 w-36 rounded-2xl border border-white/10 bg-white p-2"
+                                            />
+                                        )}
                                         <button
                                             type="button"
                                             onClick={copySessionToken}
