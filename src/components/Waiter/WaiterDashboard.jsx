@@ -768,7 +768,49 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         }
     };
 
-    const saveQrDevice = () => {
+    const checkQrDevices = async (devices) => {
+        if (!devices.length) {
+            setQrSessions([]);
+            setQrMessage("Paste the table device key, save it, then the QR appears when the table has an active session.");
+            return;
+        }
+
+        setIsQrLoading(true);
+        setQrMessage("");
+
+        const results = await Promise.allSettled(
+            devices.map(async (device) => {
+                const response = await tableDeviceApi.get("/table-device/current-session", {
+                    headers: {
+                        "X-Table-Device-Key": device.deviceKey,
+                    },
+                });
+
+                return getActiveSessionFromResponse(response.data, device);
+            })
+        );
+        const sessions = results.map((result, index) =>
+            result.status === "fulfilled"
+                ? result.value
+                : {
+                      ...devices[index],
+                      status: "error",
+                      message:
+                          result.reason?.response?.data?.message ||
+                          "Could not check this table device",
+                  }
+        );
+
+        setQrSessions(sessions);
+        setQrMessage(
+            sessions.some((session) => session.status === "active")
+                ? ""
+                : "No active table sessions found for the saved device keys."
+        );
+        setIsQrLoading(false);
+    };
+
+    const saveQrDevice = async () => {
         const tableId = qrTableNumber.trim();
         const deviceKey = qrDeviceKey.trim();
 
@@ -787,7 +829,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         setQrDevices(nextDevices);
         setQrTableNumber("");
         setQrDeviceKey("");
-        setQrMessage("Device key saved. Refresh QR codes to check the active session.");
+        await checkQrDevices(nextDevices);
     };
 
     const removeQrDevice = (tableId) => {
@@ -803,45 +845,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     };
 
     const refreshQrSessions = async () => {
-        if (!qrDevices.length) {
-            setQrSessions([]);
-            setQrMessage("Add a table device key first.");
-            return;
-        }
-
-        setIsQrLoading(true);
-        setQrMessage("");
-
-        const results = await Promise.allSettled(
-            qrDevices.map(async (device) => {
-                const response = await tableDeviceApi.get("/table-device/current-session", {
-                    headers: {
-                        "X-Table-Device-Key": device.deviceKey,
-                    },
-                });
-
-                return getActiveSessionFromResponse(response.data, device);
-            })
-        );
-        const sessions = results.map((result, index) =>
-            result.status === "fulfilled"
-                ? result.value
-                : {
-                      ...qrDevices[index],
-                      status: "error",
-                      message:
-                          result.reason?.response?.data?.message ||
-                          "Could not check this table device",
-                  }
-        );
-
-        setQrSessions(sessions);
-        setQrMessage(
-            sessions.some((session) => session.status === "active")
-                ? ""
-                : "No active table sessions found."
-        );
-        setIsQrLoading(false);
+        await checkQrDevices(qrDevices);
     };
 
     const visibleTabs = [
@@ -1086,6 +1090,9 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                     <h3 className="mt-2 text-xl font-black text-white">
                                         QR by table device key
                                     </h3>
+                                    <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
+                                        Save the device key from Register Table Device, then the QR is shown only while that table session is active.
+                                    </p>
                                 </div>
 
                                 <button
