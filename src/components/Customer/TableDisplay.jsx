@@ -157,43 +157,16 @@ export default function TableDisplay() {
         !isLoading &&
         !isActive &&
         (!deviceKey || !session || session.status === "missing-token");
-    const errorCode = deviceKey
-        ? "ERR_TABLE_DISPLAY_UNAVAILABLE"
-        : "ERR_TABLE_DISPLAY_NOT_REGISTERED";
+    const errorRedirectUrl = `https://table-display-unavailable.invalid/table/${encodeURIComponent(tableId)}`;
+
+    useEffect(() => {
+        if (!isDisplayError) return;
+
+        window.location.replace(errorRedirectUrl);
+    }, [errorRedirectUrl, isDisplayError]);
 
     if (isDisplayError) {
-        return (
-            <main className="min-h-dvh bg-[#202124] px-6 py-24 text-[#bdc1c6]">
-                <section className="mx-auto w-full max-w-xl">
-                    <div className="mb-7 text-[#9aa0a6]">
-                        {deviceKey ? <WifiOff size={52} strokeWidth={1.7} /> : <KeyRound size={52} strokeWidth={1.7} />}
-                    </div>
-                    <h1 className="text-2xl font-normal text-[#e8eaed] sm:text-[28px]">
-                        This site can't be reached
-                    </h1>
-                    <p className="mt-4 text-[15px] leading-6 text-[#bdc1c6]">
-                        {message || "This table display cannot load its active session right now."}
-                    </p>
-                    <p className="mt-6 text-[15px] text-[#bdc1c6]">Try:</p>
-                    <ul className="mt-2 list-disc space-y-1 pl-7 text-[15px] leading-6 text-[#bdc1c6]">
-                        <li>Checking the table display registration</li>
-                        <li>Opening a table session from the waiter screen</li>
-                        <li>Refreshing this page</li>
-                    </ul>
-                    <p className="mt-5 text-xs uppercase tracking-wide text-[#9aa0a6]">
-                        {errorCode}
-                    </p>
-                    <button
-                        type="button"
-                        onClick={refreshSession}
-                        className="mt-7 inline-flex h-9 items-center justify-center gap-2 rounded bg-[#8ab4f8] px-4 text-sm font-medium text-[#202124] transition hover:bg-[#a8c7fa]"
-                    >
-                        <RefreshCw size={15} />
-                        Reload
-                    </button>
-                </section>
-            </main>
-        );
+        return null;
     }
 
     return (
