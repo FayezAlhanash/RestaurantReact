@@ -153,6 +153,36 @@ export default function TableDisplay() {
     };
 
     const isActive = session?.status === "active";
+    const isDisplayError =
+        !isLoading &&
+        !isActive &&
+        (!deviceKey || !session || session.status === "missing-token");
+
+    if (isDisplayError) {
+        return (
+            <main className="grid min-h-dvh place-items-center bg-[#101517] px-4 py-8 text-white">
+                <section className="w-full max-w-lg text-center">
+                    <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-[#FFD166]">
+                        {deviceKey ? <WifiOff size={38} /> : <KeyRound size={38} />}
+                    </div>
+                    <h1 className="mt-6 text-3xl font-black text-white">
+                        {deviceKey ? "Table display unavailable" : "Table display is not registered"}
+                    </h1>
+                    <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-white/55">
+                        {message || "This table screen cannot load its active session right now."}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={refreshSession}
+                        className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 px-4 text-sm font-black text-[#FFD166] transition hover:bg-[#FFD166]/18"
+                    >
+                        <RefreshCw size={17} />
+                        Try again
+                    </button>
+                </section>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-dvh bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.22),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.15),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)] px-4 py-6 text-white sm:px-6">
