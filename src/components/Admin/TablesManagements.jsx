@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
     CheckCircle2,
     Copy,
+    ExternalLink,
     Eye,
     KeyRound,
     LayoutGrid,
@@ -20,6 +21,11 @@ import {
 import AddTableModal from "./AddTableModal";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
+import {
+    getStoredTableDeviceKey,
+    removeStoredTableDeviceKey,
+    saveStoredTableDeviceKey,
+} from "../../utils/tableDeviceKeys";
 
 const normalizeActiveValue = (value) =>
     value === true ||
@@ -47,15 +53,21 @@ const getDeviceKeyFromResponse = (data) =>
 
 const getStoredTableDevice = (tableId) => {
     try {
-        return JSON.parse(localStorage.getItem(`table-device:${tableId}`) || "null");
+        const storedDevice = JSON.parse(localStorage.getItem(`table-device:${tableId}`) || "null");
+        const storedDeviceKey = getStoredTableDeviceKey(tableId);
+
+        return storedDevice || (storedDeviceKey ? { device_key: storedDeviceKey } : null);
     } catch {
-        return null;
+        const storedDeviceKey = getStoredTableDeviceKey(tableId);
+
+        return storedDeviceKey ? { device_key: storedDeviceKey } : null;
     }
 };
 
 const storeTableDevice = (tableId, value) => {
     try {
         localStorage.setItem(`table-device:${tableId}`, JSON.stringify(value));
+        saveStoredTableDeviceKey(tableId, value?.device_key ?? value?.device?.device_key ?? "");
     } catch {
         // Local storage can be disabled; the freshly returned key still stays visible.
     }
@@ -205,6 +217,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setDeviceKey("");
             setIsCopied(false);
             localStorage.removeItem(`table-device:${table.id}`);
+            removeStoredTableDeviceKey(table.id);
             setMessage(response.data?.message || "Table device revoked successfully.");
         } catch (error) {
             setError(error.response?.data?.message || "Table device could not be revoked.");
@@ -413,6 +426,7 @@ function TablesManagements() {
     const deleteTable = async (id) => {
         try {
             await api.delete(`/tables/${id}`);
+            removeStoredTableDeviceKey(id);
             getTables();
         } catch (error) {
             console.log(error);
@@ -595,6 +609,16 @@ function TablesManagements() {
                                         >
                                             <Smartphone size={18} />
                                         </button>
+
+                                        <a
+                                            href={`/table/${table.id}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            title="Open table display"
+                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:scale-110 hover:bg-[#FFD166]/18"
+                                        >
+                                            <ExternalLink size={18} />
+                                        </a>
 
                                         <button
                                             type="button"

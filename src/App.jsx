@@ -32,6 +32,7 @@ import WarehouseLayout from "./components/Warehouse/WarehouseLayout";
 import ManagerLayout from "./components/Manager/ManagerLayout";
 import ManagerDashboard from "./components/Manager/ManagerDashboard";
 import DineInOrder from "./components/Customer/DineInOrder";
+import TableDisplay from "./components/Customer/TableDisplay";
 import WaiterDashboard from "./components/Waiter/WaiterDashboard";
 import WaiterLayout from "./components/Waiter/WaiterLayout";
 import WaiterHomeRedirect from "./components/Waiter/WaiterHomeRedirect";
@@ -77,6 +78,7 @@ function SessionWatcher() {
       window.location.pathname === "/help" ||
       window.location.pathname === "/info" ||
       window.location.pathname.startsWith("/table/") ||
+      window.location.pathname.startsWith("/table-display/") ||
       window.location.pathname.startsWith("/tables/") ||
       window.location.pathname.startsWith("/dine-in/");
 
@@ -123,10 +125,11 @@ function App() {
         <Route path="/help" element={<Navigate to="/info" replace />} />
         <Route path="/info" element={<RolesLanding />} />
 
-        {/* Customer QR ordering */}
-        <Route path="/table/:tableId" element={<DineInOrder />} />
+        {/* Table display and customer QR ordering */}
+        <Route path="/table/:tableId" element={<TableDisplay />} />
         <Route path="/tables/:tableId" element={<DineInOrder />} />
         <Route path="/dine-in/:tableId" element={<DineInOrder />} />
+        <Route path="/table-display/:tableId" element={<TableDisplay />} />
 
         {/* Cashier */}
         <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.CASHIER]} allowedPermissions={["manage_takeaway_orders"]} />}>
