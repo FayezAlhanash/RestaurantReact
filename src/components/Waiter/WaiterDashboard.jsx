@@ -403,32 +403,6 @@ const getStoredDeviceKey = (tableId) => {
     }
 };
 
-const getDeviceKeyFromResponse = (data) =>
-    data?.device_key ??
-    data?.data?.device_key ??
-    data?.device?.device_key ??
-    data?.data?.device?.device_key ??
-    data?.table_device?.device_key ??
-    data?.data?.table_device?.device_key ??
-    "";
-
-const storeTableDeviceKey = (tableId, deviceKey) => {
-    if (!tableId || !deviceKey) return;
-
-    localStorage.setItem(
-        `table-device:${tableId}`,
-        JSON.stringify({
-            device_key: deviceKey,
-            table_number: tableId,
-            device: {
-                device_key: deviceKey,
-                device_name: `Table ${tableId} QR device`,
-            },
-            saved_at: new Date().toISOString(),
-        })
-    );
-};
-
 function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, action }) {
     return (
         <article className="flex min-h-[260px] min-w-0 flex-col rounded-[28px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
@@ -572,6 +546,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
             const response = await tableDeviceApi.get("/table-device/current-session", {
                 headers: {
+                    Authorization: `Bearer ${deviceKey}`,
                     "X-Table-Device-Key": deviceKey,
                 },
             });
@@ -581,24 +556,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
         const fetchCurrentSessionFromStoredDevice = async () =>
             fetchCurrentSessionFromDeviceKey(getStoredDeviceKey(tableId));
-
-        const registerTableDeviceAndFetchSession = async () => {
-            try {
-                const formData = new FormData();
-                formData.append("device_name", `Table ${tableId} QR device`);
-
-                const response = await api.post(`/tables/${tableId}/device/register`, formData);
-                const deviceKey = getDeviceKeyFromResponse(response.data);
-
-                if (!deviceKey) return null;
-
-                storeTableDeviceKey(tableId, deviceKey);
-
-                return await fetchCurrentSessionFromDeviceKey(deviceKey);
-            } catch {
-                return null;
-            }
-        };
 
         const fetchCurrentSessionFromTableDetails = async () => {
             try {
@@ -615,22 +572,20 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             const nextOpenedSession =
                 buildOpenedSession(response.data) ||
                 (await fetchCurrentSessionFromTableDetails()) ||
-                (await fetchCurrentSessionFromStoredDevice()) ||
-                (await registerTableDeviceAndFetchSession());
+                (await fetchCurrentSessionFromStoredDevice());
 
             setOpenedSession(nextOpenedSession);
             setIsSessionCopied(false);
 
             return nextOpenedSession?.sessionToken
                 ? `Session opened for table ${tableId}. Token is shown below.`
-                : `Session opened for table ${tableId}. Open Session API did not return a session token.`;
+                : `Session opened for table ${tableId}.`;
         } catch (error) {
             if (error.response?.status === 409) {
                 const sessionId = error.response?.data?.session_id;
                 const nextOpenedSession =
                     (await fetchCurrentSessionFromTableDetails()) ||
-                    (await fetchCurrentSessionFromStoredDevice()) ||
-                    (await registerTableDeviceAndFetchSession());
+                    (await fetchCurrentSessionFromStoredDevice());
 
                 setOpenedSession(nextOpenedSession);
                 setIsSessionCopied(false);

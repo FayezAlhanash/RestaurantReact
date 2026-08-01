@@ -504,21 +504,21 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
         menuItems.filter((item) => String(item.restaurant_id) === String(restaurantId)).length;
 
     return (
-        <section className="relative mb-3 overflow-hidden rounded-[24px] border border-[#E8D2C7] bg-[#FFF9F1] p-3 text-[#251918] shadow-[0_18px_42px_rgba(127,29,29,0.10)] sm:mb-4 sm:rounded-[28px] sm:p-4 dark:border-white/10 dark:bg-[#151A1D] dark:text-white dark:shadow-[0_18px_45px_rgba(0,0,0,0.20)]">
-            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#7F1D1D] via-[#FFD166] to-[#16A34A]" />
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="relative mb-3 overflow-hidden rounded-[22px] border border-[#E8D2C7] bg-[#FFF9F1]/92 p-3 text-[#251918] shadow-[0_14px_32px_rgba(127,29,29,0.08)] sm:mb-4 sm:p-4 dark:border-white/10 dark:bg-[#151A1D] dark:text-white dark:shadow-[0_18px_45px_rgba(0,0,0,0.20)]">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#7F1D1D] via-[#FFD166] to-[#16A34A]" />
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div className="relative">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9A6400] dark:text-[#FFD166]">
                         Choose restaurant
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-[#241716] dark:text-white sm:text-2xl">
+                    <h2 className="mt-0.5 text-xl font-black text-[#241716] dark:text-white sm:text-2xl">
                         Pick the kitchen you want
                     </h2>
                 </div>
 
             </div>
 
-            <div className="customer-order-scroll relative flex gap-3 overflow-x-auto pb-1">
+            <div className="customer-order-scroll relative flex gap-2.5 overflow-x-auto pb-1">
                 {restaurants.map((restaurant) => {
                     const active = String(activeRestaurant) === String(restaurant.id);
 
@@ -527,7 +527,7 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
                             key={restaurant.id}
                             type="button"
                             onClick={() => onSelect(String(restaurant.id))}
-                            className={`flex min-w-[230px] items-center gap-3 rounded-2xl border p-2.5 text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99] sm:min-w-[270px] ${
+                            className={`flex min-w-[220px] items-center gap-3 rounded-2xl border p-2 text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99] sm:min-w-[250px] ${
                                 active
                                     ? "border-[#D59A19] bg-[linear-gradient(135deg,#FFF9E8_0%,#FFE29A_58%,#FFD166_100%)] text-[#160F0E] shadow-[0_14px_30px_rgba(154,100,0,0.16)] ring-2 ring-[#FFD166]/30 dark:border-[#FFD166]/70 dark:bg-[linear-gradient(135deg,#FFF9E8_0%,#FFE29A_58%,#FFD166_100%)] dark:text-[#160F0E]"
                                     : "border-[#E8CDBE] bg-white text-[#251918] hover:border-[#C48A17]/60 hover:bg-[#FFF8EC] dark:border-white/10 dark:bg-[#101719] dark:text-white dark:hover:border-[#FFD166]/40 dark:hover:bg-white/[0.08]"
@@ -536,7 +536,7 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
                             <img
                                 src={getRestaurantImageUrl(restaurant)}
                                 alt={restaurant.name}
-                                className={`h-14 w-14 shrink-0 rounded-2xl object-cover ring-2 ${
+                                className={`h-12 w-12 shrink-0 rounded-xl object-cover ring-2 sm:h-14 sm:w-14 sm:rounded-2xl ${
                                     active ? "ring-[#FFD166]/60" : "ring-[#FFD166]/20 dark:ring-white/10"
                                 }`}
                             />
@@ -634,7 +634,7 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
 
     if (!featuredItems.length) {
         return (
-            <section className="relative mb-3 h-[320px] w-full overflow-hidden rounded-[24px] border border-white/10 bg-[#101517] px-4 text-white sm:mb-4 sm:h-[380px] sm:rounded-[30px] lg:h-[430px]">
+            <section className="relative mb-3 h-[240px] w-full overflow-hidden rounded-[22px] border border-white/10 bg-[#101517] px-4 text-white sm:mb-4 sm:h-[280px] sm:rounded-[26px] lg:h-[320px]">
                 <div className="mx-auto flex h-full max-w-7xl items-center justify-center text-center">
                     <div>
                         <h2 className="text-2xl font-black">Loading dishes...</h2>
@@ -655,7 +655,7 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="relative mb-3 h-[320px] w-full touch-pan-y overflow-hidden rounded-[24px] border border-white/10 bg-[#101517] text-white shadow-[0_28px_70px_rgba(0,0,0,0.28)] sm:mb-4 sm:h-[380px] sm:rounded-[30px] lg:h-[430px]"
+            className="relative mb-3 h-[240px] w-full touch-pan-y overflow-hidden rounded-[22px] border border-white/10 bg-[#101517] text-white shadow-[0_22px_54px_rgba(0,0,0,0.22)] sm:mb-4 sm:h-[280px] sm:rounded-[26px] lg:h-[320px]"
         >
             <div
                 className={`absolute inset-0 flex cursor-grab select-none ${
@@ -680,12 +680,12 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
                         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,13,14,0.86)_0%,rgba(10,13,14,0.58)_42%,rgba(10,13,14,0.10)_100%)]" />
                         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#101517] to-transparent" />
 
-                        <div className="relative z-10 mx-auto grid h-full max-w-7xl items-end gap-4 px-4 py-7 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,0.95fr)_280px] lg:items-center">
+                        <div className="relative z-10 mx-auto grid h-full max-w-7xl items-end gap-4 px-4 py-6 sm:px-6 sm:py-7 lg:grid-cols-[minmax(0,0.95fr)_240px] lg:items-center">
                             <div className="customer-image-text max-w-2xl pb-8 sm:pb-9 lg:pb-0">
                                 <p className="mb-2 inline-flex max-w-full rounded-full bg-[#FFD166] px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#241707] shadow-[0_12px_24px_rgba(255,209,102,0.18)] sm:mb-3 sm:px-3.5 sm:text-[11px]">
                                     Featured from {item.restaurantName}
                                 </p>
-                                <h1 className="line-clamp-2 text-3xl font-black leading-[1.02] tracking-normal text-white drop-shadow sm:text-5xl lg:text-6xl">
+                                <h1 className="line-clamp-2 text-3xl font-black leading-[1.02] tracking-normal text-white drop-shadow sm:text-4xl lg:text-5xl">
                                     {item.title}
                                 </h1>
                                 <p className="customer-image-text mt-3 line-clamp-2 max-w-xl text-sm font-extrabold leading-6 !text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.95)] sm:text-base sm:leading-7">
@@ -708,7 +708,7 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
                             </div>
 
                             <div className="hidden justify-self-end lg:block">
-                                <div className="w-[260px] rounded-[26px] border border-white/10 bg-black/30 p-3 shadow-[0_30px_70px_rgba(0,0,0,0.28)] backdrop-blur xl:w-[280px]">
+                                <div className="w-[230px] rounded-[24px] border border-white/10 bg-black/30 p-3 shadow-[0_24px_56px_rgba(0,0,0,0.24)] backdrop-blur xl:w-[240px]">
                                     <img
                                         src={item.image}
                                         alt={item.title}
@@ -1019,7 +1019,7 @@ function MobileOrderBar({
                 </div>
             )}
 
-            <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 py-3">
+            <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 py-3 lg:hidden">
                 <div className="pointer-events-auto mx-auto flex max-w-[760px] items-center gap-2.5 rounded-[26px] border border-[#E8D2C7]/80 bg-[#FFF8EF]/92 p-2 shadow-[0_-10px_36px_rgba(127,29,29,0.13)] backdrop-blur-xl dark:border-white/10 dark:bg-[#101517]/92 dark:shadow-[0_-18px_40px_rgba(0,0,0,0.28)] sm:gap-3 sm:p-2.5">
                     <button
                         type="button"
@@ -1803,7 +1803,7 @@ function DineInOrder() {
                 </div>
             </header>
 
-            <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28" : "pb-6 sm:pb-8"}`}>
+            <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}>
                 <div>
                     <FeaturedDishSlider
                         featuredItems={featuredItems}
@@ -1812,31 +1812,32 @@ function DineInOrder() {
                     />
                 </div>
 
-                <div className="min-w-0">
-                    <RestaurantPicker
-                        restaurants={restaurants}
-                        menuItems={menuItems}
-                        activeRestaurant={activeRestaurant}
-                        onSelect={selectRestaurant}
-                    />
+                <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start xl:grid-cols-[minmax(0,1fr)_390px]">
+                    <div className="min-w-0">
+                        <RestaurantPicker
+                            restaurants={restaurants}
+                            menuItems={menuItems}
+                            activeRestaurant={activeRestaurant}
+                            onSelect={selectRestaurant}
+                        />
 
-                    {successMessage && (
-                        <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
-                            <CheckCircle2 size={18} />
-                            {successMessage}
-                        </p>
-                    )}
+                        {successMessage && (
+                            <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
+                                <CheckCircle2 size={18} />
+                                {successMessage}
+                            </p>
+                        )}
 
-                    {errorMessage && (
-                        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-700">
-                            {errorMessage}
-                        </p>
-                    )}
+                        {errorMessage && (
+                            <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-700">
+                                {errorMessage}
+                            </p>
+                        )}
 
-                    <section ref={menuSectionRef} className="scroll-mt-20 min-w-0 rounded-[24px] border border-white/10 bg-white/[0.06] p-2 shadow-[0_28px_70px_rgba(0,0,0,0.24)] backdrop-blur sm:scroll-mt-24 sm:rounded-[30px] sm:p-4">
-                        {activeRestaurantData ? (
-                            <>
-                                <div className="mb-3 flex flex-col gap-3 rounded-[20px] border border-white/10 bg-[#12181B] p-2.5 text-white sm:mb-4 sm:rounded-[24px] sm:p-3 md:flex-row md:items-center md:justify-between">
+                        <section ref={menuSectionRef} className="scroll-mt-20 min-w-0 rounded-[22px] border border-white/10 bg-white/[0.06] p-3 shadow-[0_22px_54px_rgba(0,0,0,0.18)] backdrop-blur sm:scroll-mt-24 sm:p-4">
+                            {activeRestaurantData ? (
+                                <>
+                                    <div className="mb-3 flex flex-col gap-3 rounded-[20px] border border-white/10 bg-[#12181B] p-2.5 text-white sm:mb-4 sm:p-3 md:flex-row md:items-center md:justify-between">
                                     <div className="flex min-w-0 items-center gap-3">
                                         <img
                                             src={getRestaurantImageUrl(activeRestaurantData)}
@@ -1871,37 +1872,59 @@ function DineInOrder() {
                                     variant="dark"
                                 />
 
-                                {visibleItems.length ? (
-                                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-                                        {visibleItems.map((item) => (
-                                            <CustomerFoodCard
-                                                key={item.id}
-                                                item={item}
-                                                onOpen={() => setSelectedItem(item)}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.04] px-6 py-14 text-center text-white">
-                                        <h3 className="text-lg font-black">No items found</h3>
-                                        <p className="mt-1 text-sm font-semibold text-white/55">
-                                            Try another search or category.
-                                        </p>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(127,29,29,0.24),transparent_34%),linear-gradient(135deg,#161D20,#202629)] px-6 py-14 text-center text-white">
-                                <ShoppingBag className="mx-auto text-[#FFD166]" size={34} />
-                                <h2 className="mt-3 text-xl font-black">
-                                    Choose a restaurant to see its dishes
-                                </h2>
-                                <p className="mt-2 text-sm font-medium text-white/60">
-                                    The dish modal will open only when you tap a food item.
-                                </p>
-                            </div>
-                        )}
-                    </section>
+                                    {visibleItems.length ? (
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 2xl:grid-cols-3">
+                                            {visibleItems.map((item) => (
+                                                <CustomerFoodCard
+                                                    key={item.id}
+                                                    item={item}
+                                                    onOpen={() => setSelectedItem(item)}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.04] px-6 py-14 text-center text-white">
+                                            <h3 className="text-lg font-black">No items found</h3>
+                                            <p className="mt-1 text-sm font-semibold text-white/55">
+                                                Try another search or category.
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(127,29,29,0.24),transparent_34%),linear-gradient(135deg,#161D20,#202629)] px-6 py-14 text-center text-white">
+                                    <ShoppingBag className="mx-auto text-[#FFD166]" size={34} />
+                                    <h2 className="mt-3 text-xl font-black">
+                                        Choose a restaurant to see its dishes
+                                    </h2>
+                                    <p className="mt-2 text-sm font-medium text-white/60">
+                                        The dish modal will open only when you tap a food item.
+                                    </p>
+                                </div>
+                            )}
+                        </section>
+                    </div>
+
+                    <aside className="sticky top-24 hidden lg:block">
+                        <OrderPanel
+                            cartItems={cartItems}
+                            itemCount={itemCount}
+                            subtotal={subtotal}
+                            onChangeQuantity={changeQuantity}
+                            onRemoveItem={(indexToRemove) =>
+                                setCartItems((items) =>
+                                    items.filter((_, currentIndex) => currentIndex !== indexToRemove)
+                                )
+                            }
+                            onSubmit={openConfirmOrder}
+                            isSubmitting={isSubmitting}
+                            paymentMethod={paymentMethod}
+                            onPaymentMethodChange={setPaymentMethod}
+                            isStripeReady={isStripeReady}
+                            stripeCardMessage={stripeCardMessage}
+                            stripeCardContainerRef={stripeCardContainerRef}
+                        />
+                    </aside>
                 </div>
 
             </main>

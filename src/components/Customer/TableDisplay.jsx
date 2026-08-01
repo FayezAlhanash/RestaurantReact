@@ -10,8 +10,11 @@ import {
     WifiOff,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getStoredTableDeviceKey } from "../../utils/tableDeviceKeys";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+    getStoredTableDeviceKey,
+    removeStoredTableDeviceKey,
+} from "../../utils/tableDeviceKeys";
 
 const tableDeviceApi = axios.create({
     baseURL: "https://big4.me/api",
@@ -43,6 +46,19 @@ const buildSessionUrl = (qrPath, sessionToken) => {
     if (nextPath.startsWith("http://") || nextPath.startsWith("https://")) return nextPath;
 
     return `${window.location.origin}${nextPath.startsWith("/") ? nextPath : `/${nextPath}`}`;
+};
+
+const shouldResetInvalidDevice = (error) => {
+    const status = error.response?.status;
+    const message = String(error.response?.data?.message || "").toLowerCase();
+
+    return (
+        [400, 401, 403, 404, 422].includes(status) ||
+        message.includes("required") ||
+        message.includes("invalid") ||
+        message.includes("not found") ||
+        message.includes("device key")
+    );
 };
 
 const getActiveSession = (data, tableId) => {
@@ -88,6 +104,7 @@ const getActiveSession = (data, tableId) => {
 
 export default function TableDisplay() {
     const { tableId = "" } = useParams();
+    const navigate = useNavigate();
     const [deviceKey, setDeviceKey] = useState("");
     const [session, setSession] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +129,7 @@ export default function TableDisplay() {
             const response = await tableDeviceApi.get("/table-device/current-session", {
                 headers: {
                     Accept: "application/json",
+                    Authorization: `Bearer ${nextDeviceKey}`,
                     "X-Table-Device-Key": nextDeviceKey,
                 },
             });
@@ -121,6 +139,18 @@ export default function TableDisplay() {
             setMessage(nextSession.status === "active" ? "" : nextSession.message);
         } catch (error) {
             setSession(null);
+
+            if (shouldResetInvalidDevice(error)) {
+                try {
+                    removeStoredTableDeviceKey(tableId);
+                } catch {
+                    // Redirecting to setup is still useful if local storage cleanup fails.
+                }
+                setDeviceKey("");
+                navigate(`/table-setup?table_id=${encodeURIComponent(tableId)}`, { replace: true });
+                return;
+            }
+
             setMessage(
                 error.response?.data?.message ||
                     "Could not check the table device session."
@@ -128,7 +158,7 @@ export default function TableDisplay() {
         } finally {
             setIsLoading(false);
         }
-    }, [tableId]);
+    }, [navigate, tableId]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(refreshSession, 0);
@@ -153,21 +183,11 @@ export default function TableDisplay() {
     };
 
     const isActive = session?.status === "active";
-    const isDisplayError =
-        !isLoading &&
-        !isActive &&
-        (!deviceKey || !session || session.status === "missing-token");
-    const errorRedirectUrl = `https://table-display-unavailable.invalid/table/${encodeURIComponent(tableId)}`;
-
     useEffect(() => {
-        if (!isDisplayError) return;
+        if (isLoading || deviceKey) return;
 
-        window.location.replace(errorRedirectUrl);
-    }, [errorRedirectUrl, isDisplayError]);
-
-    if (isDisplayError) {
-        return null;
-    }
+        navigate("/", { replace: true });
+    }, [deviceKey, isLoading, navigate, tableId]);
 
     return (
         <main className="min-h-dvh bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.22),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.15),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)] px-4 py-6 text-white sm:px-6">

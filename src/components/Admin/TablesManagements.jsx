@@ -9,6 +9,7 @@ import {
     Loader2,
     Pencil,
     Plus,
+    QrCode,
     RotateCw,
     Search,
     Smartphone,
@@ -21,11 +22,7 @@ import {
 import AddTableModal from "./AddTableModal";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
-import {
-    getStoredTableDeviceKey,
-    removeStoredTableDeviceKey,
-    saveStoredTableDeviceKey,
-} from "../../utils/tableDeviceKeys";
+import { removeStoredTableDeviceKey } from "../../utils/tableDeviceKeys";
 
 const normalizeActiveValue = (value) =>
     value === true ||
@@ -50,28 +47,6 @@ const getDeviceKeyFromResponse = (data) =>
     data?.table_device?.device_key ??
     data?.data?.table_device?.device_key ??
     "";
-
-const getStoredTableDevice = (tableId) => {
-    try {
-        const storedDevice = JSON.parse(localStorage.getItem(`table-device:${tableId}`) || "null");
-        const storedDeviceKey = getStoredTableDeviceKey(tableId);
-
-        return storedDevice || (storedDeviceKey ? { device_key: storedDeviceKey } : null);
-    } catch {
-        const storedDeviceKey = getStoredTableDeviceKey(tableId);
-
-        return storedDeviceKey ? { device_key: storedDeviceKey } : null;
-    }
-};
-
-const storeTableDevice = (tableId, value) => {
-    try {
-        localStorage.setItem(`table-device:${tableId}`, JSON.stringify(value));
-        saveStoredTableDeviceKey(tableId, value?.device_key ?? value?.device?.device_key ?? "");
-    } catch {
-        // Local storage can be disabled; the freshly returned key still stays visible.
-    }
-};
 
 function StatCard({ icon: Icon, label, value, helper, tone, isLight }) {
     const tones = isLight ? {
@@ -111,23 +86,21 @@ function TableDeviceModal({ isOpen, table, onClose }) {
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [isCopied, setIsCopied] = useState(false);
+    const [isSetupCopied, setIsSetupCopied] = useState(false);
 
     useEffect(() => {
         /* eslint-disable react-hooks/set-state-in-effect */
         if (!isOpen || !table) return;
 
-        const storedDevice = getStoredTableDevice(table.id);
         const initialDevice =
             table.device ??
             table.table_device ??
             table.display_device ??
             table.active_device ??
-            storedDevice?.device ??
             null;
         const initialDeviceKey =
             table.device_key ??
             initialDevice?.device_key ??
-            storedDevice?.device_key ??
             "";
 
         setIsVisible(false);
@@ -137,7 +110,6 @@ function TableDeviceModal({ isOpen, table, onClose }) {
 
         setDeviceName(
             initialDevice?.device_name ||
-                storedDevice?.device?.device_name ||
                 `Table ${table.table_number} Screen`
         );
         setDeviceKey(initialDeviceKey);
@@ -145,6 +117,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
         setError("");
         setMessage("");
         setIsCopied(false);
+        setIsSetupCopied(false);
 
         return () => window.cancelAnimationFrame(frameId);
         /* eslint-enable react-hooks/set-state-in-effect */
@@ -185,13 +158,15 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setDeviceDetails(nextDevice);
             setDeviceKey(nextDeviceKey);
             setIsCopied(false);
+            setIsSetupCopied(false);
 
-            storeTableDevice(table.id, {
-                device: nextDevice,
-                device_key: nextDeviceKey,
-                saved_at: new Date().toISOString(),
-            });
-            setMessage(response.data?.message || "Table device registered successfully.");
+            try {
+                localStorage.removeItem(`table-device:${table.id}`);
+                removeStoredTableDeviceKey(table.id);
+            } catch {
+                // The admin browser does not need to keep the table device key.
+            }
+            setMessage(response.data?.message || "Device key generated. Pair it on the table tablet.");
         } catch (error) {
             setError(
                 error.response?.data?.message ||
@@ -216,8 +191,13 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setDeviceDetails(null);
             setDeviceKey("");
             setIsCopied(false);
-            localStorage.removeItem(`table-device:${table.id}`);
-            removeStoredTableDeviceKey(table.id);
+            setIsSetupCopied(false);
+            try {
+                localStorage.removeItem(`table-device:${table.id}`);
+                removeStoredTableDeviceKey(table.id);
+            } catch {
+                // Local cleanup is best-effort after the backend revoke succeeds.
+            }
             setMessage(response.data?.message || "Table device revoked successfully.");
         } catch (error) {
             setError(error.response?.data?.message || "Table device could not be revoked.");
@@ -236,6 +216,32 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             window.setTimeout(() => setIsCopied(false), 1600);
         } catch {
             setError("Device key is ready, but the browser blocked copying.");
+        }
+    };
+
+    const setupUrl = useMemo(() => {
+        if (!table || !deviceKey) return "";
+
+        const url = new URL("/table-setup", window.location.origin);
+        url.searchParams.set("table_id", table.id);
+        url.searchParams.set("device_key", deviceKey);
+
+        return url.toString();
+    }, [deviceKey, table]);
+
+    const setupQrImageUrl = setupUrl
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=14&data=${encodeURIComponent(setupUrl)}`
+        : "";
+
+    const copySetupUrl = async () => {
+        if (!setupUrl) return;
+
+        try {
+            await navigator.clipboard.writeText(setupUrl);
+            setIsSetupCopied(true);
+            window.setTimeout(() => setIsSetupCopied(false), 1600);
+        } catch {
+            setError("Setup link is ready, but the browser blocked copying.");
         }
     };
 
@@ -350,6 +356,40 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                             )}
                         </div>
 
+                        {deviceKey && (
+                            <div className="mt-5 rounded-2xl border border-[#FFD166]/25 bg-[#0D1214] p-4">
+                                <div className="flex items-center gap-2 text-sm font-black text-white/65">
+                                    <QrCode size={17} className="text-[#FFD166]" />
+                                    Setup QR
+                                </div>
+                                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+                                    <img
+                                        src={setupQrImageUrl}
+                                        alt={`Setup QR for table ${table.table_number}`}
+                                        className="h-36 w-36 rounded-2xl border border-white/10 bg-white p-2"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-semibold leading-6 text-white/55">
+                                            Scan this on the table tablet, or open the setup link there.
+                                        </p>
+                                        <p className="mt-3 break-all rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-xs font-bold leading-5 text-white/62">
+                                            {setupUrl}
+                                        </p>
+                                        <div className="mt-3 flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={copySetupUrl}
+                                                className="grid h-11 w-11 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
+                                                title="Copy setup link"
+                                            >
+                                                {isSetupCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="mt-7 flex flex-col-reverse gap-3 border-t border-white/[0.08] pt-5 sm:flex-row sm:justify-end">
                             <button
                                 type="button"
@@ -426,7 +466,11 @@ function TablesManagements() {
     const deleteTable = async (id) => {
         try {
             await api.delete(`/tables/${id}`);
-            removeStoredTableDeviceKey(id);
+            try {
+                removeStoredTableDeviceKey(id);
+            } catch {
+                // Local cleanup is best-effort after deleting a table.
+            }
             getTables();
         } catch (error) {
             console.log(error);

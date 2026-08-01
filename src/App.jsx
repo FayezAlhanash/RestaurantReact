@@ -33,6 +33,7 @@ import ManagerLayout from "./components/Manager/ManagerLayout";
 import ManagerDashboard from "./components/Manager/ManagerDashboard";
 import DineInOrder from "./components/Customer/DineInOrder";
 import TableDisplay from "./components/Customer/TableDisplay";
+import TableDeviceSetup from "./components/Customer/TableDeviceSetup";
 import WaiterDashboard from "./components/Waiter/WaiterDashboard";
 import WaiterLayout from "./components/Waiter/WaiterLayout";
 import WaiterHomeRedirect from "./components/Waiter/WaiterHomeRedirect";
@@ -77,6 +78,7 @@ function SessionWatcher() {
       window.location.pathname === "/" ||
       window.location.pathname === "/help" ||
       window.location.pathname === "/info" ||
+      window.location.pathname === "/table-setup" ||
       window.location.pathname.startsWith("/table/") ||
       window.location.pathname.startsWith("/table-display/") ||
       window.location.pathname.startsWith("/tables/") ||
@@ -126,6 +128,7 @@ function App() {
         <Route path="/info" element={<RolesLanding />} />
 
         {/* Table display and customer QR ordering */}
+        <Route path="/table-setup" element={<TableDeviceSetup />} />
         <Route path="/table/:tableId" element={<TableDisplay />} />
         <Route path="/tables/:tableId" element={<DineInOrder />} />
         <Route path="/dine-in/:tableId" element={<DineInOrder />} />
