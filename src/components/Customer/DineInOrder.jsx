@@ -648,58 +648,82 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
         menuItems.filter((item) => String(item.restaurant_id) === String(restaurantId)).length;
 
     return (
-        <section className="relative mb-3 overflow-hidden rounded-[22px] border border-[#E8D2C7] bg-[#FFF9F1]/92 p-3 text-[#251918] shadow-[0_14px_32px_rgba(127,29,29,0.08)] sm:mb-4 sm:p-4 dark:border-white/10 dark:bg-[#151A1D] dark:text-white dark:shadow-[0_18px_45px_rgba(0,0,0,0.20)]">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#7F1D1D] via-[#FFD166] to-[#16A34A]" />
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div className="relative">
+        <section className="relative mb-3 overflow-hidden rounded-[22px] border border-[#F0D5B4] bg-[#FFF8EF] p-3 text-[#251918] shadow-[0_18px_42px_rgba(94,38,18,0.12)] sm:mb-5 sm:rounded-[26px] sm:p-4 dark:border-white/10 dark:bg-[#14191C] dark:text-white dark:shadow-[0_22px_52px_rgba(0,0,0,0.26)]">
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#7F1D1D] via-[#FFD166] to-[#0F8A53]" />
+            <div className="relative mb-3 flex items-start justify-between gap-3 sm:mb-4">
+                <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9A6400] dark:text-[#FFD166]">
-                        Choose restaurant
+                        Restaurants
                     </p>
-                    <h2 className="mt-0.5 text-xl font-black text-[#241716] dark:text-white sm:text-2xl">
-                        Pick the kitchen you want
+                    <h2 className="mt-1 text-2xl font-black leading-8 text-[#241716] dark:text-white sm:text-3xl">
+                        Choose your kitchen
                     </h2>
+                    <p className="mt-1 text-sm font-bold leading-5 text-[#7A6258] dark:text-white/58">
+                        Select a restaurant first, then browse its menu.
+                    </p>
                 </div>
-
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.22)] dark:bg-[#FFD166] dark:text-[#211513]">
+                    <Utensils size={20} />
+                </span>
             </div>
 
-            <div className="customer-order-scroll relative flex gap-2.5 overflow-x-auto pb-1">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {restaurants.map((restaurant) => {
                     const active = String(activeRestaurant) === String(restaurant.id);
+                    const itemCount = getItemCount(restaurant.id);
 
                     return (
                         <button
                             key={restaurant.id}
                             type="button"
                             onClick={() => onSelect(String(restaurant.id))}
-                            className={`flex min-w-[220px] items-center gap-3 rounded-2xl border p-2 text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99] sm:min-w-[250px] ${
+                            className={`group overflow-hidden rounded-[20px] border text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99] ${
                                 active
-                                    ? "border-[#D59A19] bg-[linear-gradient(135deg,#FFF9E8_0%,#FFE29A_58%,#FFD166_100%)] text-[#160F0E] shadow-[0_14px_30px_rgba(154,100,0,0.16)] ring-2 ring-[#FFD166]/30 dark:border-[#FFD166]/70 dark:bg-[linear-gradient(135deg,#FFF9E8_0%,#FFE29A_58%,#FFD166_100%)] dark:text-[#160F0E]"
+                                    ? "border-[#D59A19] bg-[#FFF3CD] text-[#160F0E] shadow-[0_18px_34px_rgba(154,100,0,0.18)] ring-2 ring-[#FFD166]/35 dark:border-[#FFD166]/70 dark:bg-[#2A2318] dark:text-white"
                                     : "border-[#E8CDBE] bg-white text-[#251918] hover:border-[#C48A17]/60 hover:bg-[#FFF8EC] dark:border-white/10 dark:bg-[#101719] dark:text-white dark:hover:border-[#FFD166]/40 dark:hover:bg-white/[0.08]"
                             }`}
                         >
-                            <img
-                                src={getRestaurantImageUrl(restaurant)}
-                                alt={restaurant.name}
-                                className={`h-12 w-12 shrink-0 rounded-xl object-cover ring-2 sm:h-14 sm:w-14 sm:rounded-2xl ${
-                                    active ? "ring-[#FFD166]/60" : "ring-[#FFD166]/20 dark:ring-white/10"
-                                }`}
-                            />
-                            <span className="min-w-0 flex-1">
-                                <span className="block truncate text-sm font-black">
-                                    {restaurant.name}
-                                </span>
-                                <span className={`mt-1 block text-xs font-black ${active ? "text-[#7F1D1D] dark:text-[#7F1D1D]" : "text-[#7A6258] dark:text-white/55"}`}>
-                                    {getItemCount(restaurant.id)} dishes
+                            <span className="relative block h-24 overflow-hidden bg-[#151A1D] sm:h-28">
+                                <img
+                                    src={getRestaurantImageUrl(restaurant)}
+                                    alt=""
+                                    className="h-full w-full object-cover opacity-88 transition duration-700 group-hover:scale-105"
+                                />
+                                <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,21,23,0.08)_0%,rgba(16,21,23,0.78)_100%)]" />
+                                {active && (
+                                    <span className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFD166] text-[#251918] shadow-[0_12px_24px_rgba(0,0,0,0.22)]">
+                                        <CheckCircle2 size={18} />
+                                    </span>
+                                )}
+                                <span className="absolute bottom-3 left-3 rounded-full border border-white/18 bg-black/45 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#FFD166] backdrop-blur">
+                                    {itemCount} dishes
                                 </span>
                             </span>
-                            <span
-                                className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
-                                    active
-                                        ? "bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.22)] dark:bg-[#FFD166] dark:text-[#251918]"
-                                        : "bg-[#FFF1CF] text-[#9A6400] dark:bg-white/10 dark:text-[#FFD166]"
-                                }`}
-                            >
-                                {active ? <CheckCircle2 size={18} /> : <ChevronRight size={17} />}
+                            <span className="flex min-h-[84px] items-center gap-3 p-3">
+                                <img
+                                    src={getRestaurantImageUrl(restaurant)}
+                                    alt={restaurant.name}
+                                    className={`h-14 w-14 shrink-0 rounded-2xl bg-white object-cover ring-2 ${
+                                        active ? "ring-[#FFD166]" : "ring-[#F4D7BA] dark:ring-white/10"
+                                    }`}
+                                />
+                                <span className="min-w-0 flex-1">
+                                    <span className="line-clamp-2 text-lg font-black leading-6">
+                                        {restaurant.name}
+                                    </span>
+                                    <span className={`mt-1 block text-xs font-black uppercase tracking-wide ${active ? "text-[#7F1D1D] dark:text-[#FFD166]" : "text-[#7A6258] dark:text-white/55"}`}>
+                                        {active ? "Selected menu" : "Tap to view menu"}
+                                    </span>
+                                </span>
+                                <span
+                                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                                        active
+                                            ? "bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.22)] dark:bg-[#FFD166] dark:text-[#251918]"
+                                            : "bg-[#FFF1CF] text-[#9A6400] dark:bg-white/10 dark:text-[#FFD166]"
+                                    }`}
+                                >
+                                    {active ? <CheckCircle2 size={19} /> : <ChevronRight size={18} />}
+                                </span>
                             </span>
                         </button>
                     );
@@ -1980,7 +2004,7 @@ function DineInOrder() {
                             <p className="truncate text-sm font-black text-white">
                                 Big-4 Menu
                             </p>
-                            <p className="text-xs font-bold text-white/60">
+                            <p className="max-w-[56vw] truncate text-xs font-bold text-white/60 sm:max-w-[320px]">
                                 Table {tableNumber}
                             </p>
                         </div>
@@ -2015,23 +2039,21 @@ function DineInOrder() {
             </header>
 
             <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}>
-                <div>
-                    <FeaturedDishSlider
-                        featuredItems={featuredItems}
-                        tableNumber={tableNumber}
-                        onGoToMenu={goToDishRestaurantMenu}
-                    />
-                </div>
+                <RestaurantPicker
+                    restaurants={restaurants}
+                    menuItems={menuItems}
+                    activeRestaurant={activeRestaurant}
+                    onSelect={selectRestaurant}
+                />
+
+                <FeaturedDishSlider
+                    featuredItems={featuredItems}
+                    tableNumber={tableNumber}
+                    onGoToMenu={goToDishRestaurantMenu}
+                />
 
                 <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start xl:grid-cols-[minmax(0,1fr)_390px]">
                     <div className="min-w-0">
-                        <RestaurantPicker
-                            restaurants={restaurants}
-                            menuItems={menuItems}
-                            activeRestaurant={activeRestaurant}
-                            onSelect={selectRestaurant}
-                        />
-
                         {successMessage && (
                             <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
                                 <CheckCircle2 size={18} />
