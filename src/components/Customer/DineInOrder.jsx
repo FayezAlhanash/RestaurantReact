@@ -1550,7 +1550,13 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
     );
 }
 
-function SessionUnavailableScreen({ title = "Session ended", message }) {
+function SessionUnavailableScreen({ title = "Menu unavailable", message }) {
+    const messageText = String(message || "");
+    const friendlyMessage =
+        messageText.toLowerCase().includes("session")
+            ? "This table menu is not available right now. Please ask the waiter for help."
+            : messageText || "This table menu is not available right now.";
+
     return (
         <main className="grid min-h-dvh place-items-center bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.22),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.15),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)] px-4 py-6 text-white">
             <article className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#20272A] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.30)]">
@@ -1559,7 +1565,7 @@ function SessionUnavailableScreen({ title = "Session ended", message }) {
                 </div>
                 <h1 className="mt-5 text-3xl font-black text-white">{title}</h1>
                 <p className="mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 text-white/55">
-                    {message || "This table session is no longer active."}
+                    {friendlyMessage}
                 </p>
             </article>
         </main>
@@ -1882,7 +1888,7 @@ function DineInOrder() {
 
         try {
             if (!sessionToken) {
-                throw new Error("Open this page from a valid active table session before placing an order.");
+                throw new Error("Please scan the table QR again or ask the waiter for help.");
             }
 
             if (paymentMethod === "stripe" && !isStripeReady) {
@@ -1982,7 +1988,7 @@ function DineInOrder() {
         if (!cartItems.length) return;
         if (!sessionToken) {
             setSuccessMessage("");
-            setErrorMessage("Open this page from a valid active table session before placing an order.");
+            setErrorMessage("Please scan the table QR again or ask the waiter for help.");
             return;
         }
 
@@ -1994,8 +2000,8 @@ function DineInOrder() {
     if (isLoading) {
         return (
             <SessionUnavailableScreen
-                title="Checking session"
-                message="Please wait a moment."
+                title="Welcome"
+                message="Preparing your table menu..."
             />
         );
     }

@@ -2,7 +2,6 @@ import {
     Check,
     Clock3,
     Flame,
-    Heart,
     Leaf,
     MessageSquare,
     Minus,
@@ -373,7 +372,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 ? "bg-[radial-gradient(circle_at_18%_12%,rgba(255,209,102,0.16),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(127,29,29,0.34),transparent_26%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)]"
                                 : "bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.58),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(127,29,29,0.16),transparent_25%),linear-gradient(145deg,#FFF4DA_0%,#F3E5D9_56%,#E4CFC3_100%)]"
                         }`} />
-                        <div className="relative z-10 flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
+                        <div className="relative z-10 flex items-center px-4 pt-4 sm:px-5 sm:pt-5">
                             <button
                                 type="button"
                                 onClick={closeModal}
@@ -385,17 +384,6 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 }`}
                             >
                                 <X size={19} />
-                            </button>
-                            <button
-                                type="button"
-                                aria-label="Favorite"
-                                className={`grid h-10 w-10 place-items-center rounded-full shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition active:scale-95 ${
-                                    isDineInDark
-                                        ? "border border-white/10 bg-white/10 text-[#FFD166] hover:bg-[#7F1D1D] hover:text-white"
-                                        : "bg-white/88 text-[#7F1D1D] hover:bg-white"
-                                }`}
-                            >
-                                <Heart size={19} />
                             </button>
                         </div>
 
@@ -631,6 +619,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                     const maxSelect = getGroupMaxSelect(group);
 
                                                                     if (maxSelect <= 1) {
+                                                                        if (isSelected && !isGroupRequired(group)) {
+                                                                            const nextModifiers = { ...current };
+                                                                            delete nextModifiers[groupId];
+                                                                            return nextModifiers;
+                                                                        }
+
                                                                         return {
                                                                             ...current,
                                                                             [groupId]: optionId,
@@ -935,6 +929,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             const maxSelect = getGroupMaxSelect(group);
 
                                                             if (maxSelect <= 1) {
+                                                                if (isSelected && !isGroupRequired(group)) {
+                                                                    const nextModifiers = { ...current };
+                                                                    delete nextModifiers[groupId];
+                                                                    return nextModifiers;
+                                                                }
+
                                                                 return {
                                                                     ...current,
                                                                     [groupId]: optionId,
