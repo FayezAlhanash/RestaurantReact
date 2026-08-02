@@ -2219,7 +2219,7 @@ function DineInOrder() {
                     item={selectedItem}
                     onClose={() => setSelectedItem(null)}
                     addToCart={addToCart}
-                    variant="dineIn"
+                    variant={isLight ? "dineIn" : "dineInDark"}
                 />
             )}
 

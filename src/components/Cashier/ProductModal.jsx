@@ -12,7 +12,7 @@ import {
     Utensils,
     X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
 
@@ -21,6 +21,10 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [selectedModifiers, setSelectedModifiers] = useState({});
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState("");
+    const [isClosing, setIsClosing] = useState(false);
+    const [isAdded, setIsAdded] = useState(false);
+    const closeTimerRef = useRef(null);
+    const addTimerRef = useRef(null);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -30,18 +34,35 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         setNotes("");
     }, [item]);
 
+    useEffect(
+        () => () => {
+            window.clearTimeout(closeTimerRef.current);
+            window.clearTimeout(addTimerRef.current);
+        },
+        []
+    );
+
     const closeModal = () => {
-        setQuantity(1);
-        setSelectedSize("small");
-        setSelectedModifiers({});
-        setNotes("");
-        onClose();
+        if (closeTimerRef.current) return;
+
+        setIsClosing(true);
+        closeTimerRef.current = window.setTimeout(() => {
+            setQuantity(1);
+            setSelectedSize("small");
+            setSelectedModifiers({});
+            setNotes("");
+            setIsAdded(false);
+            setIsClosing(false);
+            closeTimerRef.current = null;
+            onClose();
+        }, 220);
     };
 
     if (!isOpen) return null;
 
     const isDark = variant === "dark";
-    const isDineIn = variant === "dineIn";
+    const isDineIn = variant === "dineIn" || variant === "dineInDark";
+    const isDineInDark = variant === "dineInDark";
 
     const getOptionId = (option) => option?.id ?? option?.modifier_option_id ?? option?.modifierOptionId ?? option?.option_id ?? option?.optionId;
     const getModifierGroupId = (group) => group?.id ?? group?.modifier_group_id ?? group?.modifierGroupId ?? group?.group_id ?? group?.groupId;
@@ -292,7 +313,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         .filter(Boolean)
         .join(" · ");
     const addCurrentItemToCart = () => {
-        if (!allRequiredModifiersSelected) return;
+        if (!allRequiredModifiersSelected || isAdded || isClosing) return;
 
         addToCart({
             ...item,
@@ -303,7 +324,8 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             selectedModifiers,
             selectedModifierOptions,
         });
-        closeModal();
+        setIsAdded(true);
+        addTimerRef.current = window.setTimeout(closeModal, 420);
     };
     const getIngredientName = (ingredient) =>
         ingredient?.name ??
@@ -335,40 +357,70 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
     if (isDineIn) {
         return (
-            <div className="product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center bg-[#071315]/72 p-3 backdrop-blur-md sm:p-6">
-                <div className="product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] overflow-hidden rounded-[30px] border border-white/12 bg-[#F7FAF3] text-[#17201F] shadow-[0_34px_90px_rgba(0,0,0,0.48)]">
-                    <div className="relative min-h-0 overflow-hidden bg-[#D9E88F]">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.42),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(33,99,82,0.18),transparent_25%),linear-gradient(145deg,#D9E88F_0%,#C9E071_54%,#A7C957_100%)]" />
+            <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${
+                isDineInDark ? "bg-black/72" : "bg-[#211715]/55"
+            } ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
+                <div className={`product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] overflow-hidden rounded-[30px] border shadow-[0_34px_90px_rgba(0,0,0,0.48)] ${
+                    isDineInDark
+                        ? "border-white/10 bg-[#12181B] text-white"
+                        : "border-[#E4CFC3] bg-[#FFF9F2] text-[#241815]"
+                } ${isClosing ? "dine-in-product-panel-exit" : "dine-in-product-panel-enter"}`}>
+                    <div className={`relative min-h-0 overflow-hidden ${
+                        isDineInDark ? "bg-[#101517]" : "bg-[#F3E5D9]"
+                    }`}>
+                        <div className={`absolute inset-0 ${
+                            isDineInDark
+                                ? "bg-[radial-gradient(circle_at_18%_12%,rgba(255,209,102,0.16),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(127,29,29,0.34),transparent_26%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)]"
+                                : "bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.58),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(127,29,29,0.16),transparent_25%),linear-gradient(145deg,#FFF4DA_0%,#F3E5D9_56%,#E4CFC3_100%)]"
+                        }`} />
                         <div className="relative z-10 flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
                             <button
                                 type="button"
                                 onClick={closeModal}
                                 aria-label="Close product"
-                                className="grid h-10 w-10 place-items-center rounded-full bg-white/88 text-[#1D2A25] shadow-[0_10px_24px_rgba(33,77,57,0.16)] transition hover:bg-white active:scale-95"
+                                className={`grid h-10 w-10 place-items-center rounded-full shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition active:scale-95 ${
+                                    isDineInDark
+                                        ? "border border-white/10 bg-white/10 text-white hover:bg-[#7F1D1D]"
+                                        : "bg-white/88 text-[#241815] hover:bg-white"
+                                }`}
                             >
                                 <X size={19} />
                             </button>
                             <button
                                 type="button"
                                 aria-label="Favorite"
-                                className="grid h-10 w-10 place-items-center rounded-full bg-white/88 text-[#1D2A25] shadow-[0_10px_24px_rgba(33,77,57,0.16)] transition hover:bg-white active:scale-95"
+                                className={`grid h-10 w-10 place-items-center rounded-full shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition active:scale-95 ${
+                                    isDineInDark
+                                        ? "border border-white/10 bg-white/10 text-[#FFD166] hover:bg-[#7F1D1D] hover:text-white"
+                                        : "bg-white/88 text-[#7F1D1D] hover:bg-white"
+                                }`}
                             >
                                 <Heart size={19} />
                             </button>
                         </div>
 
                         <div className="relative z-10 px-5 pb-16 pt-4 text-center sm:px-7 sm:pb-20">
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#476A45]">
+                            <p className={`text-xs font-black uppercase tracking-[0.18em] ${
+                                isDineInDark ? "text-[#FFD166]" : "text-[#9A6400]"
+                            }`}>
                                 {item?.restaurantName || "Big-4 Menu"}
                             </p>
-                            <h2 className="mx-auto mt-2 max-w-[360px] text-3xl font-black leading-[1.08] text-[#17201F] sm:text-[34px]">
+                            <h2 className={`mx-auto mt-2 max-w-[360px] text-3xl font-black leading-[1.08] sm:text-[34px] ${
+                                isDineInDark ? "text-white" : "text-[#241815]"
+                            }`}>
                                 {item?.title}
                             </h2>
                         </div>
                     </div>
 
-                    <div className="relative flex min-h-0 flex-1 flex-col bg-[#F7FAF3]">
-                        <div className="pointer-events-none absolute left-1/2 top-0 z-20 h-36 w-36 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[7px] border-[#F7FAF3] bg-[#17201F] shadow-[0_22px_42px_rgba(33,77,57,0.28)] sm:h-40 sm:w-40">
+                    <div className={`relative flex min-h-0 flex-1 flex-col ${
+                        isDineInDark ? "bg-[#12181B]" : "bg-[#FFF9F2]"
+                    }`}>
+                        <div className={`pointer-events-none absolute left-1/2 top-0 z-20 h-36 w-36 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[7px] shadow-[0_22px_42px_rgba(127,29,29,0.24)] sm:h-40 sm:w-40 ${
+                            isDineInDark
+                                ? "border-[#12181B] bg-[#0D1113]"
+                                : "border-[#FFF9F2] bg-[#241815]"
+                        }`}>
                             <img
                                 src={imageUrl}
                                 alt={item?.title}
@@ -378,45 +430,81 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
                         <div className="product-modal-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-20 sm:px-5 sm:pt-24">
                             <div className="mb-4 flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-black text-[#1E332C] shadow-[0_8px_22px_rgba(33,77,57,0.08)]">
+                                <div className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black shadow-[0_8px_22px_rgba(127,29,29,0.08)] ${
+                                    isDineInDark
+                                        ? "border border-white/10 bg-white/10 text-white"
+                                        : "bg-white text-[#241815]"
+                                }`}>
                                     <Star size={15} className="fill-[#F0B429] text-[#F0B429]" />
                                     4.8
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xs font-bold uppercase text-[#6B7C73]">
+                                    <p className={`text-xs font-bold uppercase ${
+                                        isDineInDark ? "text-white/55" : "text-[#7A6258]"
+                                    }`}>
                                         Total
                                     </p>
-                                    <p className="text-2xl font-black text-[#1E332C]">
+                                    <p className={`text-2xl font-black ${
+                                        isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"
+                                    }`}>
                                         ${(unitPrice * quantity).toFixed(2)}
                                     </p>
                                 </div>
                             </div>
 
                             {item?.description && (
-                                <p className="rounded-[20px] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#627169] shadow-[0_10px_24px_rgba(33,77,57,0.07)]">
+                                <p className={`rounded-[20px] px-4 py-3 text-sm font-semibold leading-6 shadow-[0_10px_24px_rgba(127,29,29,0.07)] ${
+                                    isDineInDark
+                                        ? "border border-white/10 bg-white/[0.07] text-white/66"
+                                        : "bg-white text-[#6F5C54]"
+                                }`}>
                                     {item.description}
                                 </p>
                             )}
 
                             <div className="mt-4 grid grid-cols-3 gap-2">
-                                <div className="rounded-[18px] bg-[#EAF3D0] px-3 py-3 text-center">
-                                    <Clock3 className="mx-auto text-[#476A45]" size={18} />
-                                    <p className="mt-1 text-[11px] font-bold text-[#6B7C73]">Prep</p>
-                                    <p className="text-sm font-black text-[#1E332C]">
+                                <div className={`rounded-[18px] px-3 py-3 text-center ${
+                                    isDineInDark ? "border border-white/10 bg-white/[0.07]" : "bg-[#FFF4DA]"
+                                }`}>
+                                    <Clock3 className={`mx-auto ${
+                                        isDineInDark ? "text-[#FFD166]" : "text-[#9A6400]"
+                                    }`} size={18} />
+                                    <p className={`mt-1 text-[11px] font-bold ${
+                                        isDineInDark ? "text-white/52" : "text-[#7A6258]"
+                                    }`}>Prep</p>
+                                    <p className={`text-sm font-black ${
+                                        isDineInDark ? "text-white" : "text-[#241815]"
+                                    }`}>
                                         {preparationTime ? `${preparationTime}m` : "Fresh"}
                                     </p>
                                 </div>
-                                <div className="rounded-[18px] bg-[#FFF0C7] px-3 py-3 text-center">
-                                    <Flame className="mx-auto text-[#B7791F]" size={18} />
-                                    <p className="mt-1 text-[11px] font-bold text-[#7B6F54]">Energy</p>
-                                    <p className="text-sm font-black text-[#4D3414]">
+                                <div className={`rounded-[18px] px-3 py-3 text-center ${
+                                    isDineInDark ? "border border-[#7F1D1D]/35 bg-[#7F1D1D]/16" : "bg-[#F9ECEC]"
+                                }`}>
+                                    <Flame className={`mx-auto ${
+                                        isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"
+                                    }`} size={18} />
+                                    <p className={`mt-1 text-[11px] font-bold ${
+                                        isDineInDark ? "text-white/52" : "text-[#7A6258]"
+                                    }`}>Energy</p>
+                                    <p className={`text-sm font-black ${
+                                        isDineInDark ? "text-white" : "text-[#241815]"
+                                    }`}>
                                         {calories ? `${calories}` : "Chef"}
                                     </p>
                                 </div>
-                                <div className="rounded-[18px] bg-[#DDEFE8] px-3 py-3 text-center">
-                                    <Utensils className="mx-auto text-[#276749]" size={18} />
-                                    <p className="mt-1 text-[11px] font-bold text-[#5E746A]">Type</p>
-                                    <p className="truncate text-sm font-black text-[#1E332C]">
+                                <div className={`rounded-[18px] px-3 py-3 text-center ${
+                                    isDineInDark ? "border border-white/10 bg-[#0D1113]" : "bg-[#F7F2EF]"
+                                }`}>
+                                    <Utensils className={`mx-auto ${
+                                        isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"
+                                    }`} size={18} />
+                                    <p className={`mt-1 text-[11px] font-bold ${
+                                        isDineInDark ? "text-white/52" : "text-[#7A6258]"
+                                    }`}>Type</p>
+                                    <p className={`truncate text-sm font-black ${
+                                        isDineInDark ? "text-white" : "text-[#241815]"
+                                    }`}>
                                         {item?.categoryName || "Menu"}
                                     </p>
                                 </div>
@@ -425,14 +513,20 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             {!!detailChips.length && (
                                 <div className="mt-5">
                                     <div className="mb-2 flex items-center justify-between">
-                                        <h3 className="text-sm font-black text-[#1E332C]">Ingredients</h3>
-                                        <Leaf size={17} className="text-[#6B8E23]" />
+                                        <h3 className={`text-sm font-black ${
+                                            isDineInDark ? "text-white" : "text-[#241815]"
+                                        }`}>Ingredients</h3>
+                                        <Leaf size={17} className={isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"} />
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {detailChips.map((chip) => (
                                             <span
                                                 key={chip}
-                                                className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#526158] shadow-[0_8px_18px_rgba(33,77,57,0.06)]"
+                                                className={`rounded-full px-3 py-2 text-xs font-black shadow-[0_8px_18px_rgba(127,29,29,0.06)] ${
+                                                    isDineInDark
+                                                        ? "border border-white/10 bg-white/[0.07] text-white/68"
+                                                        : "bg-white text-[#6F5C54]"
+                                                }`}
                                             >
                                                 {chip}
                                             </span>
@@ -442,7 +536,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             )}
 
                             {isLoadingDetails ? (
-                                <div className="mt-5 rounded-[20px] border border-[#D8E6BE] bg-white p-4 text-sm font-extrabold text-[#627169]">
+                                <div className={`mt-5 rounded-[20px] border p-4 text-sm font-extrabold ${
+                                    isDineInDark
+                                        ? "border-white/10 bg-white/[0.07] text-white/62"
+                                        : "border-[#E4CFC3] bg-white text-[#6F5C54]"
+                                }`}>
                                     Loading options...
                                 </div>
                             ) : hasModifiers ? (
@@ -450,10 +548,14 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                     {modifierGroups.map((group) => (
                                         <div
                                             key={getModifierGroupId(group)}
-                                            className={`rounded-[22px] border bg-white p-3 shadow-[0_10px_24px_rgba(33,77,57,0.07)] ${
-                                                isVariantGroup(group)
-                                                    ? "border-[#BBD682]"
-                                                    : "border-[#E3E9DD]"
+                                            className={`rounded-[22px] border p-3 shadow-[0_10px_24px_rgba(127,29,29,0.07)] ${
+                                                isDineInDark
+                                                    ? isVariantGroup(group)
+                                                        ? "border-[#FFD166]/30 bg-[#FFD166]/8"
+                                                        : "border-white/10 bg-white/[0.07]"
+                                                    : isVariantGroup(group)
+                                                        ? "border-[#D8A22D]/45 bg-[#FFF9E8]"
+                                                        : "border-[#E4CFC3] bg-white"
                                             } ${
                                                 !isVariantGroup(group) && !canSelectNonVariantModifiers
                                                     ? "opacity-55"
@@ -462,26 +564,38 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         >
                                             <div className="mb-3 flex items-start justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <h3 className="text-base font-black leading-6 text-[#1E332C]">
+                                                    <h3 className={`text-base font-black leading-6 ${
+                                                        isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"
+                                                    }`}>
                                                         {group.name}
                                                     </h3>
                                                     {isVariantGroup(group) && (
-                                                        <p className="mt-1 text-xs font-bold text-[#6B7C73]">
+                                                        <p className={`mt-1 text-xs font-bold ${
+                                                            isDineInDark ? "text-white/55" : "text-[#7A6258]"
+                                                        }`}>
                                                             Select one size. The amount is the final item price.
                                                         </p>
                                                     )}
                                                     {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
-                                                        <p className="mt-1 text-xs font-bold text-[#8A7761]">
+                                                        <p className={`mt-1 text-xs font-bold ${
+                                                            isDineInDark ? "text-white/45" : "text-[#8A7761]"
+                                                        }`}>
                                                             Choose a size first.
                                                         </p>
                                                     )}
                                                 </div>
                                                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                                    isVariantGroup(group)
-                                                        ? "bg-[#EAF3D0] text-[#476A45]"
-                                                        : isGroupRequired(group)
-                                                            ? "bg-[#FCE7D7] text-[#9A3412]"
-                                                            : "bg-[#EEF2E8] text-[#6B7C73]"
+                                                    isDineInDark
+                                                        ? isVariantGroup(group)
+                                                            ? "border border-[#FFD166]/30 bg-[#FFD166]/14 text-[#FFD166]"
+                                                            : isGroupRequired(group)
+                                                                ? "bg-[#7F1D1D]/24 text-[#FFD6D6]"
+                                                                : "bg-white/10 text-white/62"
+                                                        : isVariantGroup(group)
+                                                            ? "bg-[#FFF0C4] text-[#9A6400]"
+                                                            : isGroupRequired(group)
+                                                                ? "bg-[#F9ECEC] text-[#7F1D1D]"
+                                                                : "bg-[#F7F2EF] text-[#7A6258]"
                                                 }`}>
                                                     {isVariantGroup(group)
                                                         ? "Full prices"
@@ -542,11 +656,17 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                 });
                                                             }}
                                                             className={`flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-left text-xs font-black transition disabled:cursor-not-allowed ${
-                                                                isDisabled
-                                                                    ? "border-[#E3E9DD] bg-[#EEF2E8] text-[#9AAA9F]"
-                                                                    : isSelected
-                                                                        ? "border-[#2F6F56] bg-[#2F6F56] text-white shadow-[0_10px_20px_rgba(47,111,86,0.20)]"
-                                                                        : "border-[#E3E9DD] bg-[#F7FAF3] text-[#526158] hover:border-[#A7C957]"
+                                                                isDineInDark
+                                                                    ? isDisabled
+                                                                        ? "border-white/8 bg-white/[0.035] text-white/28"
+                                                                        : isSelected
+                                                                            ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.24)]"
+                                                                            : "border-white/10 bg-[#0D1113] text-white/68 hover:border-[#FFD166]/45 hover:bg-white/[0.10]"
+                                                                    : isDisabled
+                                                                        ? "border-[#E4CFC3] bg-[#F1E7DF] text-[#A28F87]"
+                                                                        : isSelected
+                                                                            ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.18)]"
+                                                                            : "border-[#E4CFC3] bg-[#FFF9F2] text-[#6F5C54] hover:border-[#7F1D1D]"
                                                             }`}
                                                         >
                                                             {isSelected && <Check size={14} />}
@@ -555,7 +675,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                 <span className={`rounded-full px-2 py-0.5 text-[10px] ${
                                                                     isSelected
                                                                         ? "bg-white/18 text-white"
-                                                                        : "bg-white text-[#476A45]"
+                                                                        : isDineInDark
+                                                                            ? "bg-white/10 text-[#FFD166]"
+                                                                            : "bg-white text-[#7F1D1D]"
                                                                 }`}>
                                                                     {isVariant ? `$${optionPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
                                                                 </span>
@@ -570,8 +692,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             ) : (
                                 <div className="mt-5">
                                     <div className="mb-2 flex items-center justify-between">
-                                        <h3 className="text-sm font-black text-[#1E332C]">Choose size</h3>
-                                        <span className="text-xs font-bold text-[#6B7C73]">Required</span>
+                                        <h3 className={`text-sm font-black ${
+                                            isDineInDark ? "text-white" : "text-[#241815]"
+                                        }`}>Choose size</h3>
+                                        <span className={`text-xs font-bold ${
+                                            isDineInDark ? "text-white/55" : "text-[#7A6258]"
+                                        }`}>Required</span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2.5">
                                         {["small", "large"].map((size) => (
@@ -580,9 +706,13 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                 type="button"
                                                 onClick={() => setSelectedSize(size)}
                                                 className={`rounded-[18px] border px-3 py-3 text-left transition ${
-                                                    selectedSize === size
-                                                        ? "border-[#2F6F56] bg-[#DDEFE8] text-[#1E332C] ring-2 ring-[#2F6F56]/12"
-                                                        : "border-[#E3E9DD] bg-white text-[#627169] hover:border-[#A7C957]"
+                                                    isDineInDark
+                                                        ? selectedSize === size
+                                                            ? "border-[#7F1D1D] bg-[#7F1D1D]/24 text-white ring-2 ring-[#7F1D1D]/20"
+                                                            : "border-white/10 bg-white/[0.07] text-white/66 hover:border-[#FFD166]/45"
+                                                        : selectedSize === size
+                                                            ? "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D] ring-2 ring-[#7F1D1D]/12"
+                                                            : "border-[#E4CFC3] bg-white text-[#6F5C54] hover:border-[#7F1D1D]"
                                                 }`}
                                             >
                                                 <span className="block text-sm font-black capitalize">{size}</span>
@@ -595,9 +725,15 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </div>
                             )}
 
-                            <div className="mt-5 rounded-[22px] bg-white p-3 shadow-[0_10px_24px_rgba(33,77,57,0.07)]">
-                                <label className="mb-2 flex items-center gap-2 text-sm font-black text-[#1E332C]">
-                                    <MessageSquare size={16} className="text-[#476A45]" />
+                            <div className={`mt-5 rounded-[22px] p-3 shadow-[0_10px_24px_rgba(127,29,29,0.07)] ${
+                                isDineInDark
+                                    ? "border border-white/10 bg-white/[0.07]"
+                                    : "bg-white"
+                            }`}>
+                                <label className={`mb-2 flex items-center gap-2 text-sm font-black ${
+                                    isDineInDark ? "text-white" : "text-[#241815]"
+                                }`}>
+                                    <MessageSquare size={16} className={isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"} />
                                     Special instructions
                                 </label>
                                 <textarea
@@ -605,41 +741,69 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                     onChange={(event) => setNotes(event.target.value)}
                                     placeholder="No onions, extra sauce..."
                                     rows={2}
-                                    className="w-full resize-none rounded-[16px] border border-[#E3E9DD] bg-[#F7FAF3] p-3 text-sm font-semibold text-[#1E332C] outline-none transition placeholder:text-[#9AAA9F] focus:border-[#2F6F56] focus:ring-4 focus:ring-[#2F6F56]/10"
+                                    className={`w-full resize-none rounded-[16px] border p-3 text-sm font-semibold outline-none transition ${
+                                        isDineInDark
+                                            ? "border-white/10 bg-[#0D1113] text-white placeholder:text-white/38 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/15"
+                                            : "border-[#E4CFC3] bg-[#FFF9F2] text-[#241815] placeholder:text-[#A28F87] focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                                    }`}
                                 />
                             </div>
                         </div>
 
-                        <div className="grid shrink-0 grid-cols-[112px_minmax(0,1fr)] gap-3 border-t border-[#E3E9DD] bg-[#F7FAF3]/96 p-4 shadow-[0_-18px_34px_rgba(33,77,57,0.08)] backdrop-blur">
-                            <div className="flex items-center justify-between rounded-full bg-white px-2 py-2 shadow-[0_8px_18px_rgba(33,77,57,0.08)]">
+                        <div className={`grid shrink-0 grid-cols-[112px_minmax(0,1fr)] gap-3 border-t p-4 shadow-[0_-18px_34px_rgba(127,29,29,0.08)] backdrop-blur ${
+                            isDineInDark
+                                ? "border-white/10 bg-[#12181B]/96"
+                                : "border-[#E4CFC3] bg-[#FFF9F2]/96"
+                        }`}>
+                            <div className={`flex items-center justify-between rounded-full px-2 py-2 shadow-[0_8px_18px_rgba(127,29,29,0.08)] ${
+                                isDineInDark
+                                    ? "border border-white/10 bg-white/[0.07]"
+                                    : "bg-white"
+                            }`}>
                                 <button
                                     type="button"
                                     onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                                    className="grid h-8 w-8 place-items-center rounded-full bg-[#EEF2E8] text-[#2F6F56] transition active:scale-95"
+                                    className={`grid h-8 w-8 place-items-center rounded-full transition active:scale-95 ${
+                                        isDineInDark
+                                            ? "bg-white/10 text-[#FFD166]"
+                                            : "bg-[#F9ECEC] text-[#7F1D1D]"
+                                    }`}
                                     aria-label="Decrease quantity"
                                 >
                                     <Minus size={15} />
                                 </button>
-                                <span className="w-6 text-center text-lg font-black text-[#1E332C]">
+                                <span className={`w-6 text-center text-lg font-black ${
+                                    isDineInDark ? "text-white" : "text-[#241815]"
+                                }`}>
                                     {quantity}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() => setQuantity((value) => value + 1)}
-                                    className="grid h-8 w-8 place-items-center rounded-full bg-[#2F6F56] text-white transition active:scale-95"
+                                    className="grid h-8 w-8 place-items-center rounded-full bg-[#7F1D1D] text-white transition hover:bg-[#681718] active:scale-95"
                                     aria-label="Increase quantity"
                                 >
                                     <Plus size={15} />
                                 </button>
                             </div>
                             <button
-                                disabled={!allRequiredModifiersSelected}
+                                disabled={!allRequiredModifiersSelected || isAdded || isClosing}
                                 onClick={addCurrentItemToCart}
-                                className="flex min-w-0 items-center justify-between gap-2 rounded-full bg-[#2F6F56] px-4 py-3 text-sm font-black text-white shadow-[0_16px_28px_rgba(47,111,86,0.24)] transition hover:bg-[#285E49] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#C8D2C5] disabled:text-[#768578] disabled:shadow-none"
+                                className={`flex min-w-0 items-center justify-between gap-2 rounded-full bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_28px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] active:scale-[0.99] disabled:cursor-not-allowed disabled:shadow-none ${
+                                    isAdded
+                                        ? "bg-[#7F1D1D] ring-4 ring-[#FFD166]/20 hover:bg-[#7F1D1D]"
+                                        : isDineInDark
+                                        ? "disabled:bg-white/15 disabled:text-white/35"
+                                        : "disabled:bg-[#E5D7CE] disabled:text-[#7A6258]"
+                                }`}
                             >
                                 <span className="flex min-w-0 items-center gap-2">
-                                    <ShoppingBag className="shrink-0" size={18} />
-                                    <span className="truncate">Add to order</span>
+                                    {isAdded ? (
+                                        <Check className="shrink-0" size={18} />
+                                    ) : (
+                                        <ShoppingBag className="shrink-0" size={18} />
+                                    )}
+                                    <span className="truncate">{isAdded ? "Added" : "Add to order"}</span>
                                 </span>
                                 <span className="shrink-0">
                                     {isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}
@@ -653,12 +817,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     }
 
     return (
-        <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"}`}>
+        <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"} ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
             <div className={`product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[760px] w-full max-w-[820px] overflow-hidden rounded-[28px] border shadow-2xl md:grid-cols-[0.86fr_1.14fr] ${
                 isDark
                     ? "border-white/10 bg-[#12181B] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]"
                     : "border-transparent bg-white text-[#2D2421]"
-            }`}>
+            } ${isClosing ? "modal-panel-exit" : "modal-panel-enter"}`}>
                 <div className={`product-modal-media relative hidden min-h-0 overflow-hidden ${isDark ? "bg-[#0D1113]" : "bg-[#EDE5DF]"} md:block`}>
                     <img src={imageUrl} alt={item?.title} className="absolute inset-0 h-full w-full object-cover" />
                     <div className={`absolute inset-0 ${isDark ? "bg-gradient-to-t from-[#0D1113] via-[#0D1113]/15 to-black/15" : "bg-gradient-to-t from-black/45 via-transparent to-transparent"}`} />
@@ -892,15 +1056,20 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     </div>
 
                     <button
-                        disabled={!allRequiredModifiersSelected}
+                        disabled={!allRequiredModifiersSelected || isAdded || isClosing}
                         onClick={addCurrentItemToCart}
                         className={`product-modal-submit mx-4 mb-4 mt-3 flex shrink-0 items-center justify-between rounded-2xl px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.99] disabled:cursor-not-allowed disabled:shadow-none sm:mx-5 ${
-                            isDark
+                            isAdded
+                                ? "bg-[#7F1D1D] shadow-[0_18px_34px_rgba(127,29,29,0.25)] ring-4 ring-[#FFD166]/20 hover:bg-[#7F1D1D]"
+                                : isDark
                                 ? "bg-[#7F1D1D] shadow-[0_18px_34px_rgba(127,29,29,0.25)] hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/35"
                                 : "bg-[#7F1D1D] shadow-[0_10px_24px_rgba(127,29,29,0.2)] hover:bg-[#681718] disabled:bg-[#CBB9B1]"
                         }`}
                     >
-                        <span className="flex items-center gap-2"><ShoppingBag size={19} /> Add to order</span>
+                        <span className="flex items-center gap-2">
+                            {isAdded ? <Check size={19} /> : <ShoppingBag size={19} />}
+                            {isAdded ? "Added" : "Add to order"}
+                        </span>
                         <span>{isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}</span>
                     </button>
                 </div>
