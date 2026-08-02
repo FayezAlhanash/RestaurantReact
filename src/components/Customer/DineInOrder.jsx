@@ -167,7 +167,22 @@ const createSessionUnavailableError = (message) => {
     return error;
 };
 
-const isMissingEndpointError = (error) => error.response?.status === 404;
+const isMissingEndpointError = (error) => {
+    if (error.response?.status !== 404) return false;
+
+    const message = String(
+        error.response?.data?.message ||
+            error.response?.data?.error ||
+            error.message ||
+            ""
+    ).toLowerCase();
+
+    return (
+        message.includes("route") ||
+        message.includes("endpoint") ||
+        message.includes("could not be found")
+    );
+};
 
 const getSessionRecord = (data) =>
     data?.session ??
@@ -233,6 +248,7 @@ const validateDineInSession = async (sessionToken, tableId) => {
     }
 
     let lastError;
+    let missingEndpointCount = 0;
 
     for (const endpoint of CUSTOMER_SESSION_ENDPOINTS) {
         try {
@@ -256,12 +272,26 @@ const validateDineInSession = async (sessionToken, tableId) => {
             if (error.isSessionUnavailable) throw error;
 
             lastError = error;
-            if (isMissingEndpointError(error)) continue;
+            if (isMissingEndpointError(error)) {
+                missingEndpointCount += 1;
+                continue;
+            }
 
             throw createSessionUnavailableError(
                 error.response?.data?.message || "This table session is no longer active."
             );
         }
+    }
+
+    if (missingEndpointCount === CUSTOMER_SESSION_ENDPOINTS.length) {
+        return {
+            has_active_session: true,
+            verification_skipped: true,
+            session: {
+                session_token: sessionToken,
+                is_active: true,
+            },
+        };
     }
 
     throw createSessionUnavailableError(

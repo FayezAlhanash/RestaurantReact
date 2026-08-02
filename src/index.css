@@ -1717,3 +1717,39 @@ img, svg {
 [data-theme="light"] .table-device-setup input::placeholder {
     color: rgba(255, 255, 255, 0.30) !important;
 }
+
+.table-qr-display,
+[data-theme="light"] .table-qr-display,
+[data-theme="dark"] .table-qr-display {
+    color-scheme: dark;
+    background:
+        radial-gradient(circle at 82% 12%, rgba(127, 29, 29, 0.22), transparent 30%),
+        radial-gradient(circle at 14% 20%, rgba(255, 209, 102, 0.15), transparent 24%),
+        linear-gradient(145deg, #101517 0%, #171D20 48%, #26181B 100%) !important;
+    color: #ffffff !important;
+}
+
+.table-qr-display:fullscreen,
+[data-theme="light"] .table-qr-display:fullscreen,
+[data-theme="dark"] .table-qr-display:fullscreen {
+    background: #101517 !important;
+}
+
+.table-qr-display:fullscreen .table-qr-display-control {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.table-qr-display [class*="text-white"],
+.table-qr-display [class*="text-white/"],
+[data-theme="light"] .table-qr-display [class*="text-white"],
+[data-theme="light"] .table-qr-display [class*="text-white/"] {
+    color: #ffffff !important;
+}
+
+.table-qr-display article,
+[data-theme="light"] .table-qr-display article {
+    background-color: #20272A !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.30) !important;
+}

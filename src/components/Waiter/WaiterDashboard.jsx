@@ -2,9 +2,7 @@ import {
     Banknote,
     CheckCircle2,
     Clock3,
-    Copy,
     DoorOpen,
-    ExternalLink,
     LogOut,
     RefreshCw,
     ReceiptText,
@@ -379,14 +377,34 @@ const getQrPathFromResponse = (data, sessionToken) =>
         sessionToken ? `/dine-in/${sessionToken}` : ""
     );
 
+const buildCustomerSessionPath = (sessionToken) =>
+    sessionToken ? `/dine-in/${encodeURIComponent(sessionToken)}` : "";
+
 const buildSessionUrl = (qrPath, sessionToken) => {
-    const fallbackPath = sessionToken ? `/dine-in/${sessionToken}` : "";
+    const fallbackPath = buildCustomerSessionPath(sessionToken);
     const nextPath = String(qrPath || fallbackPath).trim();
 
     if (!nextPath) return "";
-    if (nextPath.startsWith("http://") || nextPath.startsWith("https://")) return nextPath;
+
+    try {
+        const url = new URL(nextPath, window.location.origin);
+
+        if (fallbackPath && url.pathname.startsWith("/api/")) {
+            return `${window.location.origin}${fallbackPath}`;
+        }
+
+        if (nextPath.startsWith("http://") || nextPath.startsWith("https://")) {
+            return url.toString();
+        }
+    } catch {
+        // Fall back to path normalization below.
+    }
 
     const normalizedPath = nextPath.startsWith("/") ? nextPath : `/${nextPath}`;
+
+    if (fallbackPath && normalizedPath.startsWith("/api/")) {
+        return `${window.location.origin}${fallbackPath}`;
+    }
 
     return `${window.location.origin}${normalizedPath}`;
 };
@@ -456,7 +474,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [message, setMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [openedSession, setOpenedSession] = useState(null);
-    const [isSessionCopied, setIsSessionCopied] = useState(false);
     const navigate = useNavigate();
     const user = getStoredUser();
     const waiterName =
@@ -575,10 +592,9 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 (await fetchCurrentSessionFromStoredDevice());
 
             setOpenedSession(nextOpenedSession);
-            setIsSessionCopied(false);
 
             return nextOpenedSession?.sessionToken
-                ? `Session opened for table ${tableId}. Token is shown below.`
+                ? `Session opened for table ${tableId}. QR is shown below.`
                 : `Session opened for table ${tableId}.`;
         } catch (error) {
             if (error.response?.status === 409) {
@@ -588,12 +604,11 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                     (await fetchCurrentSessionFromStoredDevice());
 
                 setOpenedSession(nextOpenedSession);
-                setIsSessionCopied(false);
 
                 if (nextOpenedSession?.sessionToken) {
                     return sessionId
-                        ? `Table ${tableId} already has active session #${sessionId}. Token is shown below.`
-                        : `Table ${tableId} already has an active session. Token is shown below.`;
+                        ? `Table ${tableId} already has active session #${sessionId}. QR is shown below.`
+                        : `Table ${tableId} already has an active session. QR is shown below.`;
                 }
 
                 return sessionId
@@ -639,18 +654,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             setErrorMessage(error.response?.data?.message || "Action failed.");
         } finally {
             setBusyKey("");
-        }
-    };
-
-    const copySessionToken = async () => {
-        if (!openedSession?.sessionToken) return;
-
-        try {
-            await navigator.clipboard.writeText(openedSession.sessionToken);
-            setIsSessionCopied(true);
-            window.setTimeout(() => setIsSessionCopied(false), 1600);
-        } catch {
-            setErrorMessage("Session token is visible, but the browser blocked copying.");
         }
     };
 
@@ -849,47 +852,16 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                         </div>
 
                         {openedSession?.sessionToken && (
-                            <div className="mt-5 rounded-2xl border border-[#FFD166]/25 bg-[#101517] p-4">
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
-                                            Temporary session token
-                                        </p>
-                                        <code className="mt-2 block break-all rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-xs font-bold leading-5 text-white/78">
-                                            {openedSession.sessionToken}
-                                        </code>
+                            <div className="mt-5 grid place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#101517] p-5">
+                                {openedSession.qrImageUrl && (
+                                    <div className="rounded-[28px] bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.30)]">
+                                        <img
+                                            src={openedSession.qrImageUrl}
+                                            alt={`QR code for table ${openedSession.tableId}`}
+                                            className="h-[min(58dvh,22rem)] w-[min(58dvh,22rem)] min-w-[240px] min-h-[240px]"
+                                        />
                                     </div>
-
-                                    <div className="flex shrink-0 items-center gap-3">
-                                        {openedSession.qrImageUrl && (
-                                            <img
-                                                src={openedSession.qrImageUrl}
-                                                alt={`QR code for table ${openedSession.tableId}`}
-                                                className="h-36 w-36 rounded-2xl border border-white/10 bg-white p-2"
-                                            />
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={copySessionToken}
-                                            className="grid h-11 w-11 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
-                                            title="Copy session token"
-                                        >
-                                            {isSessionCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
-                                        </button>
-                                        <a
-                                            href={openedSession.sessionUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.10] hover:text-white"
-                                            title="Open customer link"
-                                        >
-                                            <ExternalLink size={18} />
-                                        </a>
-                                    </div>
-                                </div>
-                                <p className="mt-3 break-all text-sm font-bold text-white/48">
-                                    {openedSession.sessionUrl}
-                                </p>
+                                )}
                             </div>
                         )}
 
