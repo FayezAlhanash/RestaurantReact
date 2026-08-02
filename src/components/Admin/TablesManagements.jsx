@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
     CheckCircle2,
     Copy,
-    ExternalLink,
     Eye,
     KeyRound,
     LayoutGrid,
@@ -30,14 +29,6 @@ const normalizeActiveValue = (value) =>
     value === "1" ||
     String(value).toLowerCase() === "true" ||
     String(value).toLowerCase() === "active";
-
-const getDeviceFromResponse = (data) =>
-    data?.device ??
-    data?.data?.device ??
-    data?.table_device ??
-    data?.data?.table_device ??
-    data?.data ??
-    null;
 
 const getDeviceKeyFromResponse = (data) =>
     data?.device_key ??
@@ -128,7 +119,6 @@ function TableDeviceModal({ isOpen, table, onClose }) {
     const [isVisible, setIsVisible] = useState(false);
     const [deviceName, setDeviceName] = useState("");
     const [deviceKey, setDeviceKey] = useState("");
-    const [deviceDetails, setDeviceDetails] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
@@ -161,7 +151,6 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                 `Table ${table.table_number} Screen`
         );
         setDeviceKey(initialDeviceKey);
-        setDeviceDetails(initialDevice);
         setError("");
         setMessage("");
         setIsCopied(false);
@@ -200,10 +189,8 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                 `/tables/${table.id}/device/register`,
                 formData
             );
-            const nextDevice = getDeviceFromResponse(response.data);
             const nextDeviceKey = getDeviceKeyFromResponse(response.data);
 
-            setDeviceDetails(nextDevice);
             setDeviceKey(nextDeviceKey);
             setIsCopied(false);
             setIsSetupCopied(false);
@@ -237,7 +224,6 @@ function TableDeviceModal({ isOpen, table, onClose }) {
 
             const response = await api.delete(`/tables/${table.id}/device`);
 
-            setDeviceDetails(null);
             setDeviceKey("");
             setIsCopied(false);
             setIsSetupCopied(false);
@@ -299,20 +285,20 @@ function TableDeviceModal({ isOpen, table, onClose }) {
 
     return (
         <div
-            className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out ${
+            className={`fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/70 p-2 backdrop-blur-sm transition-opacity duration-200 ease-out sm:items-center sm:p-4 ${
                 isVisible ? "opacity-100" : "opacity-0"
             }`}
         >
             <div
-                className={`w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/10 bg-[#182124] text-white shadow-2xl transition duration-200 ease-out will-change-transform ${
+                className={`my-auto max-h-[calc(100dvh-1rem)] w-full max-w-xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#182124] text-white shadow-2xl transition duration-200 ease-out will-change-transform ${
                     isVisible
                         ? "translate-y-0 scale-100 opacity-100"
                         : "translate-y-4 scale-[0.98] opacity-0"
                 }`}
             >
-                <div className="flex items-center justify-between border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.16),transparent_34%),rgba(255,255,255,0.03)] px-5 py-5 sm:px-6">
+                <div className="flex items-center justify-between border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(127,29,29,0.16),transparent_34%),rgba(255,255,255,0.03)] px-4 py-4 sm:px-5">
                     <div className="flex items-center gap-3">
-                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] text-white shadow-[0_12px_28px_rgba(127,29,29,0.22)]">
+                        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] text-white shadow-[0_12px_28px_rgba(127,29,29,0.22)]">
                             <Smartphone size={24} />
                         </div>
                         <div>
@@ -334,26 +320,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                     </button>
                 </div>
 
-                <div className="grid gap-0 md:grid-cols-[240px_1fr]">
-                    <div className="border-b border-white/[0.08] bg-[#0D1214]/45 p-5 md:border-b-0 md:border-r md:border-white/[0.08]">
-                        <div className="relative flex h-64 flex-col items-center justify-center rounded-[26px] border border-[#FFD166]/35 bg-[#101A1D] shadow-sm">
-                            <span className="absolute right-4 top-4 rounded-full border border-[#FFD166]/30 bg-[#FFD166]/10 px-3 py-1 text-xs font-black text-[#FFD166]">
-                                Display
-                            </span>
-
-                            <div className="grid h-20 w-20 place-items-center rounded-[24px] border border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166]">
-                                <Smartphone size={38} />
-                            </div>
-                            <p className="mt-6 text-2xl font-black text-white">
-                                {deviceDetails?.device_name || deviceName}
-                            </p>
-                            <p className="mt-2 text-sm font-semibold text-white/42">
-                                Device for table #{table.id}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="p-5 sm:p-6">
+                <div className="p-4 sm:p-5">
                         {error && (
                             <p className="mb-4 rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#FFB4A8]">
                                 {error}
@@ -369,7 +336,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                             <span className="mb-2 block text-sm font-black text-white/65">
                                 Device Name
                             </span>
-                            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 shadow-inner transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
+                            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-2.5 shadow-inner transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
                                 <Smartphone size={19} className="shrink-0 text-[#FFD166]" />
                                 <input
                                     value={deviceName}
@@ -380,7 +347,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                             </div>
                         </label>
 
-                        <div className="mt-5 rounded-2xl border border-white/10 bg-[#0D1214] p-4">
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-[#0D1214] p-4">
                             <div className="flex items-center gap-2 text-sm font-black text-white/65">
                                 <KeyRound size={17} className="text-[#FFD166]" />
                                 Device Key
@@ -407,40 +374,46 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                         </div>
 
                         {deviceKey && (
-                            <div className="mt-5 rounded-2xl border border-[#FFD166]/25 bg-[#0D1214] p-4">
-                                <div className="flex items-center gap-2 text-sm font-black text-white/65">
-                                    <QrCode size={17} className="text-[#FFD166]" />
-                                    Setup QR
+                            <div className="mt-4 overflow-hidden rounded-2xl border border-[#FFD166]/25 bg-[#0D1214]">
+                                <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3">
+                                    <div className="flex items-center gap-2 text-sm font-black text-white/65">
+                                        <QrCode size={17} className="text-[#FFD166]" />
+                                        Setup QR
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={copySetupUrl}
+                                        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
+                                        title="Copy setup link"
+                                    >
+                                        {isSetupCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                                    </button>
                                 </div>
-                                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
-                                    <img
-                                        src={setupQrImageUrl}
-                                        alt={`Setup QR for table ${table.table_number}`}
-                                        className="h-36 w-36 rounded-2xl border border-white/10 bg-white p-2"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold leading-6 text-white/55">
-                                            Scan this on the table tablet, or open the setup link there.
+                                <div className="grid gap-4 p-4 sm:grid-cols-[auto_1fr] sm:items-center">
+                                    <div className="mx-auto rounded-[22px] border border-white/10 bg-white p-2.5 shadow-[0_18px_44px_rgba(0,0,0,0.18)]">
+                                        <img
+                                            src={setupQrImageUrl}
+                                            alt={`Setup QR for table ${table.table_number}`}
+                                            className="h-[clamp(7.5rem,22dvh,11rem)] w-[clamp(7.5rem,22dvh,11rem)] rounded-xl"
+                                        />
+                                    </div>
+                                    <div className="min-w-0 text-center sm:text-left">
+                                        <p className="text-lg font-black leading-tight text-white">
+                                            Scan on the table tablet
                                         </p>
-                                        <p className="mt-3 break-all rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-xs font-bold leading-5 text-white/62">
-                                            {setupUrl}
+                                        <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
+                                            This QR pairs Table {table.table_number} with the display device.
                                         </p>
-                                        <div className="mt-3 flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={copySetupUrl}
-                                                className="grid h-11 w-11 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
-                                                title="Copy setup link"
-                                            >
-                                                {isSetupCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
-                                            </button>
+                                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                                            <QrCode size={14} />
+                                            QR only
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        <div className="mt-7 flex flex-col-reverse gap-3 border-t border-white/[0.08] pt-5 sm:flex-row sm:justify-end">
+                        <div className="mt-5 flex flex-col-reverse gap-3 border-t border-white/[0.08] pt-4 sm:flex-row sm:justify-end">
                             <button
                                 type="button"
                                 onClick={closeSmoothly}
@@ -477,7 +450,6 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 Register / Replace
                             </button>
                         </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -639,21 +611,21 @@ function TablesManagements() {
                                 className={`group relative min-h-[280px] overflow-hidden rounded-[28px] border p-5 ring-1 ring-white/[0.03] transition hover:-translate-y-1 ${
                                     isActive
                                         ? isLight
-                                            ? "border-[#059669]/45 hover:border-[#047857]/65"
-                                            : "border-emerald-400/35 hover:border-emerald-400/55"
+                                            ? "border-[#047857]/45 hover:border-[#065F46]/65"
+                                            : "border-[#047857]/55 hover:border-[#059669]/70"
                                         : "border-[#7F1D1D]/35 hover:border-[#7F1D1D]/55"
                                 } ${isLight
                                     ? "bg-white shadow-[0_16px_34px_rgba(127,29,29,0.08)] hover:shadow-[0_24px_58px_rgba(127,29,29,0.12)]"
                                     : "bg-[#101A1D] shadow-[0_16px_34px_rgba(0,0,0,0.22)] hover:shadow-[0_24px_58px_rgba(0,0,0,0.34)]"
                                 }`}
                             >
-                                <div className={`absolute inset-x-0 top-0 h-1 ${isActive ? (isLight ? "bg-[#059669]" : "bg-emerald-400") : "bg-[#7F1D1D]"}`} />
+                                <div className={`absolute inset-x-0 top-0 h-1 ${isActive ? (isLight ? "bg-[#047857]" : "bg-[#047857]") : "bg-[#7F1D1D]"}`} />
                                 <span
                                     className={`absolute right-4 top-4 rounded-full border px-3 py-1 text-xs font-black ${
                                         isActive
                                             ? isLight
-                                                ? "border-[#059669]/35 bg-[#D1FAE5] text-[#047857]"
-                                                : "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                                                ? "border-[#047857]/35 bg-[#A7F3D0] text-[#065F46]"
+                                                : "border-[#047857]/45 bg-[#064E3B]/45 text-[#6EE7B7]"
                                             : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                                     }`}
                                 >
@@ -664,8 +636,8 @@ function TablesManagements() {
                                     <div className={`grid h-24 w-24 place-items-center rounded-[28px] border transition group-hover:scale-105 ${
                                         isActive
                                             ? isLight
-                                                ? "border-[#059669]/30 bg-[#D1FAE5] text-[#059669]"
-                                                : "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                                                ? "border-[#047857]/35 bg-[#A7F3D0] text-[#047857]"
+                                                : "border-[#047857]/45 bg-[#064E3B]/45 text-[#6EE7B7]"
                                             : "border-[#7F1D1D]/25 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                                     }`}>
                                         <Utensils size={40} />
@@ -704,16 +676,6 @@ function TablesManagements() {
                                         >
                                             <Smartphone size={18} />
                                         </button>
-
-                                        <a
-                                            href={`/table/${table.id}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            title="Open table display"
-                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:scale-110 hover:bg-[#FFD166]/18"
-                                        >
-                                            <ExternalLink size={18} />
-                                        </a>
 
                                         <button
                                             type="button"

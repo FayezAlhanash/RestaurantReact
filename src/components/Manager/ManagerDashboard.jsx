@@ -1,22 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  ArrowUpRight,
   BarChart3,
   Building2,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   ChefHat,
   ClipboardList,
   DollarSign,
-  Layers3,
   Loader2,
   RefreshCw,
-  Tags,
   TrendingUp,
-  UtensilsCrossed,
 } from "lucide-react";
 import api from "../../API/axios";
 import { ensureManagerRestaurantId } from "./managerHelpers";
@@ -27,51 +20,6 @@ import { useTheme } from "../../context/ThemeContext";
 const currentYear = new Date().getFullYear();
 const defaultFrom = `${currentYear}-01-01`;
 const defaultTo = `${currentYear}-12-31`;
-
-const slides = [
-  {
-    eyebrow: "Category control",
-    title: "Build clean sections before service starts.",
-    text: "Keep the menu easy to scan with focused categories for cashiers and customers.",
-    metric: "12",
-    metricLabel: "active categories",
-    to: "/manager/add-menu",
-    action: "Open categories",
-    icon: Tags,
-    bg: "from-[#101517] via-[#1D2427] to-[#2A171C]",
-    accent: "bg-[#FFD166] text-[#151A1D]",
-    accentSoft: "bg-[#FFD166]/16 text-[#FFD166]",
-    glow: "shadow-[#7F1D1D]/20",
-  },
-  {
-    eyebrow: "Food library",
-    title: "Tune dishes, prices, images, and availability.",
-    text: "The food workspace supports search, filters, cards, editing, and delete confirmation.",
-    metric: "48",
-    metricLabel: "food items",
-    to: "/manager/add-food",
-    action: "Open foods",
-    icon: UtensilsCrossed,
-    bg: "from-[#101517] via-[#172327] to-[#352027]",
-    accent: "bg-[#7F1D1D] text-white",
-    accentSoft: "bg-[#7F1D1D]/18 text-[#7F1D1D]",
-    glow: "shadow-[#7F1D1D]/20",
-  },
-  {
-    eyebrow: "Modifier groups",
-    title: "Prepare flexible choices for every dish.",
-    text: "Groups can handle sizes, sauces, toppings, and extra options when the backend is ready.",
-    metric: "Next",
-    metricLabel: "workflow",
-    to: "/manager/add-menu",
-    action: "Preview modifiers",
-    icon: Layers3,
-    bg: "from-[#101517] via-[#26181B] to-[#3A2025]",
-    accent: "bg-[#FFD166] text-[#151A1D]",
-    accentSoft: "bg-[#FFD166]/16 text-[#FFD166]",
-    glow: "shadow-[#FFD166]/20",
-  },
-];
 
 function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
@@ -159,18 +107,18 @@ function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
   };
   const toneStyle = tones[tone] ?? tones.red;
   const lightTone = {
-    red: { accent: "#7F1D1D", border: "rgba(127,29,29,0.24)", icon: "bg-[#7F1D1D]/12 text-[#7F1D1D]" },
-    green: { accent: "#9B6A00", border: "rgba(255,209,102,0.52)", icon: "bg-[#FFD166]/18 text-[#8f5f00]" },
-    blue: { accent: "#9B6A00", border: "rgba(127,29,29,0.16)", icon: "bg-[#FFD166]/18 text-[#8f5f00]" },
-    amber: { accent: "#9B6A00", border: "rgba(255,209,102,0.52)", icon: "bg-[#FFD166]/18 text-[#8f5f00]" },
+    red: { accent: "#8F1D1D", border: "rgba(143,29,29,0.34)", icon: "bg-[#F3DCDC] text-[#8F1D1D]", background: "linear-gradient(135deg,#FFF7F4 0%,#F3DCDC 100%)" },
+    green: { accent: "#08764D", border: "rgba(15,139,95,0.35)", icon: "bg-[#D9F2E5] text-[#08764D]", background: "linear-gradient(135deg,#F5FFF9 0%,#D9F2E5 100%)" },
+    blue: { accent: "#075985", border: "rgba(2,132,199,0.35)", icon: "bg-[#DDF1FF] text-[#075985]", background: "linear-gradient(135deg,#F7FCFF 0%,#DDF1FF 100%)" },
+    amber: { accent: "#8A5700", border: "rgba(193,130,0,0.42)", icon: "bg-[#FFE8A3] text-[#8A5700]", background: "linear-gradient(135deg,#FFFDF5 0%,#FFE8A3 100%)" },
   }[tone] ?? { accent: "#7F1D1D", border: "rgba(127,29,29,0.16)", icon: "bg-[#7F1D1D]/12 text-[#7F1D1D]" };
 
   return (
     <article
-      className="relative min-h-[190px] overflow-hidden rounded-[28px] border p-6 shadow-[0_18px_42px_rgba(0,0,0,0.22)]"
+      className="relative min-h-[148px] overflow-hidden rounded-[24px] border p-5 shadow-[0_14px_34px_rgba(0,0,0,0.16)]"
       style={{
         background: isLight
-          ? "linear-gradient(135deg, #FFF9F2 0%, #F8EFE8 100%)"
+          ? lightTone.background
           : toneStyle.background,
         borderColor: isLight ? lightTone.border : toneStyle.border,
       }}
@@ -182,43 +130,55 @@ function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
       />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className={`text-sm font-black uppercase tracking-[0.16em] ${isLight ? "text-[#7A6A64]" : "text-white/60"}`}>
+          <p className={`text-sm font-black uppercase tracking-[0.16em] ${isLight ? "text-[#5A4037]" : "text-white/60"}`}>
             {title}
           </p>
           <strong
-            className="mt-5 block text-7xl font-black leading-none"
+            className="mt-4 block text-[clamp(3rem,2.4rem+1.4vw,4.25rem)] font-black leading-none"
             style={{ color: isLight ? lightTone.accent : toneStyle.accent }}
           >
             {value}
           </strong>
         </div>
-        <div className={`grid h-14 w-14 place-items-center rounded-2xl backdrop-blur ${isLight ? lightTone.icon : toneStyle.icon}`}>
-          <Icon size={24} />
+        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl backdrop-blur ${isLight ? lightTone.icon : toneStyle.icon}`}>
+          <Icon size={22} />
         </div>
       </div>
-      <p className={`relative mt-6 text-xl font-bold ${isLight ? "text-[#6E5E58]" : "text-white/76"}`}>{helper}</p>
+      <p className={`relative mt-4 text-base font-bold ${isLight ? "text-[#4F403A]" : "text-white/76"}`}>{helper}</p>
     </article>
   );
 }
 
 function EmptyState({ text }) {
+  const { isLight } = useTheme();
+
   return (
-    <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.05] px-5 py-10 text-center">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20">
-        <BarChart3 size={22} />
+    <div className={`flex min-h-[154px] flex-col items-center justify-center rounded-2xl border border-dashed px-5 py-8 text-center ${
+      isLight
+        ? "border-[#D8B7A8] bg-[#FFF1E8]"
+        : "border-white/15 bg-white/[0.05]"
+    }`}>
+      <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20">
+        <BarChart3 size={20} />
       </div>
-      <p className="mt-3 text-sm font-black text-white/70">{text}</p>
+      <p className={`mt-3 text-sm font-black ${isLight ? "text-[#5A4037]" : "text-white/70"}`}>{text}</p>
     </div>
   );
 }
 
 function ReportTable({ columns, rows, emptyText }) {
+  const { isLight } = useTheme();
+
   if (!rows.length) return <EmptyState text={emptyText} />;
 
   return (
-    <div className="cashier-scroll max-w-full overflow-x-auto rounded-2xl border border-white/10 bg-[#12181B]">
+    <div className={`cashier-scroll max-w-full overflow-x-auto rounded-2xl border ${
+      isLight ? "border-[#D8B7A8] bg-[#FFFDF8]" : "border-white/10 bg-[#12181B]"
+    }`}>
       <table className="min-w-full border-collapse text-left text-base">
-        <thead className="bg-white/[0.06] text-sm font-black uppercase tracking-[0.12em] text-white/48">
+        <thead className={`text-sm font-black uppercase tracking-[0.12em] ${
+          isLight ? "bg-[#EAD2C5] text-[#5A4037]" : "bg-white/[0.06] text-white/48"
+        }`}>
           <tr>
             {columns.map((column) => (
               <th key={column.key} className="whitespace-nowrap px-4 py-4 sm:px-5">
@@ -227,11 +187,11 @@ function ReportTable({ columns, rows, emptyText }) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/10">
+        <tbody className={isLight ? "divide-y divide-[#DEC2B5]" : "divide-y divide-white/10"}>
           {rows.map((row, index) => (
-            <tr key={row.id ?? row.date ?? row.food_id ?? index} className="transition hover:bg-white/[0.05]">
+            <tr key={row.id ?? row.date ?? row.food_id ?? index} className={`transition ${isLight ? "hover:bg-[#FFF1E8]" : "hover:bg-white/[0.05]"}`}>
               {columns.map((column) => (
-                <td key={column.key} className="whitespace-nowrap px-4 py-4 text-base font-bold text-white/72 sm:px-5">
+                <td key={column.key} className={`whitespace-nowrap px-4 py-4 text-base font-bold sm:px-5 ${isLight ? "text-[#3A2B26]" : "text-white/72"}`}>
                   {column.render ? column.render(row, index) : row[column.key]}
                 </td>
               ))}
@@ -244,10 +204,7 @@ function ReportTable({ columns, rows, emptyText }) {
 }
 
 export default function ManagerDashboard() {
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isSliderPaused, setIsSliderPaused] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const { isLight } = useTheme();
   const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(defaultTo);
   const [restaurant, setRestaurant] = useState(null);
@@ -259,8 +216,6 @@ export default function ManagerDashboard() {
   const [dailyOrders, setDailyOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const dragStartX = useRef(0);
-  const slide = slides[activeSlide];
 
   const permissions = getUserPermissions();
   const user = getStoredUser();
@@ -275,18 +230,6 @@ export default function ManagerDashboard() {
 
     return ensureManagerRestaurantId();
   }, [isAdmin, selectedRestaurantId]);
-
-  const goToPreviousSlide = () => {
-    setActiveSlide((current) =>
-      current === 0 ? slides.length - 1 : current - 1
-    );
-  };
-
-  const goToNextSlide = () => {
-    setActiveSlide((current) =>
-      current === slides.length - 1 ? 0 : current + 1
-    );
-  };
 
   const loadReports = useCallback(async () => {
     if (!canViewReports) {
@@ -355,182 +298,56 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     if (isAdmin && !selectedRestaurantId) {
-      setIsLoading(false);
-      return;
+      const frameId = window.requestAnimationFrame(() => {
+        setIsLoading(false);
+      });
+
+      return () => window.cancelAnimationFrame(frameId);
     }
 
-    loadReports();
+    const frameId = window.requestAnimationFrame(() => {
+      loadReports();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [isAdmin, loadReports, selectedRestaurantId]);
-
-  useEffect(() => {
-    if (isSliderPaused) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      setActiveSlide((current) =>
-        current === slides.length - 1 ? 0 : current + 1
-      );
-    }, 3000);
-
-    return () => window.clearInterval(intervalId);
-  }, [isSliderPaused]);
-
-  const handlePointerDown = (event) => {
-    if (event.target.closest("a,button")) return;
-
-    setIsSliderPaused(true);
-    setIsDragging(true);
-    dragStartX.current = event.clientX;
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerMove = (event) => {
-    if (!isDragging) return;
-    setDragOffset(event.clientX - dragStartX.current);
-  };
-
-  const handlePointerUp = (event) => {
-    if (!isDragging) return;
-
-    const distance = event.clientX - dragStartX.current;
-
-    if (distance > 80) {
-      goToPreviousSlide();
-    } else if (distance < -80) {
-      goToNextSlide();
-    }
-
-    setDragOffset(0);
-    setIsDragging(false);
-    setIsSliderPaused(false);
-  };
 
   const orders = summary?.orders ?? {};
   const revenue = summary?.revenue ?? {};
+  const reportArticleClass = isLight
+    ? "min-w-0 overflow-hidden rounded-[28px] border border-[#D8B7A8] bg-[#FFFDF8] shadow-[0_18px_42px_rgba(127,29,29,0.12)]"
+    : "min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]";
+  const reportHeaderClass = isLight
+    ? "border-b border-[#D8B7A8] bg-[linear-gradient(90deg,#FFF1E8_0%,#F3DCDC_100%)] p-5 text-[#241815]"
+    : "border-b border-white/10 p-5 text-white";
 
   return (
-    <div className="min-h-full space-y-6 bg-[radial-gradient(circle_at_85%_8%,rgba(127,29,29,0.18),transparent_28%),radial-gradient(circle_at_15%_20%,rgba(255,209,102,0.12),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)] p-4 text-white sm:p-6">
+    <div
+      className={`min-h-full space-y-6 p-4 sm:p-6 ${
+        isLight
+          ? "bg-[radial-gradient(circle_at_85%_8%,rgba(143,29,29,0.13),transparent_28%),radial-gradient(circle_at_15%_20%,rgba(216,162,45,0.20),transparent_24%),linear-gradient(145deg,#FFFDF8_0%,#F7E9E0_52%,#EFD4CA_100%)] text-[#241815]"
+          : "bg-[radial-gradient(circle_at_85%_8%,rgba(127,29,29,0.18),transparent_28%),radial-gradient(circle_at_15%_20%,rgba(255,209,102,0.12),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)] text-white"
+      }`}
+    >
       <section
-        onMouseEnter={() => setIsSliderPaused(true)}
-        onMouseLeave={() => setIsSliderPaused(false)}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        className={`overflow-hidden rounded-[30px] border border-white/10 bg-gradient-to-br ${slide.bg} text-white shadow-2xl ${slide.glow}`}
+        className={`relative overflow-hidden rounded-[30px] border p-6 shadow-[0_24px_60px_rgba(0,0,0,0.24)] ${
+          isLight
+            ? "border-[#D8B7A8] bg-[linear-gradient(135deg,#FFFDF8_0%,#F6E3DA_54%,#EBCAC0_100%)] shadow-[0_24px_60px_rgba(127,29,29,0.13)]"
+            : "border-white/10 bg-[#252A2D]"
+        }`}
       >
-        <div
-          className={`flex cursor-grab select-none ${
-            isDragging ? "cursor-grabbing" : "transition-transform duration-700 ease-out"
-          }`}
-          style={{
-            transform: `translate3d(calc(-${activeSlide * 100}% + ${dragOffset}px), 0, 0)`,
-          }}
-        >
-          {slides.map((item) => {
-            const SlideIcon = item.icon;
-
-            return (
-              <div
-                key={item.eyebrow}
-                className={`grid min-h-[330px] min-w-full gap-6 bg-gradient-to-br ${item.bg} p-6 md:grid-cols-[1.25fr_0.75fr] md:p-8`}
-              >
-                <div className="flex flex-col justify-between">
-                  <div>
-                    <div className={`mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-black uppercase tracking-wide backdrop-blur ${item.accentSoft}`}>
-                      <SlideIcon size={15} />
-                      {item.eyebrow}
-                    </div>
-
-                    <h1 className="max-w-2xl text-3xl font-black leading-tight md:text-5xl">
-                      {item.title}
-                    </h1>
-                    <p className="mt-4 max-w-xl text-sm leading-6 text-white/75 md:text-base">
-                      {item.text}
-                    </p>
-                  </div>
-
-                  <div className="mt-8 flex flex-wrap items-center gap-3">
-                    <Link
-                      to={item.to}
-                      className={`group inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black shadow-lg transition duration-200 hover:-translate-y-0.5 hover:scale-105 active:translate-y-0 active:scale-100 ${item.accent}`}
-                    >
-                      {item.action}
-                      <ArrowUpRight
-                        size={17}
-                        className="transition duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                      />
-                    </Link>
-
-                    <div className="flex items-center gap-2">
-                      {slides.map((dot, index) => (
-                        <button
-                          key={dot.eyebrow}
-                          type="button"
-                          onClick={() => setActiveSlide(index)}
-                          className={`h-2.5 rounded-full transition duration-200 ${
-                            activeSlide === index
-                              ? "w-9 bg-white"
-                              : "w-2.5 bg-white/35 hover:bg-white/70"
-                          }`}
-                          aria-label={`Go to ${dot.eyebrow}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-between rounded-[24px] border border-white/10 bg-white/10 p-5 backdrop-blur">
-                  <div className="flex items-center justify-between">
-                    <div className={`grid h-14 w-14 place-items-center rounded-2xl ${item.accent}`}>
-                      <SlideIcon size={27} />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={goToPreviousSlide}
-                        className="grid h-10 w-10 place-items-center rounded-lg bg-white/10 text-white transition duration-200 hover:scale-110 hover:bg-white/20 active:scale-95"
-                      >
-                        <ChevronLeft size={19} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={goToNextSlide}
-                        className="grid h-10 w-10 place-items-center rounded-lg bg-white/10 text-white transition duration-200 hover:scale-110 hover:bg-white/20 active:scale-95"
-                      >
-                        <ChevronRight size={19} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-bold text-white/60">Focus</p>
-                    <strong className="mt-2 block text-5xl font-black">
-                      {item.metric}
-                    </strong>
-                    <p className="mt-2 text-sm font-bold text-white/70">
-                      {item.metricLabel}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#252A2D] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
-        <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-[#7F1D1D]/14" />
-        <div className="absolute bottom-0 left-0 h-24 w-24 rounded-tr-full bg-[#FFD166]/10" />
+        <div className={`absolute right-0 top-0 h-32 w-32 rounded-bl-full ${isLight ? "bg-[#8F1D1D]/16" : "bg-[#7F1D1D]/14"}`} />
+        <div className={`absolute bottom-0 left-0 h-24 w-24 rounded-tr-full ${isLight ? "bg-[#D8A22D]/24" : "bg-[#FFD166]/10"}`} />
         <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(240px,0.9fr)_minmax(280px,1.2fr)_minmax(280px,1fr)] 2xl:items-center">
           <div className="relative min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#7F1D1D]/30 bg-[#7F1D1D]/12 px-4 py-1.5 text-sm font-black uppercase tracking-[0.16em] text-[#7F1D1D] shadow-sm">
               <BarChart3 size={14} />
               View Reports
             </div>
-            <h1 className="text-[clamp(2rem,1.45rem+1.15vw,3rem)] font-black leading-tight text-white">
+            <h1 className={`text-[clamp(2rem,1.45rem+1.15vw,3rem)] font-black leading-tight ${isLight ? "text-[#241815]" : "text-white"}`}>
               Restaurant performance
             </h1>
-            <p className="mt-3 max-w-2xl text-[clamp(0.94rem,0.82rem+0.22vw,1rem)] font-semibold leading-7 text-white/68">
+            <p className={`mt-3 max-w-2xl text-[clamp(0.94rem,0.82rem+0.22vw,1rem)] font-semibold leading-7 ${isLight ? "text-[#5A4037]" : "text-white/68"}`}>
               {restaurant?.name || "This manager's restaurant"}
               {restaurant?.id ? ` · Restaurant #${restaurant.id}` : ""} · live sales,
               orders, and best sellers.
@@ -538,16 +355,26 @@ export default function ManagerDashboard() {
           </div>
 
           {isAdmin && (
-            <div className="relative min-w-0 rounded-[24px] border border-[#FFD166]/30 bg-[#11181B]/78 p-4 shadow-[0_18px_38px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04]">
+            <div
+              className={`relative min-w-0 rounded-[24px] border p-4 shadow-[0_18px_38px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] ${
+                isLight
+                  ? "border-[#C18200]/35 bg-[#FFF2C7] shadow-[0_18px_38px_rgba(193,130,0,0.14)]"
+                  : "border-[#FFD166]/30 bg-[#11181B]/78"
+              }`}
+            >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
+                <div className={`grid h-11 w-11 place-items-center rounded-2xl border ${
+                  isLight
+                    ? "border-[#B17400]/35 bg-[#FFD166]/40 text-[#8A5700]"
+                    : "border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]"
+                }`}>
                   <Building2 size={21} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+                  <p className={`text-xs font-black uppercase tracking-[0.18em] ${isLight ? "text-[#8A5700]" : "text-[#FFD166]"}`}>
                     Admin dashboard view
                   </p>
-                  <h3 className="line-clamp-2 text-[clamp(1rem,0.86rem+0.28vw,1.125rem)] font-black leading-tight text-white">
+                  <h3 className={`line-clamp-2 text-[clamp(1rem,0.86rem+0.28vw,1.125rem)] font-black leading-tight ${isLight ? "text-[#241815]" : "text-white"}`}>
                     Open any manager dashboard
                   </h3>
                 </div>
@@ -572,8 +399,12 @@ export default function ManagerDashboard() {
                         }}
                         className={`shrink-0 rounded-2xl border px-4 py-2 text-[clamp(0.78rem,0.68rem+0.2vw,0.9rem)] font-black transition ${
                           active
-                            ? "border-[#FFD166]/80 bg-[#FFD166]/18 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
-                            : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/40 hover:bg-[#FFD166]/10 hover:text-white"
+                            ? isLight
+                              ? "border-[#C18200]/70 bg-[#FFD166]/45 text-[#7A4F00] shadow-[0_12px_26px_rgba(193,130,0,0.16)]"
+                              : "border-[#FFD166]/80 bg-[#FFD166]/18 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
+                            : isLight
+                              ? "border-[#D8B7A8] bg-white text-[#5A4037] hover:border-[#C18200]/45 hover:bg-[#FFF7D8] hover:text-[#241815]"
+                              : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/40 hover:bg-[#FFD166]/10 hover:text-white"
                         }`}
                       >
                         #{item.id} {item.name}
@@ -589,46 +420,63 @@ export default function ManagerDashboard() {
             </div>
           )}
 
-          <div className="relative min-w-0 rounded-[24px] border border-white/10 bg-black/18 p-4">
-            <p className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-[#FFD166]">
+          <div className={`relative min-w-0 rounded-[24px] border p-4 ${
+            isLight
+              ? "border-[#D8B7A8] bg-[#FFFDF8]"
+              : "border-white/10 bg-black/18"
+          }`}>
+            <p className={`mb-3 text-sm font-black uppercase tracking-[0.16em] ${isLight ? "text-[#8A5700]" : "text-[#FFD166]"}`}>
               Report date range
             </p>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-            <label className="block min-w-0">
-              <span className="mb-2 block text-sm font-black uppercase text-white/70">
-                From date
-              </span>
-              <input
-                type="date"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-                className="h-14 w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-[clamp(0.9rem,0.76rem+0.28vw,1rem)] font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
-              />
-            </label>
-            <label className="block min-w-0">
-              <span className="mb-2 block text-sm font-black uppercase text-white/70">
-                To date
-              </span>
-              <input
-                type="date"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-                className="h-14 w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-[clamp(0.9rem,0.76rem+0.28vw,1rem)] font-black text-white outline-none [color-scheme:dark] focus:border-[#FFD166] focus:ring-4 focus:ring-[#FFD166]/10"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={loadReports}
-              disabled={isLoading}
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-base font-black text-white shadow-lg shadow-[#7F1D1D]/20 transition hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/40 sm:col-span-2 lg:col-span-1"
-            >
-              {isLoading ? (
-                <Loader2 size={17} className="animate-spin" />
-              ) : (
-                <RefreshCw size={17} />
-              )}
-              Refresh
-            </button>
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <label className="block min-w-0">
+                <span className={`mb-2 block text-sm font-black uppercase ${isLight ? "text-[#3F2A23]" : "text-white/70"}`}>
+                  From date
+                </span>
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                  className={`h-14 w-full min-w-0 rounded-2xl border px-3 text-[0.95rem] font-black outline-none transition focus:border-[#8F1D1D] focus:ring-4 focus:ring-[#8F1D1D]/12 ${
+                    isLight
+                      ? "border-[#B97863] bg-[#FFF8F2] text-[#160F0C] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7),0_8px_18px_rgba(127,29,29,0.08)] [color-scheme:light]"
+                      : "border-white/10 bg-white/[0.08] text-white [color-scheme:dark]"
+                  }`}
+                />
+              </label>
+              <label className="block min-w-0">
+                <span className={`mb-2 block text-sm font-black uppercase ${isLight ? "text-[#3F2A23]" : "text-white/70"}`}>
+                  To date
+                </span>
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                  className={`h-14 w-full min-w-0 rounded-2xl border px-3 text-[0.95rem] font-black outline-none transition focus:border-[#8F1D1D] focus:ring-4 focus:ring-[#8F1D1D]/12 ${
+                    isLight
+                      ? "border-[#B97863] bg-[#FFF8F2] text-[#160F0C] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7),0_8px_18px_rgba(127,29,29,0.08)] [color-scheme:light]"
+                      : "border-white/10 bg-white/[0.08] text-white [color-scheme:dark]"
+                  }`}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={loadReports}
+                disabled={isLoading}
+                className={`inline-flex h-14 min-w-[128px] items-center justify-center gap-2 rounded-2xl border px-5 text-base font-black text-white [color:#fff] shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:[color:#fff] sm:col-span-2 ${
+                  isLight
+                    ? "border-[#8F1D1D] bg-[#8F1D1D] shadow-[#8F1D1D]/20 hover:bg-[#6F1717] disabled:border-[#8F1D1D]/70 disabled:bg-[#8F1D1D]/80 disabled:opacity-90"
+                    : "border-[#7F1D1D] bg-[#7F1D1D] shadow-[#7F1D1D]/20 hover:bg-[#681718] disabled:border-[#7F1D1D]/50 disabled:bg-[#7F1D1D]/55"
+                }`}
+                style={{ color: "#fff" }}
+              >
+                {isLoading ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={17} />
+                )}
+                Refresh
+              </button>
             </div>
           </div>
         </div>
@@ -641,58 +489,125 @@ export default function ManagerDashboard() {
         </div>
       )}
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_520px]">
-        <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <StatCard
-              title="Revenue"
-              value={isLoading ? "..." : money(revenue.total)}
-              helper="Paid invoices"
-              icon={DollarSign}
-              tone="green"
-            />
-            <StatCard
-              title="Orders"
-              value={isLoading ? "..." : orders.total ?? 0}
-              helper="All orders"
-              icon={ClipboardList}
-              tone="blue"
-            />
-            <StatCard
-              title="Completed"
-              value={isLoading ? "..." : orders.completed ?? 0}
-              helper="Finished orders"
-              icon={TrendingUp}
-              tone="red"
-            />
-            <StatCard
-              title="Active"
-              value={isLoading ? "..." : orders.active ?? 0}
-              helper="In progress"
-              icon={CalendarDays}
-              tone="amber"
-            />
-          </div>
+      <section className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            title="Revenue"
+            value={isLoading ? "..." : money(revenue.total)}
+            helper="Paid invoices"
+            icon={DollarSign}
+            tone="green"
+          />
+          <StatCard
+            title="Orders"
+            value={isLoading ? "..." : orders.total ?? 0}
+            helper="All orders"
+            icon={ClipboardList}
+            tone="blue"
+          />
+          <StatCard
+            title="Completed"
+            value={isLoading ? "..." : orders.completed ?? 0}
+            helper="Finished orders"
+            icon={TrendingUp}
+            tone="red"
+          />
+          <StatCard
+            title="Active"
+            value={isLoading ? "..." : orders.active ?? 0}
+            helper="In progress"
+            icon={CalendarDays}
+            tone="amber"
+          />
+        </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <article className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
-              <div
-                className="border-b border-white/10 p-5 text-white"
-                style={{
-                  background:
-                    "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-                }}
-              >
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)] xl:items-start">
+          <article className={`${reportArticleClass} xl:min-h-[386px]`}>
+            <div className={reportHeaderClass}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-black uppercase tracking-[0.14em] ${isLight ? "text-sky-700" : "text-sky-300"}`}>
+                    Daily Orders
+                  </p>
+                  <h2 className={`mt-1 text-2xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
+                    Order flow
+                  </h2>
+                </div>
+                <div className={`grid h-11 w-11 place-items-center rounded-2xl ${isLight ? "bg-[#DDF1FF] text-sky-700" : "bg-sky-300/14 text-sky-300"}`}>
+                  <ClipboardList size={22} />
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              {isLoading ? (
+                <EmptyState text="Loading orders..." />
+              ) : dailyOrders.length ? (
+                <ReportTable
+                  rows={dailyOrders}
+                  emptyText="No orders for this range."
+                  columns={[
+                    {
+                      key: "date",
+                      label: "Date",
+                      render: (row) => (
+                        <span className={`text-lg font-black ${isLight ? "text-[#241815]" : "text-white"}`}>{row.date}</span>
+                      ),
+                    },
+                    {
+                      key: "total_orders",
+                      label: "Total",
+                      render: (row) => (
+                        <span className={`rounded-full px-4 py-1.5 text-base font-black ${
+                          isLight
+                            ? "border border-sky-600/25 bg-[#DDF1FF] text-sky-700"
+                            : "bg-sky-300/12 text-sky-300"
+                        }`}>
+                          {row.total_orders ?? 0}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "completed_orders",
+                      label: "Done",
+                      render: (row) => (
+                        <span className={`text-lg font-black ${isLight ? "text-[#08764D]" : "text-emerald-300"}`}>{row.completed_orders ?? 0}</span>
+                      ),
+                    },
+                    {
+                      key: "cancelled_orders",
+                      label: "Cancel",
+                      render: (row) => (
+                        <span className="text-lg font-black text-[#7F1D1D]">{row.cancelled_orders ?? 0}</span>
+                      ),
+                    },
+                    {
+                      key: "active_orders",
+                      label: "Active",
+                      render: (row) => (
+                        <span className={`text-lg font-black ${isLight ? "text-[#8A5700]" : "text-[#FFD166]"}`}>{row.active_orders ?? 0}</span>
+                      ),
+                    },
+                  ]}
+                />
+              ) : (
+                <EmptyState text="No orders for this range." />
+              )}
+            </div>
+          </article>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-1">
+            <article className={reportArticleClass}>
+              <div className={reportHeaderClass}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
                       Daily Revenue
                     </p>
-                    <h2 className="mt-1 text-2xl font-black text-white">
+                    <h2 className={`mt-1 text-2xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
                       Revenue pulse
                     </h2>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D]/18 text-[#7F1D1D]">
+                  <div className={`grid h-11 w-11 place-items-center rounded-2xl ${isLight ? "bg-[#F3DCDC] text-[#8F1D1D]" : "bg-[#7F1D1D]/18 text-[#7F1D1D]"}`}>
                     <DollarSign size={22} />
                   </div>
                 </div>
@@ -709,14 +624,18 @@ export default function ManagerDashboard() {
                         key: "date",
                         label: "Date",
                         render: (row) => (
-                          <span className="text-lg font-black text-white">{row.date}</span>
+                          <span className={`text-lg font-black ${isLight ? "text-[#241815]" : "text-white"}`}>{row.date}</span>
                         ),
                       },
                       {
                         key: "revenue",
                         label: "Revenue",
                         render: (row) => (
-                          <span className="rounded-full bg-emerald-400/12 px-4 py-1.5 text-base font-black text-emerald-300">
+                          <span className={`rounded-full px-4 py-1.5 text-base font-black ${
+                            isLight
+                              ? "border border-[#0F8B5F]/30 bg-[#D9F2E5] text-[#08764D]"
+                              : "bg-emerald-400/12 text-emerald-300"
+                          }`}>
                             {money(row.revenue)}
                           </span>
                         ),
@@ -729,162 +648,89 @@ export default function ManagerDashboard() {
               </div>
             </article>
 
-            <article className="min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
-              <div
-                className="border-b border-white/10 p-5 text-white"
-                style={{
-                  background:
-                    "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-                }}
-              >
+            <article className={reportArticleClass}>
+              <div className={reportHeaderClass}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-black uppercase tracking-[0.14em] text-sky-300">
-                      Daily Orders
+                    <p className="text-sm font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
+                      Top Foods
                     </p>
-                    <h2 className="mt-1 text-2xl font-black text-white">
-                      Order flow
+                    <h2 className={`mt-1 text-2xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
+                      Best sellers
                     </h2>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-300/14 text-sky-300">
-                    <ClipboardList size={22} />
+                  <div className={`grid h-11 w-11 place-items-center rounded-2xl ${isLight ? "bg-[#F3DCDC] text-[#8F1D1D]" : "bg-[#7F1D1D]/18 text-[#7F1D1D]"}`}>
+                    <ChefHat size={22} />
                   </div>
                 </div>
+
+                {topFoods[0] && !isLoading ? (
+                  <div className={`mt-5 rounded-2xl border p-4 ${
+                    isLight
+                      ? "border-[#C18200]/35 bg-[#FFE8A3]"
+                      : "border-white/10 bg-black/16"
+                  }`}>
+                    <p className={`text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8A5700]" : "text-[#FFD166]"}`}>
+                      Leader
+                    </p>
+                    <h3 className={`mt-2 text-2xl font-black leading-tight ${isLight ? "text-[#241815]" : "text-white"}`}>
+                      {getFoodName(topFoods[0])}
+                    </h3>
+                    <p className={`mt-2 text-sm font-bold ${isLight ? "text-[#5A4037]" : "text-white/55"}`}>
+                      {getFoodSoldCount(topFoods[0])} sold in this range
+                    </p>
+                  </div>
+                ) : null}
               </div>
+
               <div className="p-4">
                 {isLoading ? (
-                  <EmptyState text="Loading orders..." />
-                ) : dailyOrders.length ? (
+                  <EmptyState text="Loading top foods..." />
+                ) : topFoods.length ? (
                   <ReportTable
-                    rows={dailyOrders}
-                    emptyText="No orders for this range."
+                    rows={topFoods}
+                    emptyText="No completed food sales for this range."
                     columns={[
                       {
-                        key: "date",
-                        label: "Date",
-                        render: (row) => (
-                          <span className="text-lg font-black text-white">{row.date}</span>
-                        ),
-                      },
-                      {
-                        key: "total_orders",
-                        label: "Total",
-                        render: (row) => (
-                          <span className="rounded-full bg-sky-300/12 px-4 py-1.5 text-base font-black text-sky-300">
-                            {row.total_orders ?? 0}
+                        key: "rank",
+                        label: "#",
+                        render: (_row, index) => (
+                          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#7F1D1D] text-base font-black text-white">
+                            {index + 1}
                           </span>
                         ),
                       },
                       {
-                        key: "completed_orders",
-                        label: "Done",
+                        key: "food_name",
+                        label: "Food",
                         render: (row) => (
-                          <span className="text-lg font-black text-emerald-300">{row.completed_orders ?? 0}</span>
+                          <span className={`text-lg font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
+                            {getFoodName(row)}
+                          </span>
                         ),
                       },
                       {
-                        key: "cancelled_orders",
-                        label: "Cancel",
+                        key: "total_sold",
+                        label: "Sold",
                         render: (row) => (
-                          <span className="text-lg font-black text-[#7F1D1D]">{row.cancelled_orders ?? 0}</span>
-                        ),
-                      },
-                      {
-                        key: "active_orders",
-                        label: "Active",
-                        render: (row) => (
-                          <span className="text-lg font-black text-[#FFD166]">{row.active_orders ?? 0}</span>
+                          <span className={`rounded-full px-4 py-1.5 text-base font-black ${
+                            isLight
+                              ? "border border-[#C18200]/35 bg-[#FFE8A3] text-[#7A4F00]"
+                              : "bg-[#FFD166]/14 text-[#FFD166]"
+                          }`}>
+                            {getFoodSoldCount(row)}
+                          </span>
                         ),
                       },
                     ]}
                   />
                 ) : (
-                  <EmptyState text="No orders for this range." />
+                  <EmptyState text="No completed food sales for this range." />
                 )}
               </div>
             </article>
           </div>
         </div>
-
-        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
-          <div
-            className="border-b border-white/10 p-5 text-white"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-            }}
-          >
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.14em] text-[#7F1D1D]">
-                  Top Foods
-                </p>
-                <h2 className="mt-1 text-3xl font-black text-white">
-                  Best sellers
-                </h2>
-              </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D]/18 text-[#7F1D1D]">
-                <ChefHat size={24} />
-              </div>
-            </div>
-
-            {topFoods[0] && !isLoading ? (
-              <div className="rounded-2xl border border-white/10 bg-black/16 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
-                  Leader
-                </p>
-                <h3 className="mt-2 text-2xl font-black leading-tight text-white">
-                  {getFoodName(topFoods[0])}
-                </h3>
-                <p className="mt-2 text-sm font-bold text-white/55">
-                  {getFoodSoldCount(topFoods[0])} sold in this range
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="p-4">
-            {isLoading ? (
-              <EmptyState text="Loading top foods..." />
-            ) : topFoods.length ? (
-              <ReportTable
-                rows={topFoods}
-                emptyText="No completed food sales for this range."
-                columns={[
-                  {
-                    key: "rank",
-                    label: "#",
-                    render: (_row, index) => (
-                      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#7F1D1D] text-base font-black text-white">
-                        {index + 1}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "food_name",
-                    label: "Food",
-                    render: (row) => (
-                      <span className="text-lg font-black text-white">
-                        {getFoodName(row)}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "total_sold",
-                    label: "Sold",
-                    render: (row) => (
-                      <span className="rounded-full bg-[#FFD166]/14 px-4 py-1.5 text-base font-black text-[#FFD166]">
-                        {getFoodSoldCount(row)}
-                      </span>
-                    ),
-                  },
-                ]}
-              />
-            ) : (
-              <EmptyState text="No completed food sales for this range." />
-            )}
-          </div>
-        </article>
       </section>
 
     </div>

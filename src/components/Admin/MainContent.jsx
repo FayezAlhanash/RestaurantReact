@@ -843,25 +843,21 @@ function MainContent() {
                     </div>
 
                     <div className={`${panelSurface} min-h-[500px] p-8`}>
-                        <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="mb-4 flex items-start justify-between gap-3">
                             <div>
                                 <h2 className="text-2xl font-black text-white">Daily Orders</h2>
                                 <p className="mt-2 text-sm font-semibold text-[#8f887c]">
                                     Volume tracking
                                 </p>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <span className="rounded-md border border-[#2fc78d]/35 bg-[#123529] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#59e3a8]">
-                                    Realtime
-                                </span>
-                                <div
-                                    className="relative"
-                                    onBlur={(event) => {
-                                        if (!event.currentTarget.contains(event.relatedTarget)) {
-                                            setIsDailyOrdersRestaurantMenuOpen(false);
-                                        }
-                                    }}
-                                >
+                            <div
+                                className="relative"
+                                onBlur={(event) => {
+                                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                                        setIsDailyOrdersRestaurantMenuOpen(false);
+                                    }
+                                }}
+                            >
                                     <button
                                         type="button"
                                         onClick={() =>
@@ -869,14 +865,20 @@ function MainContent() {
                                                 (value) => !value
                                             )
                                         }
-                                        className="flex h-10 min-w-[180px] max-w-[220px] items-center justify-between gap-3 rounded-[8px] border border-[#D8A22D]/70 bg-[#FFFDF8] px-3 text-left text-xs font-black text-[#241815] shadow-[0_10px_24px_rgba(154,100,0,0.08)] outline-none transition hover:border-[#B17400] hover:bg-white focus:border-[#B17400] focus:ring-4 focus:ring-[#D8A22D]/12"
+                                        className={`flex h-10 min-w-[180px] max-w-[220px] items-center justify-between gap-3 rounded-[8px] border px-3 text-left text-xs font-black shadow-[0_10px_24px_rgba(154,100,0,0.08)] outline-none transition focus:border-[#D8A22D] focus:ring-4 focus:ring-[#D8A22D]/12 ${
+                                            isLight
+                                                ? "border-[#D8A22D]/70 bg-[#FFFDF8] text-[#241815] hover:border-[#B17400] hover:bg-white"
+                                                : "border-[#D8A22D]/45 bg-[#151515] text-[#FFF4DA] hover:border-[#D8A22D]/70 hover:bg-[#1B1B1B]"
+                                        }`}
                                     >
                                         <span className="truncate">
                                             {selectedDailyOrdersRestaurantLabel}
                                         </span>
                                         <ChevronDown
                                             size={15}
-                                            className={`shrink-0 text-[#9A6400] transition-transform ${
+                                            className={`shrink-0 transition-transform ${
+                                                isLight ? "text-[#9A6400]" : "text-[#D8A22D]"
+                                            } ${
                                                 isDailyOrdersRestaurantMenuOpen
                                                     ? "rotate-180"
                                                     : ""
@@ -885,7 +887,11 @@ function MainContent() {
                                     </button>
 
                                     <div
-                                        className={`absolute right-0 top-12 z-[90] w-[220px] origin-top-right overflow-hidden rounded-[14px] border border-[#E4CFC3] bg-white p-2 text-[#241815] shadow-[0_22px_50px_rgba(70,45,30,0.16)] ring-1 ring-[#D8A22D]/10 transition-all duration-200 ease-out ${
+                                        className={`absolute right-0 top-12 z-[90] w-[220px] origin-top-right overflow-hidden rounded-[14px] border p-2 shadow-[0_22px_50px_rgba(0,0,0,0.28)] ring-1 ring-[#D8A22D]/10 transition-all duration-200 ease-out ${
+                                            isLight
+                                                ? "border-[#E4CFC3] bg-white text-[#241815]"
+                                                : "border-white/10 bg-[#151515] text-white"
+                                        } ${
                                             isDailyOrdersRestaurantMenuOpen
                                                 ? "translate-y-0 scale-100 opacity-100"
                                                 : "pointer-events-none -translate-y-2 scale-95 opacity-0"
@@ -907,9 +913,13 @@ function MainContent() {
                                                         setIsDailyOrdersRestaurantMenuOpen(false);
                                                     }}
                                                     className={`flex h-10 w-full items-center justify-between gap-3 rounded-[9px] px-3 text-left text-sm font-black transition ${
-                                                        isSelected
-                                                            ? "bg-[#FFF4DA] text-[#7A4F00] ring-1 ring-[#D8A22D]/24"
-                                                            : "text-[#4D3E37] hover:bg-[#FFF9F2] hover:text-[#241815]"
+                                                        isLight
+                                                            ? isSelected
+                                                                ? "bg-[#FFF4DA] text-[#7A4F00] ring-1 ring-[#D8A22D]/24"
+                                                                : "text-[#4D3E37] hover:bg-[#FFF9F2] hover:text-[#241815]"
+                                                            : isSelected
+                                                                ? "bg-[#2A2416] text-[#FFD166] ring-1 ring-[#D8A22D]/30"
+                                                                : "text-[#D9D1C5] hover:bg-white/[0.06] hover:text-white"
                                                     }`}
                                                 >
                                                     <span className="truncate">
@@ -918,14 +928,15 @@ function MainContent() {
                                                     {isSelected && (
                                                         <Check
                                                             size={15}
-                                                            className="shrink-0 text-[#9A6400]"
+                                                            className={`shrink-0 ${
+                                                                isLight ? "text-[#9A6400]" : "text-[#FFD166]"
+                                                            }`}
                                                         />
                                                     )}
                                                 </button>
                                             );
                                         })}
                                     </div>
-                                </div>
                             </div>
                         </div>
                         <div className="h-[365px]">

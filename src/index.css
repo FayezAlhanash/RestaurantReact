@@ -1657,3 +1657,63 @@ img, svg {
 [data-theme="dark"] .warehouse-waste-save-button * {
     color: #ffffff !important;
 }
+
+.table-device-setup,
+[data-theme="light"] .table-device-setup,
+[data-theme="dark"] .table-device-setup {
+    color-scheme: dark;
+    background:
+        radial-gradient(circle at 82% 12%, rgba(127, 29, 29, 0.22), transparent 30%),
+        radial-gradient(circle at 14% 20%, rgba(255, 209, 102, 0.15), transparent 24%),
+        linear-gradient(145deg, #101517 0%, #171D20 48%, #26181B 100%) !important;
+    color: #ffffff !important;
+}
+
+.table-device-setup [class*="text-white"],
+.table-device-setup [class*="text-white/"],
+[data-theme="light"] .table-device-setup [class*="text-white"],
+[data-theme="light"] .table-device-setup [class*="text-white/"] {
+    color: #ffffff !important;
+}
+
+.table-device-setup [class*="text-[#FFD166"],
+[data-theme="light"] .table-device-setup [class*="text-[#FFD166"] {
+    color: #FFD166 !important;
+}
+
+.table-device-setup article,
+[data-theme="light"] .table-device-setup article {
+    background-color: #20272A !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.30) !important;
+}
+
+.table-device-setup label > span,
+[data-theme="light"] .table-device-setup label > span {
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.table-device-setup label > div,
+[data-theme="light"] .table-device-setup label > div {
+    background-color: #101517 !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+.table-device-setup input,
+[data-theme="light"] .table-device-setup input {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #FFD166 !important;
+}
+
+.table-device-setup input[readonly],
+[data-theme="light"] .table-device-setup input[readonly] {
+    color: rgba(255, 255, 255, 0.70) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.70) !important;
+}
+
+.table-device-setup input::placeholder,
+[data-theme="light"] .table-device-setup input::placeholder {
+    color: rgba(255, 255, 255, 0.30) !important;
+}
