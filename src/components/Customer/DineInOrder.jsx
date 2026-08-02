@@ -592,7 +592,18 @@ function CustomerFoodCard({ item, onOpen }) {
         item?.is_diet_food;
 
     return (
-        <article className="customer-food-card group grid grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] sm:block sm:rounded-[26px] sm:hover:-translate-y-1">
+        <article
+            className="customer-food-card group grid cursor-pointer grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] focus:outline-none focus:ring-4 focus:ring-[#FFD166]/25 sm:block sm:rounded-[26px] sm:hover:-translate-y-1"
+            role="button"
+            tabIndex={0}
+            onClick={onOpen}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onOpen();
+                }
+            }}
+        >
             <div className="relative min-h-[150px] overflow-hidden bg-[#111719] sm:h-44">
                 <img
                     src={imageUrl}
@@ -629,7 +640,10 @@ function CustomerFoodCard({ item, onOpen }) {
                     <span className="truncate text-xs font-bold text-white/45 sm:text-sm">Tap to customize</span>
                     <button
                         type="button"
-                        onClick={onOpen}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onOpen();
+                        }}
                         className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 sm:h-11 sm:w-11"
                         aria-label={`Add ${item.title}`}
                     >
@@ -2205,7 +2219,7 @@ function DineInOrder() {
                     item={selectedItem}
                     onClose={() => setSelectedItem(null)}
                     addToCart={addToCart}
-                    variant={isLight ? "light" : "dark"}
+                    variant="dineIn"
                 />
             )}
 

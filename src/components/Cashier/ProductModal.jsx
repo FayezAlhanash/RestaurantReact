@@ -1,4 +1,17 @@
-import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import {
+    Check,
+    Clock3,
+    Flame,
+    Heart,
+    Leaf,
+    MessageSquare,
+    Minus,
+    Plus,
+    ShoppingBag,
+    Star,
+    Utensils,
+    X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
@@ -28,6 +41,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     if (!isOpen) return null;
 
     const isDark = variant === "dark";
+    const isDineIn = variant === "dineIn";
 
     const getOptionId = (option) => option?.id ?? option?.modifier_option_id ?? option?.modifierOptionId ?? option?.option_id ?? option?.optionId;
     const getModifierGroupId = (group) => group?.id ?? group?.modifier_group_id ?? group?.modifierGroupId ?? group?.group_id ?? group?.groupId;
@@ -277,6 +291,366 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const orderNotes = [...modifierNotes, notes]
         .filter(Boolean)
         .join(" · ");
+    const addCurrentItemToCart = () => {
+        if (!allRequiredModifiersSelected) return;
+
+        addToCart({
+            ...item,
+            price: unitPrice,
+            quantity,
+            size: hasModifiers ? "" : selectedSize,
+            notes: orderNotes,
+            selectedModifiers,
+            selectedModifierOptions,
+        });
+        closeModal();
+    };
+    const getIngredientName = (ingredient) =>
+        ingredient?.name ??
+        ingredient?.ingredient?.name ??
+        ingredient?.food_ingredient?.name ??
+        ingredient?.foodIngredient?.name ??
+        ingredient?.title ??
+        "";
+    const ingredientSource = [
+        item?.ingredients,
+        item?.foodIngredients,
+        item?.food_ingredients,
+        item?.recipeIngredients,
+        item?.recipe_ingredients,
+    ].find(Array.isArray);
+    const ingredientChips = (ingredientSource ?? [])
+        .map(getIngredientName)
+        .filter(Boolean);
+    const detailChips = [
+        ...ingredientChips,
+        item?.categoryName,
+        ...modifierGroups.slice(0, 3).map((group) => group.name),
+    ]
+        .filter(Boolean)
+        .filter((chip, index, chips) => chips.indexOf(chip) === index)
+        .slice(0, 7);
+    const preparationTime = item?.preparation_time ?? item?.preparationTime;
+    const calories = item?.calories;
+
+    if (isDineIn) {
+        return (
+            <div className="product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center bg-[#071315]/72 p-3 backdrop-blur-md sm:p-6">
+                <div className="product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] overflow-hidden rounded-[30px] border border-white/12 bg-[#F7FAF3] text-[#17201F] shadow-[0_34px_90px_rgba(0,0,0,0.48)]">
+                    <div className="relative min-h-0 overflow-hidden bg-[#D9E88F]">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.42),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(33,99,82,0.18),transparent_25%),linear-gradient(145deg,#D9E88F_0%,#C9E071_54%,#A7C957_100%)]" />
+                        <div className="relative z-10 flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
+                            <button
+                                type="button"
+                                onClick={closeModal}
+                                aria-label="Close product"
+                                className="grid h-10 w-10 place-items-center rounded-full bg-white/88 text-[#1D2A25] shadow-[0_10px_24px_rgba(33,77,57,0.16)] transition hover:bg-white active:scale-95"
+                            >
+                                <X size={19} />
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="Favorite"
+                                className="grid h-10 w-10 place-items-center rounded-full bg-white/88 text-[#1D2A25] shadow-[0_10px_24px_rgba(33,77,57,0.16)] transition hover:bg-white active:scale-95"
+                            >
+                                <Heart size={19} />
+                            </button>
+                        </div>
+
+                        <div className="relative z-10 px-5 pb-16 pt-4 text-center sm:px-7 sm:pb-20">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#476A45]">
+                                {item?.restaurantName || "Big-4 Menu"}
+                            </p>
+                            <h2 className="mx-auto mt-2 max-w-[360px] text-3xl font-black leading-[1.08] text-[#17201F] sm:text-[34px]">
+                                {item?.title}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <div className="relative flex min-h-0 flex-1 flex-col bg-[#F7FAF3]">
+                        <div className="pointer-events-none absolute left-1/2 top-0 z-20 h-36 w-36 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[7px] border-[#F7FAF3] bg-[#17201F] shadow-[0_22px_42px_rgba(33,77,57,0.28)] sm:h-40 sm:w-40">
+                            <img
+                                src={imageUrl}
+                                alt={item?.title}
+                                className="h-full w-full object-cover"
+                            />
+                        </div>
+
+                        <div className="product-modal-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-20 sm:px-5 sm:pt-24">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-black text-[#1E332C] shadow-[0_8px_22px_rgba(33,77,57,0.08)]">
+                                    <Star size={15} className="fill-[#F0B429] text-[#F0B429]" />
+                                    4.8
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold uppercase text-[#6B7C73]">
+                                        Total
+                                    </p>
+                                    <p className="text-2xl font-black text-[#1E332C]">
+                                        ${(unitPrice * quantity).toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {item?.description && (
+                                <p className="rounded-[20px] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#627169] shadow-[0_10px_24px_rgba(33,77,57,0.07)]">
+                                    {item.description}
+                                </p>
+                            )}
+
+                            <div className="mt-4 grid grid-cols-3 gap-2">
+                                <div className="rounded-[18px] bg-[#EAF3D0] px-3 py-3 text-center">
+                                    <Clock3 className="mx-auto text-[#476A45]" size={18} />
+                                    <p className="mt-1 text-[11px] font-bold text-[#6B7C73]">Prep</p>
+                                    <p className="text-sm font-black text-[#1E332C]">
+                                        {preparationTime ? `${preparationTime}m` : "Fresh"}
+                                    </p>
+                                </div>
+                                <div className="rounded-[18px] bg-[#FFF0C7] px-3 py-3 text-center">
+                                    <Flame className="mx-auto text-[#B7791F]" size={18} />
+                                    <p className="mt-1 text-[11px] font-bold text-[#7B6F54]">Energy</p>
+                                    <p className="text-sm font-black text-[#4D3414]">
+                                        {calories ? `${calories}` : "Chef"}
+                                    </p>
+                                </div>
+                                <div className="rounded-[18px] bg-[#DDEFE8] px-3 py-3 text-center">
+                                    <Utensils className="mx-auto text-[#276749]" size={18} />
+                                    <p className="mt-1 text-[11px] font-bold text-[#5E746A]">Type</p>
+                                    <p className="truncate text-sm font-black text-[#1E332C]">
+                                        {item?.categoryName || "Menu"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {!!detailChips.length && (
+                                <div className="mt-5">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <h3 className="text-sm font-black text-[#1E332C]">Ingredients</h3>
+                                        <Leaf size={17} className="text-[#6B8E23]" />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {detailChips.map((chip) => (
+                                            <span
+                                                key={chip}
+                                                className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#526158] shadow-[0_8px_18px_rgba(33,77,57,0.06)]"
+                                            >
+                                                {chip}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {isLoadingDetails ? (
+                                <div className="mt-5 rounded-[20px] border border-[#D8E6BE] bg-white p-4 text-sm font-extrabold text-[#627169]">
+                                    Loading options...
+                                </div>
+                            ) : hasModifiers ? (
+                                <div className="mt-5 space-y-4">
+                                    {modifierGroups.map((group) => (
+                                        <div
+                                            key={getModifierGroupId(group)}
+                                            className={`rounded-[22px] border bg-white p-3 shadow-[0_10px_24px_rgba(33,77,57,0.07)] ${
+                                                isVariantGroup(group)
+                                                    ? "border-[#BBD682]"
+                                                    : "border-[#E3E9DD]"
+                                            } ${
+                                                !isVariantGroup(group) && !canSelectNonVariantModifiers
+                                                    ? "opacity-55"
+                                                    : ""
+                                            }`}
+                                        >
+                                            <div className="mb-3 flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <h3 className="text-base font-black leading-6 text-[#1E332C]">
+                                                        {group.name}
+                                                    </h3>
+                                                    {isVariantGroup(group) && (
+                                                        <p className="mt-1 text-xs font-bold text-[#6B7C73]">
+                                                            Select one size. The amount is the final item price.
+                                                        </p>
+                                                    )}
+                                                    {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
+                                                        <p className="mt-1 text-xs font-bold text-[#8A7761]">
+                                                            Choose a size first.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                                    isVariantGroup(group)
+                                                        ? "bg-[#EAF3D0] text-[#476A45]"
+                                                        : isGroupRequired(group)
+                                                            ? "bg-[#FCE7D7] text-[#9A3412]"
+                                                            : "bg-[#EEF2E8] text-[#6B7C73]"
+                                                }`}>
+                                                    {isVariantGroup(group)
+                                                        ? "Full prices"
+                                                        : isGroupRequired(group)
+                                                            ? "Required"
+                                                            : "Optional"}
+                                                    {!isVariantGroup(group) && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {group.options.map((option) => {
+                                                    const groupId = getModifierGroupId(group);
+                                                    const optionId = getOptionId(option);
+                                                    const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
+                                                        ? selectedModifiers[groupId]
+                                                        : [selectedModifiers[groupId]].filter(Boolean);
+                                                    const isSelected = selectedOptionIds.some(
+                                                        (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                    );
+                                                    const optionPrice = getModifierOptionPrice(option, group);
+                                                    const isVariant = isVariantGroup(group);
+                                                    const isDisabled = !isVariant && !canSelectNonVariantModifiers;
+
+                                                    return (
+                                                        <button
+                                                            key={optionId}
+                                                            type="button"
+                                                            disabled={isDisabled}
+                                                            onClick={() => {
+                                                                if (isDisabled) return;
+
+                                                                setSelectedModifiers((current) => {
+                                                                    const maxSelect = getGroupMaxSelect(group);
+
+                                                                    if (maxSelect <= 1) {
+                                                                        return {
+                                                                            ...current,
+                                                                            [groupId]: optionId,
+                                                                        };
+                                                                    }
+
+                                                                    const currentOptionIds = Array.isArray(current[groupId])
+                                                                        ? current[groupId]
+                                                                        : [current[groupId]].filter(Boolean);
+                                                                    const alreadySelected = currentOptionIds.some(
+                                                                        (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                                    );
+                                                                    const nextOptionIds = alreadySelected
+                                                                        ? currentOptionIds.filter(
+                                                                              (selectedOptionId) => String(selectedOptionId) !== String(optionId)
+                                                                          )
+                                                                        : [...currentOptionIds, optionId].slice(0, maxSelect);
+
+                                                                    return {
+                                                                        ...current,
+                                                                        [groupId]: nextOptionIds,
+                                                                    };
+                                                                });
+                                                            }}
+                                                            className={`flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-left text-xs font-black transition disabled:cursor-not-allowed ${
+                                                                isDisabled
+                                                                    ? "border-[#E3E9DD] bg-[#EEF2E8] text-[#9AAA9F]"
+                                                                    : isSelected
+                                                                        ? "border-[#2F6F56] bg-[#2F6F56] text-white shadow-[0_10px_20px_rgba(47,111,86,0.20)]"
+                                                                        : "border-[#E3E9DD] bg-[#F7FAF3] text-[#526158] hover:border-[#A7C957]"
+                                                            }`}
+                                                        >
+                                                            {isSelected && <Check size={14} />}
+                                                            <span>{option.name}</span>
+                                                            {(isVariant || optionPrice > 0) && (
+                                                                <span className={`rounded-full px-2 py-0.5 text-[10px] ${
+                                                                    isSelected
+                                                                        ? "bg-white/18 text-white"
+                                                                        : "bg-white text-[#476A45]"
+                                                                }`}>
+                                                                    {isVariant ? `$${optionPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="mt-5">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <h3 className="text-sm font-black text-[#1E332C]">Choose size</h3>
+                                        <span className="text-xs font-bold text-[#6B7C73]">Required</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        {["small", "large"].map((size) => (
+                                            <button
+                                                key={size}
+                                                type="button"
+                                                onClick={() => setSelectedSize(size)}
+                                                className={`rounded-[18px] border px-3 py-3 text-left transition ${
+                                                    selectedSize === size
+                                                        ? "border-[#2F6F56] bg-[#DDEFE8] text-[#1E332C] ring-2 ring-[#2F6F56]/12"
+                                                        : "border-[#E3E9DD] bg-white text-[#627169] hover:border-[#A7C957]"
+                                                }`}
+                                            >
+                                                <span className="block text-sm font-black capitalize">{size}</span>
+                                                <span className="mt-0.5 block text-xs font-bold opacity-70">
+                                                    {size === "small" ? "Regular serving" : "+ $2.00"}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-5 rounded-[22px] bg-white p-3 shadow-[0_10px_24px_rgba(33,77,57,0.07)]">
+                                <label className="mb-2 flex items-center gap-2 text-sm font-black text-[#1E332C]">
+                                    <MessageSquare size={16} className="text-[#476A45]" />
+                                    Special instructions
+                                </label>
+                                <textarea
+                                    value={notes}
+                                    onChange={(event) => setNotes(event.target.value)}
+                                    placeholder="No onions, extra sauce..."
+                                    rows={2}
+                                    className="w-full resize-none rounded-[16px] border border-[#E3E9DD] bg-[#F7FAF3] p-3 text-sm font-semibold text-[#1E332C] outline-none transition placeholder:text-[#9AAA9F] focus:border-[#2F6F56] focus:ring-4 focus:ring-[#2F6F56]/10"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid shrink-0 grid-cols-[112px_minmax(0,1fr)] gap-3 border-t border-[#E3E9DD] bg-[#F7FAF3]/96 p-4 shadow-[0_-18px_34px_rgba(33,77,57,0.08)] backdrop-blur">
+                            <div className="flex items-center justify-between rounded-full bg-white px-2 py-2 shadow-[0_8px_18px_rgba(33,77,57,0.08)]">
+                                <button
+                                    type="button"
+                                    onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                                    className="grid h-8 w-8 place-items-center rounded-full bg-[#EEF2E8] text-[#2F6F56] transition active:scale-95"
+                                    aria-label="Decrease quantity"
+                                >
+                                    <Minus size={15} />
+                                </button>
+                                <span className="w-6 text-center text-lg font-black text-[#1E332C]">
+                                    {quantity}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuantity((value) => value + 1)}
+                                    className="grid h-8 w-8 place-items-center rounded-full bg-[#2F6F56] text-white transition active:scale-95"
+                                    aria-label="Increase quantity"
+                                >
+                                    <Plus size={15} />
+                                </button>
+                            </div>
+                            <button
+                                disabled={!allRequiredModifiersSelected}
+                                onClick={addCurrentItemToCart}
+                                className="flex min-w-0 items-center justify-between gap-2 rounded-full bg-[#2F6F56] px-4 py-3 text-sm font-black text-white shadow-[0_16px_28px_rgba(47,111,86,0.24)] transition hover:bg-[#285E49] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#C8D2C5] disabled:text-[#768578] disabled:shadow-none"
+                            >
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <ShoppingBag className="shrink-0" size={18} />
+                                    <span className="truncate">Add to order</span>
+                                </span>
+                                <span className="shrink-0">
+                                    {isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"}`}>
@@ -519,20 +893,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
                     <button
                         disabled={!allRequiredModifiersSelected}
-                        onClick={() => {
-                            if (!allRequiredModifiersSelected) return;
-
-                            addToCart({
-                                ...item,
-                                price: unitPrice,
-                                quantity,
-                                size: hasModifiers ? "" : selectedSize,
-                                notes: orderNotes,
-                                selectedModifiers,
-                                selectedModifierOptions,
-                            });
-                            closeModal();
-                        }}
+                        onClick={addCurrentItemToCart}
                         className={`product-modal-submit mx-4 mb-4 mt-3 flex shrink-0 items-center justify-between rounded-2xl px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.99] disabled:cursor-not-allowed disabled:shadow-none sm:mx-5 ${
                             isDark
                                 ? "bg-[#7F1D1D] shadow-[0_18px_34px_rgba(127,29,29,0.25)] hover:bg-[#681718] disabled:bg-white/15 disabled:text-white/35"
