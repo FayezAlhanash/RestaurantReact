@@ -31,7 +31,15 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
     const getOptionId = (option) => option?.id ?? option?.modifier_option_id ?? option?.modifierOptionId ?? option?.option_id ?? option?.optionId;
     const getModifierGroupId = (group) => group?.id ?? group?.modifier_group_id ?? group?.modifierGroupId ?? group?.group_id ?? group?.groupId;
-    const getGroupMaxSelect = (group) => Math.max(1, Number(group?.pivot?.max_select ?? group?.max_select ?? group?.maxSelect ?? 1));
+    const isVariantGroup = (group) =>
+        Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)) ||
+        ["size", "sizes", "\u062d\u062c\u0645", "\u0627\u0644\u062d\u062c\u0645"].some((term) =>
+            String(group?.name ?? "").toLowerCase().includes(term)
+        );
+    const getGroupMaxSelect = (group) =>
+        isVariantGroup(group)
+            ? 1
+            : Math.max(1, Number(group?.pivot?.max_select ?? group?.max_select ?? group?.maxSelect ?? 1));
     const isGroupRequired = (group) => {
         const required = group?.pivot?.required ?? group?.required;
 
@@ -207,6 +215,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                   modifier_option_id: getOptionId(option),
                                   name: option.name,
                                   price: getModifierOptionPrice(option, group),
+                                  isVariant: isVariantGroup(group),
                               }
                             : null;
                     })
@@ -226,11 +235,15 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const isLoadingDetails = Boolean(item?.isLoadingDetails);
     const selectedModifierOptions = getSelectedModifierOptions();
     const modifierPrice = selectedModifierOptions.reduce(
-        (total, option) => total + option.price,
+        (total, option) => total + (option.isVariant ? 0 : option.price),
         0
     );
+    const selectedVariantOption = selectedModifierOptions.find((option) => option.isVariant);
+    const hasVariantGroups = modifierGroups.some(isVariantGroup);
+    const canSelectNonVariantModifiers = !hasVariantGroups || Boolean(selectedVariantOption);
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
-    const unitPrice = basePrice + modifierPrice + sizePrice;
+    const variantPrice = selectedVariantOption ? selectedVariantOption.price : basePrice;
+    const unitPrice = (selectedVariantOption ? variantPrice : basePrice + sizePrice) + modifierPrice;
     const allRequiredModifiersSelected =
         !isLoadingDetails &&
         (!hasModifiers ||
@@ -306,9 +319,17 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 <div
                                     key={getModifierGroupId(group)}
                                     className={`product-modal-group rounded-2xl border p-3 ${
-                                        isDark
+                                        isVariantGroup(group)
+                                            ? isDark
+                                                ? "border-[#FFD166]/35 bg-[#FFD166]/8"
+                                                : "border-[#D8A23A]/45 bg-[#FFF9E8]"
+                                            : isDark
                                             ? "border-white/10 bg-black/18"
                                             : "border-[#E7DCD6] bg-[#FBF8F6]"
+                                    } ${
+                                        !isVariantGroup(group) && !canSelectNonVariantModifiers
+                                            ? "opacity-55"
+                                            : ""
                                     }`}
                                 >
                                     <div className="mb-3 flex items-start justify-between gap-3">
@@ -316,10 +337,24 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             <h3 className={`text-xl font-black leading-6 ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
                                                 {group.name}
                                             </h3>
+                                            {isVariantGroup(group) && (
+                                                <p className={`mt-1 text-xs font-bold ${isDark ? "text-white/55" : "text-[#7A6258]"}`}>
+                                                    Select one size. The shown amount is the final item price.
+                                                </p>
+                                            )}
+                                            {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
+                                                <p className={`mt-1 text-xs font-bold ${isDark ? "text-white/45" : "text-[#8D7B74]"}`}>
+                                                    Choose a size first.
+                                                </p>
+                                            )}
                                         </div>
                                         <span
                                             className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                                isGroupRequired(group)
+                                                isVariantGroup(group)
+                                                    ? isDark
+                                                        ? "border border-[#FFD166]/30 bg-[#FFD166]/14 text-[#FFD166]"
+                                                        : "border border-[#D8A23A]/35 bg-[#FFF0C4] text-[#9A6400]"
+                                                    : isGroupRequired(group)
                                                     ? isDark
                                                         ? "bg-[#7F1D1D]/18 text-[#7F1D1D]"
                                                         : "bg-[#F9ECEC] text-[#7F1D1D]"
@@ -328,8 +363,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                         : "bg-white text-[#8D7B74]"
                                             }`}
                                         >
-                                            {isGroupRequired(group) ? "Required" : "Optional"}
-                                            {getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
+                                            {isVariantGroup(group)
+                                                ? "Full prices"
+                                                : isGroupRequired(group)
+                                                    ? "Required"
+                                                    : "Optional"}
+                                            {!isVariantGroup(group) && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2.5">
@@ -343,12 +382,17 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                 (selectedOptionId) => String(selectedOptionId) === String(optionId)
                                             );
                                             const optionPrice = getModifierOptionPrice(option, group);
+                                            const isVariant = isVariantGroup(group);
+                                            const isDisabled = !isVariant && !canSelectNonVariantModifiers;
 
                                             return (
                                                 <button
                                                     key={optionId}
                                                     type="button"
+                                                    disabled={isDisabled}
                                                     onClick={() => {
+                                                        if (isDisabled) return;
+
                                                         setSelectedModifiers((current) => {
                                                             const maxSelect = getGroupMaxSelect(group);
 
@@ -377,22 +421,44 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             };
                                                         });
                                                     }}
-                                                    className={`product-modal-option ${isSelected ? "product-modal-option-selected" : ""} rounded-xl border px-3 py-2.5 text-left transition ${
-                                                        isSelected
+                                                    className={`product-modal-option ${isSelected ? "product-modal-option-selected" : ""} rounded-xl border px-3 py-2.5 text-left transition disabled:cursor-not-allowed ${
+                                                        isDisabled
                                                             ? isDark
+                                                                ? "border-white/8 bg-white/[0.035] text-white/28"
+                                                                : "border-[#E7DCD6] bg-[#F4EEE9] text-[#9C8B84]"
+                                                            :
+                                                        isSelected
+                                                            ? isVariant
+                                                                ? isDark
+                                                                    ? "border-[#FFD166] bg-[#FFD166]/16 text-white shadow-[0_12px_26px_rgba(255,209,102,0.12)] ring-2 ring-[#FFD166]/20"
+                                                                    : "border-[#D8A23A] bg-[#FFF0C4] text-[#241707] shadow-[0_12px_26px_rgba(216,162,58,0.12)] ring-2 ring-[#D8A23A]/20"
+                                                                : isDark
                                                                 ? "border-[#7F1D1D] bg-[#7F1D1D]/18 text-white shadow-[0_12px_26px_rgba(127,29,29,0.12)]"
                                                                 : "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]"
-                                                            : isDark
+                                                            : isVariant
+                                                                ? isDark
+                                                                    ? "border-[#FFD166]/20 bg-[#1D2528] text-white hover:border-[#FFD166]/55 hover:bg-[#FFD166]/10"
+                                                                    : "border-[#E1C06B] bg-white text-[#5E4422] hover:border-[#D8A23A]"
+                                                                : isDark
                                                                 ? "border-white/10 bg-white/[0.06] text-white/68 hover:border-[#FFD166]/45 hover:bg-white/[0.10] hover:text-white"
                                                                 : "border-[#E7DCD6] text-[#77665F] hover:border-[#CBB9B1]"
                                                     }`}
                                                 >
-                                                    <span className="block text-[13px] font-extrabold">
-                                                        {option.name}
+                                                    <span className="flex items-start justify-between gap-3">
+                                                        <span className="min-w-0 text-[13px] font-extrabold">
+                                                            {option.name}
+                                                        </span>
+                                                        {isVariant && (
+                                                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
+                                                                isDark ? "bg-[#FFD166] text-[#151A1D]" : "bg-[#7F1D1D] text-white"
+                                                            }`}>
+                                                                {isSelected ? "Selected" : "Full price"}
+                                                            </span>
+                                                        )}
                                                     </span>
-                                                    {optionPrice > 0 && (
-                                                        <span className={`mt-1 block text-sm font-black ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
-                                                            + ${optionPrice.toFixed(2)}
+                                                    {(isVariant || optionPrice > 0) && (
+                                                        <span className={`mt-2 block text-2xl font-black leading-none ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
+                                                            {isVariant ? `$${optionPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
                                                         </span>
                                                     )}
                                                 </button>

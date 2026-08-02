@@ -77,6 +77,12 @@ const getOptionsForGroup = (groupId, options) =>
 const getGroupOptions = (group) =>
   group?.options ?? group?.modifier_options ?? group?.modifierOptions ?? [];
 
+const isVariantGroup = (group) =>
+  Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)) ||
+  ["size", "sizes", "\u062d\u062c\u0645", "\u0627\u0644\u062d\u062c\u0645"].some((term) =>
+    String(group?.name ?? "").toLowerCase().includes(term)
+  );
+
 const getOptionId = (option) => option?.id ?? option?.modifier_option_id;
 
 const getRelationValue = (item, key) =>
@@ -350,6 +356,7 @@ export default function AddMenu() {
 
       formData.append("restaurant_id", restaurantId);
       formData.append("name", data.name);
+      formData.append("is_variant", data.is_variant ? 1 : 0);
 
       if (editingGroup) {
         await api.post(`/modifier-groups/${editingGroup.id}`, formData);
@@ -392,8 +399,8 @@ export default function AddMenu() {
       setAttachingGroupId(group.id);
       const formData = new FormData();
       formData.append("food_id", foodId);
-      formData.append("max_select", settings.max_select || 1);
-      formData.append("required", settings.required ? 1 : 0);
+      formData.append("max_select", isVariantGroup(group) ? 1 : settings.max_select || 1);
+      formData.append("required", isVariantGroup(group) ? 1 : settings.required ? 1 : 0);
 
       groupOptions.forEach((option, index) => {
         const optionId = getOptionId(option);
@@ -877,6 +884,11 @@ export default function AddMenu() {
                               <p className="text-sm font-bold text-white/35">
                                 ID #{group.id}
                               </p>
+                              {isVariantGroup(group) && (
+                                <span className="mt-2 inline-flex rounded-full border border-[#FFD166]/30 bg-[#FFD166]/10 px-3 py-1 text-xs font-black text-[#FFD166]">
+                                  Variant prices
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1028,6 +1040,7 @@ export default function AddMenu() {
                               </button>
                             </div>
 
+                            {!isVariantGroup(group) && (
                             <div className="grid grid-cols-[1fr_120px] gap-2">
                               <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white/70">
                                 <input
@@ -1064,6 +1077,13 @@ export default function AddMenu() {
                                 title="Max select"
                               />
                             </div>
+                            )}
+
+                            {isVariantGroup(group) && (
+                              <p className="rounded-2xl border border-[#FFD166]/18 bg-[#FFD166]/10 px-3 py-2 text-sm font-bold leading-5 text-[#FFD166]">
+                                Size options use full item prices. Customers will see $10, $15, $25 instead of + prices.
+                              </p>
+                            )}
 
                             {groupOptions.length ? (
                               <div className="space-y-2 rounded-2xl border border-[#FFD166]/18 bg-[#172124] p-2">
@@ -1079,7 +1099,7 @@ export default function AddMenu() {
                                       type="number"
                                       min="0"
                                       step="0.01"
-                                      placeholder="Price"
+                                      placeholder={isVariantGroup(group) ? "Full price" : "Price"}
                                       value={groupAttachSettings.prices?.[option.id] ?? ""}
                                       onChange={(e) =>
                                         setAttachSettings((prev) => {
@@ -1102,6 +1122,7 @@ export default function AddMenu() {
                                         })
                                       }
                                       className="rounded-xl border border-[#FFD166]/20 bg-[#0D1214] px-2 py-1.5 text-sm font-bold text-[#FFD166] outline-none focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
+                                      title={isVariantGroup(group) ? "Full item price" : "Extra price"}
                                     />
                                   </div>
                                 ))}

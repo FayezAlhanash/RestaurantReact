@@ -156,6 +156,120 @@ const getSessionTokenHeaders = (sessionToken) => ({
         : {}),
 });
 
+const CUSTOMER_SESSION_ENDPOINTS = [
+    "/customer-dine-in/current-session",
+    "/customer-dine-in/session/current",
+];
+
+const createSessionUnavailableError = (message) => {
+    const error = new Error(message);
+    error.isSessionUnavailable = true;
+    return error;
+};
+
+const isMissingEndpointError = (error) => error.response?.status === 404;
+
+const getSessionRecord = (data) =>
+    data?.session ??
+    data?.data?.session ??
+    data?.table_session ??
+    data?.data?.table_session ??
+    data?.data ??
+    data ??
+    {};
+
+const isInactiveSessionResponse = (data) => {
+    const session = getSessionRecord(data);
+    const activeValue =
+        data?.has_active_session ??
+        data?.hasActiveSession ??
+        data?.is_active ??
+        data?.isActive ??
+        data?.data?.has_active_session ??
+        data?.data?.hasActiveSession ??
+        data?.data?.is_active ??
+        data?.data?.isActive ??
+        session?.is_active ??
+        session?.isActive;
+    const status = String(
+        data?.status ??
+            data?.data?.status ??
+            session?.status ??
+            session?.state ??
+            ""
+    ).toLowerCase();
+    const message = String(
+        data?.message ??
+            data?.data?.message ??
+            session?.message ??
+            ""
+    ).toLowerCase();
+    const closedAt =
+        session?.closed_at ??
+        session?.closedAt ??
+        data?.closed_at ??
+        data?.closedAt ??
+        data?.data?.closed_at ??
+        data?.data?.closedAt;
+
+    return (
+        activeValue === false ||
+        activeValue === 0 ||
+        activeValue === "0" ||
+        closedAt ||
+        ["closed", "ended", "expired", "inactive", "completed", "cancelled", "canceled"].includes(status) ||
+        (message.includes("no active") && message.includes("session")) ||
+        (message.includes("session") &&
+            (message.includes("closed") ||
+                message.includes("ended") ||
+                message.includes("expired") ||
+                message.includes("inactive")))
+    );
+};
+
+const validateDineInSession = async (sessionToken, tableId) => {
+    if (!sessionToken) {
+        throw createSessionUnavailableError("This table session is not available.");
+    }
+
+    let lastError;
+
+    for (const endpoint of CUSTOMER_SESSION_ENDPOINTS) {
+        try {
+            const response = await api.get(endpoint, {
+                headers: getSessionTokenHeaders(sessionToken),
+                params: {
+                    session_token: sessionToken,
+                    table_session_token: sessionToken,
+                    table_token: sessionToken,
+                    token: sessionToken,
+                    table_id: getTableIdForRequest(tableId),
+                },
+            });
+
+            if (isInactiveSessionResponse(response.data)) {
+                throw createSessionUnavailableError("This table session has ended.");
+            }
+
+            return response.data;
+        } catch (error) {
+            if (error.isSessionUnavailable) throw error;
+
+            lastError = error;
+            if (isMissingEndpointError(error)) continue;
+
+            throw createSessionUnavailableError(
+                error.response?.data?.message || "This table session is no longer active."
+            );
+        }
+    }
+
+    throw createSessionUnavailableError(
+        lastError?.response?.data?.message ||
+            "This table session could not be verified."
+    );
+};
+
 const fetchTableDetails = async (tableId) => {
     if (!getStoredToken()) return null;
 
@@ -1365,6 +1479,22 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
     );
 }
 
+function SessionUnavailableScreen({ title = "Session ended", message }) {
+    return (
+        <main className="grid min-h-dvh place-items-center bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.22),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.15),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)] px-4 py-6 text-white">
+            <article className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#20272A] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.30)]">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166]">
+                    <ReceiptText size={30} />
+                </div>
+                <h1 className="mt-5 text-3xl font-black text-white">{title}</h1>
+                <p className="mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 text-white/55">
+                    {message || "This table session is no longer active."}
+                </p>
+            </article>
+        </main>
+    );
+}
+
 function DineInOrder() {
     const { isLight, toggleTheme } = useTheme();
     const { tableId = "1" } = useParams();
@@ -1394,6 +1524,7 @@ function DineInOrder() {
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
     const [isConfirmOrderOpen, setIsConfirmOrderOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSessionAvailable, setIsSessionAvailable] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1434,7 +1565,26 @@ function DineInOrder() {
                     setSessionToken(String(nextSessionToken));
                 }
 
-                setTableNumber(getTableNumber(tableDetails, tableId));
+                if (!resolvedSessionToken) {
+                    throw createSessionUnavailableError("This table session is not available.");
+                }
+
+                const activeSessionData = await validateDineInSession(
+                    resolvedSessionToken,
+                    tableId
+                );
+                const activeSession = getSessionRecord(activeSessionData);
+
+                setTableNumber(
+                    getTableNumber(
+                        activeSessionData?.table ??
+                            activeSessionData?.data?.table ??
+                            activeSession?.table ??
+                            tableDetails,
+                        tableId
+                    )
+                );
+                setIsSessionAvailable(true);
 
                 const restaurantsResponse = await api.get("/restaurants");
                 const restaurantList = getList(restaurantsResponse.data);
@@ -1449,10 +1599,20 @@ function DineInOrder() {
                     )
                 );
 
-                if (!resolvedSessionToken) {
-                    setErrorMessage("Open this page from a valid table QR link before placing an order.");
-                }
             } catch (error) {
+                if (error.isSessionUnavailable) {
+                    sessionStorage.removeItem(sessionTokenStorageKey);
+                    sessionStorage.removeItem(orderStorageKey);
+                    sessionStorage.removeItem(invoiceStorageKey);
+                    setSessionToken("");
+                    setCartItems([]);
+                    setRestaurants([]);
+                    setMenuItems([]);
+                    setIsSessionAvailable(false);
+                    setErrorMessage(error.message || "This table session has ended.");
+                    return;
+                }
+
                 try {
                     const foodsResponse = await api.get("/food");
                     const foods = getList(foodsResponse.data).map(normalizeFoodItem);
@@ -1481,7 +1641,13 @@ function DineInOrder() {
         };
 
         loadMenu();
-    }, [tableId, sessionTokenFromUrl, sessionTokenStorageKey]);
+    }, [
+        invoiceStorageKey,
+        orderStorageKey,
+        sessionTokenFromUrl,
+        sessionTokenStorageKey,
+        tableId,
+    ]);
 
     useEffect(() => {
         const storedOrderId = sessionStorage.getItem(orderStorageKey);
@@ -1696,6 +1862,8 @@ function DineInOrder() {
             if (sessionExpired) {
                 sessionStorage.removeItem(sessionTokenStorageKey);
                 setSessionToken("");
+                setCartItems([]);
+                setIsSessionAvailable(false);
             }
 
             setErrorMessage(
@@ -1745,6 +1913,19 @@ function DineInOrder() {
         setSuccessMessage("");
         setIsConfirmOrderOpen(true);
     };
+
+    if (isLoading) {
+        return (
+            <SessionUnavailableScreen
+                title="Checking session"
+                message="Please wait a moment."
+            />
+        );
+    }
+
+    if (isSessionAvailable === false) {
+        return <SessionUnavailableScreen message={errorMessage} />;
+    }
 
     if (showOnboarding) {
         return (

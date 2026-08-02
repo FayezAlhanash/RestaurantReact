@@ -48,6 +48,53 @@ const getDeviceKeyFromResponse = (data) =>
     data?.data?.table_device?.device_key ??
     "";
 
+const ADMIN_SETUP_DEVICE_KEYS_STORAGE_KEY = "admin_table_device_setup_keys";
+
+const getAdminSetupDeviceKeys = () => {
+    try {
+        const storedKeys = JSON.parse(
+            sessionStorage.getItem(ADMIN_SETUP_DEVICE_KEYS_STORAGE_KEY) || "{}"
+        );
+
+        return storedKeys && typeof storedKeys === "object" && !Array.isArray(storedKeys)
+            ? storedKeys
+            : {};
+    } catch {
+        return {};
+    }
+};
+
+const getAdminSetupDeviceKey = (tableId) => {
+    const normalizedTableId = String(tableId || "");
+    const storedKeys = getAdminSetupDeviceKeys();
+
+    return storedKeys[normalizedTableId] || "";
+};
+
+const saveAdminSetupDeviceKey = (tableId, deviceKey) => {
+    const normalizedTableId = String(tableId || "");
+
+    if (!normalizedTableId || !deviceKey) return;
+
+    const storedKeys = getAdminSetupDeviceKeys();
+    storedKeys[normalizedTableId] = String(deviceKey);
+    sessionStorage.setItem(
+        ADMIN_SETUP_DEVICE_KEYS_STORAGE_KEY,
+        JSON.stringify(storedKeys)
+    );
+};
+
+const removeAdminSetupDeviceKey = (tableId) => {
+    const normalizedTableId = String(tableId || "");
+    const storedKeys = getAdminSetupDeviceKeys();
+
+    delete storedKeys[normalizedTableId];
+    sessionStorage.setItem(
+        ADMIN_SETUP_DEVICE_KEYS_STORAGE_KEY,
+        JSON.stringify(storedKeys)
+    );
+};
+
 function StatCard({ icon: Icon, label, value, helper, tone, isLight }) {
     const tones = isLight ? {
         total: "border-sky-300/45 bg-sky-100/80 text-sky-700",
@@ -101,6 +148,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
         const initialDeviceKey =
             table.device_key ??
             initialDevice?.device_key ??
+            getAdminSetupDeviceKey(table.id) ??
             "";
 
         setIsVisible(false);
@@ -159,6 +207,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setDeviceKey(nextDeviceKey);
             setIsCopied(false);
             setIsSetupCopied(false);
+            saveAdminSetupDeviceKey(table.id, nextDeviceKey);
 
             try {
                 localStorage.removeItem(`table-device:${table.id}`);
@@ -192,6 +241,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setDeviceKey("");
             setIsCopied(false);
             setIsSetupCopied(false);
+            removeAdminSetupDeviceKey(table.id);
             try {
                 localStorage.removeItem(`table-device:${table.id}`);
                 removeStoredTableDeviceKey(table.id);
@@ -467,6 +517,7 @@ function TablesManagements() {
         try {
             await api.delete(`/tables/${id}`);
             try {
+                removeAdminSetupDeviceKey(id);
                 removeStoredTableDeviceKey(id);
             } catch {
                 // Local cleanup is best-effort after deleting a table.

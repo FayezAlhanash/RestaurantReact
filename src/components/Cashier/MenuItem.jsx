@@ -175,6 +175,12 @@ const getModifierOptionPrice = (item, option, group) => {
     return Number(relationPrice ?? option?.price ?? 0);
 };
 
+const isVariantGroup = (group) =>
+    Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)) ||
+    ["size", "sizes", "\u062d\u062c\u0645", "\u0627\u0644\u062d\u062c\u0645"].some((term) =>
+        String(group?.name ?? "").toLowerCase().includes(term)
+    );
+
 const getSizeModifierOptions = (item) => {
     const modifierGroups = (item?.modifierGroups ?? [])
         .map((group) => ({
@@ -191,11 +197,14 @@ const getSizeModifierOptions = (item) => {
     if (!sizeGroup) return [];
 
     const basePrice = Number(item?.price ?? 0);
+    const useFullVariantPrice = isVariantGroup(sizeGroup);
 
     return sizeGroup.options.map((option) => ({
         id: getOptionId(option),
         name: option.name,
-        price: basePrice + getModifierOptionPrice(item, option, sizeGroup),
+        price: useFullVariantPrice
+            ? getModifierOptionPrice(item, option, sizeGroup)
+            : basePrice + getModifierOptionPrice(item, option, sizeGroup),
     }));
 };
 

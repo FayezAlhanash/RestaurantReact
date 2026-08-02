@@ -3,6 +3,7 @@ import { Layers3, Save, X } from "lucide-react";
 
 function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }) {
   const [name, setName] = useState("");
+  const [isVariant, setIsVariant] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const saving = isSaving || isSubmitting;
 
@@ -10,6 +11,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(group?.name ?? "");
+      setIsVariant(Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)));
     }
   }, [isOpen, group]);
 
@@ -23,7 +25,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
     setIsSubmitting(true);
 
     try {
-      await onSave({ name });
+      await onSave({ name, is_variant: isVariant ? 1 : 0 });
     } finally {
       setIsSubmitting(false);
     }
@@ -72,6 +74,24 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
               disabled={saving}
             />
           </div>
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#FFD166]/20 bg-[#0D1214] p-3 transition hover:border-[#FFD166]/45">
+            <input
+              type="checkbox"
+              checked={isVariant}
+              onChange={(e) => setIsVariant(e.target.checked)}
+              className="mt-1 h-4 w-4 accent-[#FFD166]"
+              disabled={saving}
+            />
+            <span>
+              <span className="block text-sm font-black text-[#FFD166]">
+                Variant pricing group
+              </span>
+              <span className="mt-1 block text-xs font-bold leading-5 text-white/50">
+                Use for sizes. Each option is the full item price, not an extra charge.
+              </span>
+            </span>
+          </label>
 
           <div className="flex justify-end gap-3 border-t border-white/[0.08] pt-5">
             <button
