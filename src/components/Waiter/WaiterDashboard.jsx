@@ -612,8 +612,8 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 }
 
                 return sessionId
-                    ? `Table ${tableId} already has active session #${sessionId}. Token was not returned by the API.`
-                    : `Table ${tableId} already has an active session. Open Session API did not return a session token.`;
+                    ? `Table ${tableId} already has active session #${sessionId}.`
+                    : `Table ${tableId} already has an active session.`;
             }
 
             if (error.response?.status === 422) {

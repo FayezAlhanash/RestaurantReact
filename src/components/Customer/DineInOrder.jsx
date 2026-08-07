@@ -122,9 +122,6 @@ const getSessionToken = (table) =>
     table?.dineInToken ??
     "";
 
-const getTableNumber = (table, fallback) =>
-    table?.table_number ?? table?.tableNumber ?? table?.number ?? fallback;
-
 const getSessionTokenFromUrl = (tableId, search) => {
     const params = new URLSearchParams(search);
     const explicitToken =
@@ -156,7 +153,8 @@ const getSessionTokenHeaders = (sessionToken) => ({
         : {}),
 });
 
-const CUSTOMER_SESSION_ENDPOINTS = [
+const getCustomerSessionEndpoints = (sessionToken) => [
+    `/customer-dine-in/session/${encodeURIComponent(sessionToken)}`,
     "/customer-dine-in/current-session",
     "/customer-dine-in/session/current",
 ];
@@ -198,14 +196,38 @@ const isInactiveSessionResponse = (data) => {
     const activeValue =
         data?.has_active_session ??
         data?.hasActiveSession ??
+        data?.active_session ??
+        data?.activeSession ??
+        data?.session_active ??
+        data?.sessionActive ??
+        data?.is_session_active ??
+        data?.isSessionActive ??
         data?.is_active ??
         data?.isActive ??
+        data?.active ??
+        data?.available ??
+        data?.is_available ??
+        data?.isAvailable ??
         data?.data?.has_active_session ??
         data?.data?.hasActiveSession ??
+        data?.data?.active_session ??
+        data?.data?.activeSession ??
+        data?.data?.session_active ??
+        data?.data?.sessionActive ??
+        data?.data?.is_session_active ??
+        data?.data?.isSessionActive ??
         data?.data?.is_active ??
         data?.data?.isActive ??
+        data?.data?.active ??
+        data?.data?.available ??
+        data?.data?.is_available ??
+        data?.data?.isAvailable ??
         session?.is_active ??
-        session?.isActive;
+        session?.isActive ??
+        session?.active ??
+        session?.available ??
+        session?.is_available ??
+        session?.isAvailable;
     const status = String(
         data?.status ??
             data?.data?.status ??
@@ -231,6 +253,7 @@ const isInactiveSessionResponse = (data) => {
         activeValue === false ||
         activeValue === 0 ||
         activeValue === "0" ||
+        activeValue === "false" ||
         closedAt ||
         ["closed", "ended", "expired", "inactive", "completed", "cancelled", "canceled"].includes(status) ||
         (message.includes("no active") && message.includes("session")) ||
@@ -250,7 +273,9 @@ const validateDineInSession = async (sessionToken, tableId) => {
     let lastError;
     let missingEndpointCount = 0;
 
-    for (const endpoint of CUSTOMER_SESSION_ENDPOINTS) {
+    const endpoints = getCustomerSessionEndpoints(sessionToken);
+
+    for (const endpoint of endpoints) {
         try {
             const response = await api.get(endpoint, {
                 headers: getSessionTokenHeaders(sessionToken),
@@ -283,7 +308,7 @@ const validateDineInSession = async (sessionToken, tableId) => {
         }
     }
 
-    if (missingEndpointCount === CUSTOMER_SESSION_ENDPOINTS.length) {
+    if (missingEndpointCount === endpoints.length) {
         return {
             has_active_session: true,
             verification_skipped: true,
@@ -750,7 +775,7 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
     );
 }
 
-function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
+function FeaturedDishSlider({ featuredItems, onGoToMenu }) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isSliderPaused, setIsSliderPaused] = useState(false);
     const [dragOffset, setDragOffset] = useState(0);
@@ -824,7 +849,7 @@ function FeaturedDishSlider({ featuredItems, tableNumber, onGoToMenu }) {
                     <div>
                         <h2 className="text-2xl font-black">Loading dishes...</h2>
                         <p className="mt-2 text-sm font-semibold text-white/55">
-                            Preparing the dine-in menu for table {tableNumber}.
+                            Preparing the dine-in menu.
                         </p>
                     </div>
                 </div>
@@ -1426,7 +1451,7 @@ const onboardingSlides = [
     },
 ];
 
-function CustomerOnboarding({ tableNumber, onFinish }) {
+function CustomerOnboarding({ onFinish }) {
     const [activeSlide, setActiveSlide] = useState(0);
     const isLastSlide = activeSlide === onboardingSlides.length - 1;
 
@@ -1461,10 +1486,7 @@ function CustomerOnboarding({ tableNumber, onFinish }) {
             </div>
             <div className="customer-onboarding-overlay absolute inset-0" />
 
-            <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-5 sm:px-8">
-                <div className="rounded-full border border-white/15 bg-black/25 px-4 py-2 text-xs font-black uppercase tracking-wide text-white/85 backdrop-blur">
-                    Table {tableNumber}
-                </div>
+            <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-end px-5 py-5 sm:px-8">
                 <button
                     type="button"
                     onClick={onFinish}
@@ -1589,7 +1611,6 @@ function DineInOrder() {
     const [sessionToken, setSessionToken] = useState(() =>
         sessionStorage.getItem(sessionTokenStorageKey) || ""
     );
-    const [tableNumber, setTableNumber] = useState(tableId);
     const [activeRestaurant, setActiveRestaurant] = useState("all");
     const [activeCategory, setActiveCategory] = useState("all");
     const [search, setSearch] = useState("");
@@ -1646,20 +1667,9 @@ function DineInOrder() {
                     throw createSessionUnavailableError("This table session is not available.");
                 }
 
-                const activeSessionData = await validateDineInSession(
+                await validateDineInSession(
                     resolvedSessionToken,
                     tableId
-                );
-                const activeSession = getSessionRecord(activeSessionData);
-
-                setTableNumber(
-                    getTableNumber(
-                        activeSessionData?.table ??
-                            activeSessionData?.data?.table ??
-                            activeSession?.table ??
-                            tableDetails,
-                        tableId
-                    )
                 );
                 setIsSessionAvailable(true);
 
@@ -2013,7 +2023,6 @@ function DineInOrder() {
     if (showOnboarding) {
         return (
             <CustomerOnboarding
-                tableNumber={tableNumber}
                 onFinish={finishOnboarding}
             />
         );
@@ -2032,9 +2041,6 @@ function DineInOrder() {
                         <div className="min-w-0">
                             <p className="truncate text-sm font-black text-white">
                                 Big-4 Menu
-                            </p>
-                            <p className="max-w-[56vw] truncate text-xs font-bold text-white/60 sm:max-w-[320px]">
-                                Table {tableNumber}
                             </p>
                         </div>
                     </div>
@@ -2070,7 +2076,6 @@ function DineInOrder() {
             <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}>
                 <FeaturedDishSlider
                     featuredItems={featuredItems}
-                    tableNumber={tableNumber}
                     onGoToMenu={goToDishRestaurantMenu}
                 />
 
