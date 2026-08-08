@@ -88,7 +88,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
                 Variant pricing group
               </span>
               <span className="mt-1 block text-xs font-bold leading-5 text-white/50">
-                Use for sizes. Each option is the full item price, not an extra charge.
+                Use for sizes. Small uses the food price; bigger options store only the extra amount.
               </span>
             </span>
           </label>

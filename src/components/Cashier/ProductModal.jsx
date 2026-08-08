@@ -205,10 +205,20 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
         return undefined;
     };
-    const getModifierOptionPrice = (option, group) => {
+    const isBaseSizeOption = (option, group) => {
+        const optionName = String(option?.name ?? "").trim().toLowerCase();
+        const firstOptionId = getOptionId(group?.options?.[0]);
+        const optionId = getOptionId(option);
+
+        return (
+            optionName.includes("small") ||
+            optionName.includes("\u0635\u063a\u064a\u0631") ||
+            (firstOptionId !== undefined && String(firstOptionId) === String(optionId))
+        );
+    };
+    const getModifierOptionPrice = (option, group, { basePrice: itemBasePrice = 0 } = {}) => {
         const groupId = getModifierGroupId(group);
         const optionId = getOptionId(option);
-        const savedPrice = getSavedModifierPrice(groupId, optionId);
         const groupPrice = getGroupOptionPrices(group).find(
             (priceItem) =>
                 String(
@@ -217,14 +227,21 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         priceItem?.option_id ??
                         priceItem?.optionId ??
                         priceItem?.id
-                ) === String(optionId)
+                    ) === String(optionId)
         );
-        const relationPrice =
-            savedPrice ??
+        const backendRelationPrice =
             getRelationPrice(groupPrice) ??
             findNestedOptionPrice(group, optionId) ??
             getRelationPrice(option);
-        return Number(relationPrice ?? option?.price ?? 0);
+        const relationPrice = isVariantGroup(group)
+            ? backendRelationPrice
+            : backendRelationPrice ?? getSavedModifierPrice(groupId, optionId);
+        const optionPrice = Number(relationPrice ?? option?.price ?? 0);
+
+        if (!isVariantGroup(group)) return optionPrice;
+        if (isBaseSizeOption(option, group)) return 0;
+
+        return optionPrice > itemBasePrice ? optionPrice - itemBasePrice : optionPrice;
     };
     const getSelectedModifierOptions = () =>
         modifierGroups
@@ -248,7 +265,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                   id: getOptionId(option),
                                   modifier_option_id: getOptionId(option),
                                   name: option.name,
-                                  price: getModifierOptionPrice(option, group),
+                                  price: getModifierOptionPrice(option, group, { basePrice }),
                                   isVariant: isVariantGroup(group),
                               }
                             : null;
@@ -602,7 +619,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     const isSelected = selectedOptionIds.some(
                                                         (selectedOptionId) => String(selectedOptionId) === String(optionId)
                                                     );
-                                                    const optionPrice = getModifierOptionPrice(option, group);
+                                                    const optionPrice = getModifierOptionPrice(option, group, { basePrice });
                                                     const isVariant = isVariantGroup(group);
                                                     const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
                                                     const isDisabled = !isVariant && !canSelectNonVariantModifiers;
@@ -913,7 +930,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             const isSelected = selectedOptionIds.some(
                                                 (selectedOptionId) => String(selectedOptionId) === String(optionId)
                                             );
-                                            const optionPrice = getModifierOptionPrice(option, group);
+                                            const optionPrice = getModifierOptionPrice(option, group, { basePrice });
                                             const isVariant = isVariantGroup(group);
                                             const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
                                             const isDisabled = !isVariant && !canSelectNonVariantModifiers;
@@ -991,7 +1008,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
                                                                 isDark ? "bg-[#FFD166] text-[#151A1D]" : "bg-[#7F1D1D] text-white"
                                                             }`}>
-                                                                {isSelected ? "Selected" : "Full price"}
+                                                                {isSelected ? "Selected" : "Final price"}
                                                             </span>
                                                         )}
                                                     </span>

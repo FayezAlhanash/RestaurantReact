@@ -886,7 +886,7 @@ export default function AddMenu() {
                               </p>
                               {isVariantGroup(group) && (
                                 <span className="mt-2 inline-flex rounded-full border border-[#FFD166]/30 bg-[#FFD166]/10 px-3 py-1 text-xs font-black text-[#FFD166]">
-                                  Variant prices
+                                  Size add-ons
                                 </span>
                               )}
                             </div>
@@ -1081,7 +1081,7 @@ export default function AddMenu() {
 
                             {isVariantGroup(group) && (
                               <p className="rounded-2xl border border-[#FFD166]/18 bg-[#FFD166]/10 px-3 py-2 text-sm font-bold leading-5 text-[#FFD166]">
-                                Size options use full item prices. Customers will see $10, $15, $25 instead of + prices.
+                                Small uses the food price. Enter only the extra amount for bigger sizes; customers see the final price.
                               </p>
                             )}
 
@@ -1099,7 +1099,7 @@ export default function AddMenu() {
                                       type="number"
                                       min="0"
                                       step="0.01"
-                                      placeholder={isVariantGroup(group) ? "Full price" : "Price"}
+                                      placeholder={isVariantGroup(group) ? "Extra" : "Price"}
                                       value={groupAttachSettings.prices?.[option.id] ?? ""}
                                       onChange={(e) =>
                                         setAttachSettings((prev) => {
@@ -1122,7 +1122,7 @@ export default function AddMenu() {
                                         })
                                       }
                                       className="rounded-xl border border-[#FFD166]/20 bg-[#0D1214] px-2 py-1.5 text-sm font-bold text-[#FFD166] outline-none focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
-                                      title={isVariantGroup(group) ? "Full item price" : "Extra price"}
+                                      title={isVariantGroup(group) ? "Extra above food price" : "Extra price"}
                                     />
                                   </div>
                                 ))}

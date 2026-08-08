@@ -166,11 +166,13 @@ const getModifierOptionPrice = (item, option, group) => {
                     priceItem?.id
             ) === String(optionId)
     );
-    const relationPrice =
-        getSavedModifierPrice(item, groupId, optionId) ??
+    const backendRelationPrice =
         getRelationPrice(groupPrice) ??
         findNestedOptionPrice(group, optionId) ??
         getRelationPrice(option);
+    const relationPrice = isVariantGroup(group)
+        ? backendRelationPrice
+        : backendRelationPrice ?? getSavedModifierPrice(item, groupId, optionId);
 
     return Number(relationPrice ?? option?.price ?? 0);
 };
@@ -197,14 +199,11 @@ const getSizeModifierOptions = (item) => {
     if (!sizeGroup) return [];
 
     const basePrice = Number(item?.price ?? 0);
-    const useFullVariantPrice = isVariantGroup(sizeGroup);
 
     return sizeGroup.options.map((option) => ({
         id: getOptionId(option),
         name: option.name,
-        price: useFullVariantPrice
-            ? getModifierOptionPrice(item, option, sizeGroup)
-            : basePrice + getModifierOptionPrice(item, option, sizeGroup),
+        price: basePrice + getModifierOptionPrice(item, option, sizeGroup),
     }));
 };
 
@@ -224,9 +223,7 @@ function MenuItemCard({ item, onOpen }) {
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
     const sizePrices = getSizeModifierOptions(item);
     const hasSizePrices = sizePrices.length > 0;
-    const displayPrice = hasSizePrices
-        ? Math.min(...sizePrices.map((option) => option.price))
-        : Number(item.price ?? 0);
+    const displayPrice = Number(item.price ?? 0);
 
     return (
         <article className="group flex min-h-[350px] flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1B2225]/92 shadow-[0_16px_34px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.025] transition duration-300 hover:-translate-y-1 hover:border-[#FFD166]/22 hover:bg-[#20282B] hover:shadow-[0_24px_48px_rgba(0,0,0,0.26)] sm:min-h-[372px]">
