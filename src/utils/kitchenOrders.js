@@ -59,6 +59,14 @@ function hasDineInTableSignal(order, items = []) {
     return items.some((item) => /\btable\s*#?\s*\d+/i.test(item.note || ""));
 }
 
+function hideTableNotes(note) {
+    return String(note || "")
+        .split("·")
+        .map((part) => part.trim())
+        .filter((part) => part && !/^table\b/i.test(part))
+        .join(" · ");
+}
+
 function hasDeliveryAddressSignal(order) {
     const deliveryValue =
         order?.delivery_address_id ??
@@ -208,12 +216,14 @@ function normalizeKitchenItem(item, index) {
             item.food_name ||
             "Item",
         quantity: Number(item.quantity ?? item.qty ?? item.count ?? 1),
-        note: dedupeNoteSegments(
-            item.note ||
-                item.notes ||
-                item.special_instructions ||
-                item.pivot?.notes ||
-                ""
+        note: hideTableNotes(
+            dedupeNoteSegments(
+                item.note ||
+                    item.notes ||
+                    item.special_instructions ||
+                    item.pivot?.notes ||
+                    ""
+            )
         ),
     };
 }

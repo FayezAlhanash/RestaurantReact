@@ -269,15 +269,14 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const isLoadingDetails = Boolean(item?.isLoadingDetails);
     const selectedModifierOptions = getSelectedModifierOptions();
     const modifierPrice = selectedModifierOptions.reduce(
-        (total, option) => total + (option.isVariant ? 0 : option.price),
+        (total, option) => total + option.price,
         0
     );
     const selectedVariantOption = selectedModifierOptions.find((option) => option.isVariant);
     const hasVariantGroups = modifierGroups.some(isVariantGroup);
     const canSelectNonVariantModifiers = !hasVariantGroups || Boolean(selectedVariantOption);
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
-    const variantPrice = selectedVariantOption ? selectedVariantOption.price : basePrice;
-    const unitPrice = (selectedVariantOption ? variantPrice : basePrice + sizePrice) + modifierPrice;
+    const unitPrice = basePrice + sizePrice + modifierPrice;
     const allRequiredModifiersSelected =
         !isLoadingDetails &&
         (!hasModifiers ||
@@ -430,12 +429,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                     <p className={`text-xs font-bold uppercase ${
                                         isDineInDark ? "text-white/55" : "text-[#7A6258]"
                                     }`}>
-                                        Total
+                                        Price
                                     </p>
                                     <p className={`text-2xl font-black ${
                                         isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"
                                     }`}>
-                                        ${(unitPrice * quantity).toFixed(2)}
+                                        ${basePrice.toFixed(2)}
                                     </p>
                                 </div>
                             </div>
@@ -561,7 +560,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                         <p className={`mt-1 text-xs font-bold ${
                                                             isDineInDark ? "text-white/55" : "text-[#7A6258]"
                                                         }`}>
-                                                            Select one size. The amount is the final item price.
+                                                            Select one size. The amount includes the base item price.
                                                         </p>
                                                     )}
                                                     {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
@@ -586,7 +585,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                 : "bg-[#F7F2EF] text-[#7A6258]"
                                                 }`}>
                                                     {isVariantGroup(group)
-                                                        ? "Full prices"
+                                                        ? "Final prices"
                                                         : isGroupRequired(group)
                                                             ? "Required"
                                                             : "Optional"}
@@ -605,6 +604,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     );
                                                     const optionPrice = getModifierOptionPrice(option, group);
                                                     const isVariant = isVariantGroup(group);
+                                                    const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
                                                     const isDisabled = !isVariant && !canSelectNonVariantModifiers;
 
                                                     return (
@@ -673,7 +673,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                             ? "bg-white/10 text-[#FFD166]"
                                                                             : "bg-white text-[#7F1D1D]"
                                                                 }`}>
-                                                                    {isVariant ? `$${optionPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                                    {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
                                                                 </span>
                                                             )}
                                                         </button>
@@ -871,7 +871,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             </h3>
                                             {isVariantGroup(group) && (
                                                 <p className={`mt-1 text-xs font-bold ${isDark ? "text-white/55" : "text-[#7A6258]"}`}>
-                                                    Select one size. The shown amount is the final item price.
+                                                    Select one size. The shown amount includes the base item price.
                                                 </p>
                                             )}
                                             {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
@@ -896,7 +896,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             }`}
                                         >
                                             {isVariantGroup(group)
-                                                ? "Full prices"
+                                                ? "Final prices"
                                                 : isGroupRequired(group)
                                                     ? "Required"
                                                     : "Optional"}
@@ -915,6 +915,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             );
                                             const optionPrice = getModifierOptionPrice(option, group);
                                             const isVariant = isVariantGroup(group);
+                                            const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
                                             const isDisabled = !isVariant && !canSelectNonVariantModifiers;
 
                                             return (
@@ -996,7 +997,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     </span>
                                                     {(isVariant || optionPrice > 0) && (
                                                         <span className={`mt-2 block text-2xl font-black leading-none ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
-                                                            {isVariant ? `$${optionPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                            {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
                                                         </span>
                                                     )}
                                                 </button>

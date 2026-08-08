@@ -392,7 +392,7 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
         const unitPrice = Number(item.price ?? 0);
         const quantity = Number(item.quantity ?? 1);
         const modifierOptions = item.selectedModifierOptions ?? [];
-        const notes = [`Table ${requestTableId || tableId}`, item.size, item.notes].filter(Boolean).join(" · ");
+        const notes = [item.size, item.notes].filter(Boolean).join(" · ");
 
         appendIfPresent(formData, `items[${index}][food_id]`, item.food_id || item.id);
         appendIfPresent(formData, `items[${index}][menu_item_id]`, item.food_id || item.id);
@@ -982,6 +982,23 @@ function OrderPanel({
     onClose,
 }) {
     const isMobile = layout === "mobile";
+    const [pendingDeleteIndex, setPendingDeleteIndex] = useState(null);
+    const requestRemoveItem = (index) => setPendingDeleteIndex(index);
+    const confirmRemoveItem = (index) => {
+        onRemoveItem(index);
+        setPendingDeleteIndex(null);
+    };
+    const handleQuantityChange = (index, amount) => {
+        const item = cartItems[index];
+
+        if (amount < 0 && Number(item?.quantity ?? 0) <= 1) {
+            requestRemoveItem(index);
+            return;
+        }
+
+        setPendingDeleteIndex(null);
+        onChangeQuantity(index, amount);
+    };
 
     return (
         <section
@@ -1017,10 +1034,17 @@ function OrderPanel({
 
             <div className={`customer-order-scroll min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}>
                 {cartItems.length ? (
-                    cartItems.map((item, index) => (
+                    cartItems.map((item, index) => {
+                        const isDeletePending = pendingDeleteIndex === index;
+
+                        return (
                         <div
                             key={`${item.id}-${item.notes}-${index}`}
-                            className={`rounded-2xl border border-white/10 bg-white/[0.07] ${isMobile ? "p-3" : "p-4"}`}
+                            className={`rounded-2xl border ${isMobile ? "p-3" : "p-4"} ${
+                                isDeletePending
+                                    ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
+                                    : "border-white/10 bg-white/[0.07]"
+                            }`}
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -1036,21 +1060,42 @@ function OrderPanel({
                                         </p>
                                     )}
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => onRemoveItem(index)}
-                                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/45 transition hover:bg-white/10 hover:text-[#F6C65B]"
-                                    aria-label={`Remove ${item.title}`}
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                {isDeletePending ? (
+                                    <div className="flex shrink-0 gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => confirmRemoveItem(index)}
+                                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#FF6B6B]/55 bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C]"
+                                            aria-label={`Confirm remove ${item.title}`}
+                                        >
+                                            <Trash2 size={17} className="text-white [stroke:white]" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPendingDeleteIndex(null)}
+                                            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white"
+                                            aria-label="Cancel remove"
+                                        >
+                                            <X size={17} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => requestRemoveItem(index)}
+                                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C]"
+                                        aria-label={`Remove ${item.title}`}
+                                    >
+                                        <Trash2 size={18} className="text-white [stroke:white]" />
+                                    </button>
+                                )}
                             </div>
 
                             <div className="mt-4 flex items-center justify-between gap-3">
                                 <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
                                     <button
                                         type="button"
-                                        onClick={() => onChangeQuantity(index, -1)}
+                                        onClick={() => handleQuantityChange(index, -1)}
                                         className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
                                         aria-label="Decrease quantity"
                                     >
@@ -1061,7 +1106,7 @@ function OrderPanel({
                                     </span>
                                     <button
                                         type="button"
-                                        onClick={() => onChangeQuantity(index, 1)}
+                                        onClick={() => handleQuantityChange(index, 1)}
                                         className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
                                         aria-label="Increase quantity"
                                     >
@@ -1072,8 +1117,14 @@ function OrderPanel({
                                     ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
                                 </span>
                             </div>
+                            {isDeletePending && (
+                                <p className="mt-3 rounded-xl border border-[#7F1D1D]/45 bg-[#7F1D1D]/12 px-3 py-2 text-xs font-black !text-[#7F1D1D]">
+                                    Delete this item? Press the red button to confirm.
+                                </p>
+                            )}
                         </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <div className="flex h-full min-h-64 flex-col items-center justify-center px-6 text-center">
                         <ShoppingBag className="text-[#FFD166]" size={34} />
@@ -1486,11 +1537,11 @@ function CustomerOnboarding({ onFinish }) {
             </div>
             <div className="customer-onboarding-overlay absolute inset-0" />
 
-            <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-end px-5 py-5 sm:px-8">
+            <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-end px-5 py-5 sm:px-8">
                 <button
                     type="button"
                     onClick={onFinish}
-                    className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white backdrop-blur transition active:scale-95"
+                    className="touch-manipulation rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white backdrop-blur transition active:scale-95"
                 >
                     Skip
                 </button>
@@ -1948,6 +1999,10 @@ function DineInOrder() {
 
             setIsConfirmOrderOpen(false);
             const responseMessage = error.response?.data?.message || "";
+            const errorText = JSON.stringify(error.response?.data || error.message || "");
+            const isMissingPreparationSnapshotColumn =
+                errorText.includes("preparation_batch_size_snapshot") ||
+                errorText.includes("preparation_time_snapshot");
             const sessionExpired =
                 error.response?.status === 422 &&
                 responseMessage.toLowerCase().includes("session");
@@ -1960,7 +2015,9 @@ function DineInOrder() {
             }
 
             setErrorMessage(
-                firstValidationError ||
+                isMissingPreparationSnapshotColumn
+                    ? "Order could not be saved. The backend database needs the latest order-items migration."
+                    : firstValidationError ||
                     responseMessage ||
                     error.message ||
                     "Order could not be sent."

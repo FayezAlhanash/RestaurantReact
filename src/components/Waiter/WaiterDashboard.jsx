@@ -751,7 +751,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 </div>
 
                 {visibleTabs.length > 1 && (
-                <div className="mb-5 grid grid-cols-2 gap-2 rounded-[24px] border border-white/10 bg-[#252A2D] p-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.16)]">
+                <div className={`mb-5 grid gap-2 rounded-[24px] border border-white/10 bg-[#252A2D] p-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.16)] ${visibleTabs.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
                     {visibleTabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = safeActiveTab === tab.id;
@@ -761,14 +761,14 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex h-12 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-black transition sm:gap-2 ${
+                                className={`flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-xs font-black transition sm:gap-2 sm:text-sm ${
                                     isActive
                                         ? "bg-[#FFD166] text-[#151A1D]"
                                         : "text-white/58 hover:bg-white/[0.07] hover:text-white"
                                 }`}
                             >
-                                <Icon size={18} />
-                                {tab.label}
+                                <Icon size={18} className="shrink-0" />
+                                <span className="min-w-0 truncate">{tab.label}</span>
                             </button>
                         );
                     })}
@@ -776,9 +776,19 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 )}
 
                 {message && (
-                    <p className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
-                        {message}
-                    </p>
+                    <div className="waiter-success-message mb-4 flex items-center gap-3 rounded-[24px] border px-4 py-3 shadow-[0_18px_42px_rgba(6,78,59,0.16)]">
+                        <div className="waiter-success-icon grid h-10 w-10 shrink-0 place-items-center rounded-2xl shadow-[0_12px_24px_rgba(6,78,59,0.24)]">
+                            <CheckCircle2 size={22} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="waiter-success-title text-xs font-black uppercase tracking-[0.16em]">
+                                Table opened successfully
+                            </p>
+                            <p className="waiter-success-copy mt-0.5 text-sm font-black">
+                                {message}
+                            </p>
+                        </div>
+                    </div>
                 )}
                 {errorMessage && (
                     <p className="mb-4 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-3 text-sm font-black text-[#7F1D1D]">

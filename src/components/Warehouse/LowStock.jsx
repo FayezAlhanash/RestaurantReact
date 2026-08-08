@@ -70,6 +70,7 @@ function LowStock() {
                 isAdmin={isAdmin}
                 restaurants={restaurants}
                 selectedRestaurantId={selectedRestaurantId}
+                showStats={false}
                 onRestaurantChange={(restaurantId) => {
                     setSelectedRestaurantId(restaurantId);
                 }}

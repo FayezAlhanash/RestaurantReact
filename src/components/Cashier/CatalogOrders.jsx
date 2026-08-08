@@ -48,6 +48,45 @@ const normalizeType = (type) =>
         .replaceAll("-", "_")
         .replaceAll(" ", "_");
 
+const canceledStatuses = new Set([
+    "cancelled",
+    "canceled",
+    "deleted",
+    "removed",
+    "void",
+    "voided",
+    "rejected",
+]);
+
+const getStatusValue = (value) =>
+    value?.status ??
+    value?.kitchen_status ??
+    value?.order_status ??
+    value?.state ??
+    value?.pivot?.status ??
+    "";
+
+const isTruthyFlag = (value) =>
+    value === true || value === 1 || String(value).toLowerCase() === "true";
+
+const isCanceledRecord = (value) => {
+    if (!value || typeof value !== "object") return false;
+
+    if (canceledStatuses.has(normalizeStatus(getStatusValue(value)))) {
+        return true;
+    }
+
+    return (
+        isTruthyFlag(value.is_cancelled) ||
+        isTruthyFlag(value.is_canceled) ||
+        isTruthyFlag(value.cancelled) ||
+        isTruthyFlag(value.canceled) ||
+        isTruthyFlag(value.deleted) ||
+        isTruthyFlag(value.is_deleted) ||
+        Boolean(value.cancelled_at || value.canceled_at || value.deleted_at)
+    );
+};
+
 const formatTime = (value) => {
     if (!value) return "";
 
@@ -85,7 +124,12 @@ const getRestaurantName = (value) =>
     "Restaurant";
 
 const normalizeItem = (item, index) => {
+    if (isCanceledRecord(item) || isCanceledRecord(item?.pivot)) return null;
+
     const food = item?.food || item?.menu_item || item?.product || item;
+    const quantity = Number(item?.quantity ?? item?.qty ?? item?.count ?? 1);
+
+    if (quantity <= 0) return null;
 
     return {
         id: item?.id ?? item?.order_item_id ?? item?.food_id ?? food?.id ?? index,
@@ -100,7 +144,7 @@ const normalizeItem = (item, index) => {
             item?.name ||
             item?.title ||
             "Food item",
-        quantity: Number(item?.quantity ?? item?.qty ?? item?.count ?? 1),
+        quantity,
         notes:
             item?.notes ||
             item?.note ||
@@ -110,8 +154,12 @@ const normalizeItem = (item, index) => {
     };
 };
 
+const normalizeItems = (items) => getList(items).map(normalizeItem).filter(Boolean);
+
 const normalizeRestaurantGroup = (restaurantOrder) => {
-    const items = getList(getItems(restaurantOrder)).map(normalizeItem);
+    if (isCanceledRecord(restaurantOrder)) return null;
+
+    const items = normalizeItems(getItems(restaurantOrder));
     const firstItem = items[0] || restaurantOrder;
 
     return {
@@ -126,26 +174,45 @@ const normalizeRestaurantGroup = (restaurantOrder) => {
     };
 };
 
-const getRestaurantOrders = (order, normalizedItems) => {
+const getRestaurantOrderList = (order) => {
     const restaurantOrders =
         order?.restaurant_orders ||
         order?.restaurantOrders ||
         order?.restaurant_order ||
         order?.restaurantOrder ||
         [];
-    const list =
+
+    return (
         Array.isArray(restaurantOrders) || Array.isArray(restaurantOrders?.data)
             ? getList(restaurantOrders)
             : restaurantOrders && typeof restaurantOrders === "object"
               ? [restaurantOrders]
-              : [];
+              : []
+    );
+};
+
+const getCanceledRestaurantOrderIds = (order) =>
+    new Set(
+        getRestaurantOrderList(order)
+            .filter(isCanceledRecord)
+            .map((restaurantOrder) => restaurantOrder?.id ?? getRestaurantOrderId(restaurantOrder))
+            .filter(Boolean)
+            .map((id) => String(id))
+    );
+
+const getRestaurantOrders = (order, normalizedItems) => {
+    const list = getRestaurantOrderList(order);
 
     if (list.length) {
-        const groups = list.map(normalizeRestaurantGroup);
+        const groups = list.map(normalizeRestaurantGroup).filter(Boolean);
         const hasGroupItems = groups.some((group) => group.items.length);
 
-        if (hasGroupItems || !normalizedItems.length) {
-            return groups;
+        if (hasGroupItems) {
+            return groups.filter((group) => group.items.length);
+        }
+
+        if (!normalizedItems.length) {
+            return [];
         }
     }
 
@@ -172,7 +239,15 @@ const getRestaurantOrders = (order, normalizedItems) => {
 };
 
 const normalizeOrder = (order) => {
-    const items = getList(getItems(order)).map(normalizeItem);
+    if (isCanceledRecord(order)) return null;
+
+    const canceledRestaurantOrderIds = getCanceledRestaurantOrderIds(order);
+    const items = normalizeItems(getItems(order)).filter(
+        (item) =>
+            !item.restaurantOrderId ||
+            !canceledRestaurantOrderIds.has(String(item.restaurantOrderId))
+    );
+    const restaurantOrders = getRestaurantOrders(order, items);
 
     return {
         id: order?.id ?? order?.order_id,
@@ -181,7 +256,7 @@ const normalizeOrder = (order) => {
         type: normalizeType(order?.type || order?.order_type || order?.service_type),
         createdAt: order?.created_at || order?.time || order?.ordered_at,
         items,
-        restaurantOrders: getRestaurantOrders(order, items),
+        restaurantOrders,
     };
 };
 
@@ -224,6 +299,8 @@ const getOrderItemCount = (order) => {
     return groupedItemCount || order.items.length;
 };
 
+const normalizeOrders = (orders) => orders.map(normalizeOrder).filter(Boolean);
+
 function CatalogOrders() {
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -260,17 +337,17 @@ function CatalogOrders() {
             const kitchenOrders = getList(response.data);
 
             if (kitchenOrders.length) {
-                setOrders(kitchenOrders.map(normalizeOrder));
+                setOrders(normalizeOrders(kitchenOrders));
                 return;
             }
 
             const cashierResponse = await api.get("/cashier/orders");
-            const cashierOrders = getList(cashierResponse.data).map(normalizeOrder);
+            const cashierOrders = normalizeOrders(getList(cashierResponse.data));
             setOrders(await loadOrderDetails(cashierOrders));
         } catch (error) {
             try {
                 const response = await api.get("/cashier/orders");
-                const cashierOrders = getList(response.data).map(normalizeOrder);
+                const cashierOrders = normalizeOrders(getList(response.data));
                 setOrders(await loadOrderDetails(cashierOrders));
             } catch (fallbackError) {
                 setErrorMessage(
@@ -309,9 +386,8 @@ function CatalogOrders() {
         () =>
             orders.filter(
                 (order) =>
-                    !order.status ||
-                    visibleStatuses.has(order.status) ||
-                    order.items.length > 0
+                    getOrderItemCount(order) > 0 &&
+                    (!order.status || visibleStatuses.has(order.status))
             ),
         [orders]
     );
@@ -458,19 +534,19 @@ function CatalogOrders() {
                     <h2 className="text-xl font-bold">Loading orders...</h2>
                 </div>
             ) : visibleOrders.length ? (
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
                     {visibleOrders.map((order) => (
                         <article
                             key={order.id}
-                            className="flex h-[620px] min-h-0 flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]"
+                            className="flex max-h-[460px] min-h-[300px] flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#252A2D] shadow-[0_14px_32px_rgba(0,0,0,0.16)]"
                         >
-                            <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-5 py-5">
+                            <header className="shrink-0 flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-4">
                                 <div>
                                     <p className="text-xs font-black uppercase tracking-wide text-white/50">
                                         Order
                                     </p>
-                                    <div className="mt-1 flex items-center gap-3">
-                                        <h2 className="text-3xl font-black text-[#FFD166]">
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <h2 className="text-2xl font-black text-[#FFD166]">
                                             #{order.number}
                                         </h2>
                                         <span className="rounded-full bg-[#7F1D1D]/14 px-3 py-1 text-xs font-black uppercase text-[#7F1D1D]">
@@ -485,19 +561,19 @@ function CatalogOrders() {
                                 </div>
                             </header>
 
-                            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+                            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
                                 {order.restaurantOrders.map((group, groupIndex) => (
                                     <div
                                         key={`${group.id || group.restaurantId || groupIndex}`}
-                                        className="rounded-2xl border border-white/10 bg-white/[0.06] p-4"
+                                        className="rounded-xl border border-white/10 bg-white/[0.06] p-3"
                                     >
-                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#FFD166]/14 text-[#FFD166]">
-                                                    <Store size={18} />
+                                                <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#FFD166]/14 text-[#FFD166]">
+                                                    <Store size={16} />
                                                 </span>
                                                 <div>
-                                                    <h3 className="font-extrabold">
+                                                    <h3 className="text-sm font-extrabold">
                                                         {group.restaurantName}
                                                     </h3>
                                                     <p className="text-xs font-bold text-white/45">
@@ -527,9 +603,9 @@ function CatalogOrders() {
                                                         submittingKey ===
                                                         `restaurant:${group.id}`
                                                     }
-                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#7F1D1D] px-3 text-xs font-black text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] hover:shadow-[0_14px_28px_rgba(127,29,29,0.30)] active:scale-[0.98] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
+                                                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#FF6B6B]/35 bg-[#7F1D1D] px-2.5 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] active:scale-[0.98] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
                                                 >
-                                                    <Ban size={15} />
+                                                    <Ban size={14} />
                                                     {submittingKey ===
                                                     `restaurant:${group.id}`
                                                         ? "Canceling..."
@@ -542,10 +618,10 @@ function CatalogOrders() {
                                             {group.items.map((item) => (
                                                 <div
                                                     key={`${item.id}-${item.foodId}`}
-                                                    className="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-[#12181B] px-4 py-3"
+                                                    className="flex flex-wrap items-start justify-between gap-2 rounded-lg bg-[#12181B] px-3 py-2.5"
                                                 >
                                                     <div className="min-w-0">
-                                                        <p className="font-extrabold">
+                                                        <p className="text-sm font-extrabold">
                                                             {item.name}
                                                         </p>
                                                         {item.notes && (
@@ -555,7 +631,7 @@ function CatalogOrders() {
                                                         )}
                                                     </div>
                                                     <div className="flex shrink-0 items-center gap-2">
-                                                        <span className="rounded-xl bg-[#FFD166]/14 px-3 py-2 text-sm font-black text-[#FFD166]">
+                                                        <span className="rounded-lg bg-[#FFD166]/14 px-2.5 py-1.5 text-xs font-black text-[#FFD166]">
                                                             {item.quantity}x
                                                         </span>
                                                         <button
@@ -577,7 +653,7 @@ function CatalogOrders() {
                                                                 submittingKey ===
                                                                 `item-delete:${item.id}`
                                                             }
-                                                            className="grid h-10 w-10 place-items-center rounded-xl border border-[#FF6B6B]/35 bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] hover:shadow-[0_14px_28px_rgba(127,29,29,0.30)] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
+                                                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#FF6B6B]/35 bg-[#7F1D1D] text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
                                                             aria-label={`Delete ${item.name}`}
                                                         >
                                                             <Trash2 size={16} />
@@ -590,11 +666,11 @@ function CatalogOrders() {
                                 ))}
                             </div>
 
-                            <footer className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-[#12181B] px-5 py-4">
-                                <div className="flex items-center gap-2 text-sm font-bold text-white/55">
-                                    <ShoppingBag size={17} />
+                            <footer className="shrink-0 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#12181B] px-4 py-3">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-white/55">
+                                    <ShoppingBag size={15} />
                                     <span>{getOrderItemCount(order)} items</span>
-                                    <Utensils size={17} />
+                                    <Utensils size={15} />
                                     <span>{order.restaurantOrders.length} groups</span>
                                 </div>
 
@@ -611,9 +687,9 @@ function CatalogOrders() {
                                         })
                                     }
                                     disabled={submittingKey === `order:${order.id}`}
-                                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#FF6B6B]/35 bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_12px_26px_rgba(127,29,29,0.28)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] hover:shadow-[0_16px_32px_rgba(127,29,29,0.34)] active:scale-[0.98] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-80"
+                                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#FF6B6B]/35 bg-[#7F1D1D] px-3 text-xs font-black text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] active:scale-[0.98] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-80"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={15} />
                                     {submittingKey === `order:${order.id}`
                                         ? "Canceling..."
                                         : "Cancel order"}

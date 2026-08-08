@@ -13,7 +13,7 @@ import {
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
-import { getStoredUser, ROLE_IDS } from "../../utils/auth";
+import { getStoredUser, ROLE_IDS, storeUser } from "../../utils/auth";
 
 const getList = (data) => {
     if (Array.isArray(data)) return data;
@@ -36,6 +36,13 @@ const getRestaurants = (data) => {
 
     return [];
 };
+
+const getRestaurantRecord = (data) =>
+    data?.restaurant ??
+    data?.data?.restaurant ??
+    data?.data ??
+    data ??
+    {};
 
 const getStaffName = (staff) =>
     staff?.name ||
@@ -117,6 +124,32 @@ function RestaurantStaff() {
 
                 setRestaurantId(currentRestaurantId);
                 setRestaurantName(getRestaurantName(getStoredUser(), currentRestaurantId));
+
+                try {
+                    const restaurantResponse = await api.get(`/restaurants/${currentRestaurantId}`);
+                    const restaurant = getRestaurantRecord(restaurantResponse.data);
+
+                    if (!isActive) return;
+
+                    if (restaurant?.name) {
+                        setRestaurantName(restaurant.name);
+
+                        const currentUser = getStoredUser();
+                        if (currentUser) {
+                            storeUser(currentUser, {
+                                restaurant: {
+                                    ...(currentUser.restaurant || {}),
+                                    ...restaurant,
+                                    id: restaurant?.id ?? currentRestaurantId,
+                                    name: restaurant.name,
+                                },
+                                restaurant_id: restaurant?.id ?? currentRestaurantId,
+                            });
+                        }
+                    }
+                } catch {
+                    // Staff can still load when the restaurant name endpoint is unavailable.
+                }
             } catch (error) {
                 if (isActive) {
                     setErrorMessage(

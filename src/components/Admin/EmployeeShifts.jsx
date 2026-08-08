@@ -329,6 +329,7 @@ function EmployeeShifts() {
             return;
         }
 
+        formData.append("_method", "PUT");
         formData.append("start_time", editStartTime);
         formData.append("end_time", editEndTime);
         formData.append("is_active", "1");
@@ -338,7 +339,7 @@ function EmployeeShifts() {
         setErrorMessage("");
 
         try {
-            await api.put(`/employees/${selectedEmployeeId}/shifts/${shiftId}`, formData);
+            await api.post(`/employees/${selectedEmployeeId}/shifts/${shiftId}`, formData);
             setSuccessMessage(`${getShiftDay(shift)} shift updated.`);
             cancelEditShift();
             fetchEmployeeShifts(selectedEmployeeId);
@@ -542,8 +543,8 @@ function EmployeeShifts() {
                 </div>
             </section>
 
-            <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
-                <aside className={`self-start overflow-hidden rounded-[24px] border ${panelSurface}`}>
+            <section className="grid items-start gap-5 xl:grid-cols-[360px_1fr]">
+                <aside className={`overflow-hidden rounded-[24px] border ${panelSurface}`}>
                     <div className={`border-b p-4 ${panelHeader}`}>
                         <div className="flex items-center gap-3">
                             <div className={`grid h-10 w-10 place-items-center rounded-xl border ${goldBorder} ${goldBackground} ${goldText}`}>
@@ -569,7 +570,7 @@ function EmployeeShifts() {
                         </div>
                     </div>
 
-                    <div className="admin-dashboard-scroll max-h-[540px] space-y-2 overflow-y-auto p-3">
+                    <div className="admin-dashboard-scroll min-h-[420px] max-h-[520px] space-y-2 overflow-y-auto p-3">
                         {isLoading ? (
                             <div className={`rounded-2xl border border-dashed p-6 text-center text-sm font-semibold ${emptySurface}`}>
                                 Loading employees...
@@ -846,7 +847,11 @@ function EmployeeShifts() {
                         )}
 
                         {successMessage && (
-                            <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-300">
+                            <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${
+                                isLight
+                                    ? "border-[#047857]/25 bg-[#ECFDF3] text-[#047857]"
+                                    : "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+                            }`}>
                                 <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
                                 <span>{successMessage}</span>
                             </div>
@@ -898,7 +903,7 @@ function EmployeeShifts() {
                                     Loading shifts...
                                 </div>
                             ) : employeeShifts.length ? (
-                                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-2">
                                     {employeeShifts.map((shift, index) => {
                                         const shiftId = getShiftId(shift);
                                         const day = getShiftDay(shift);
@@ -916,7 +921,7 @@ function EmployeeShifts() {
                                         return (
                                             <div
                                                 key={shift?.id ?? `${day}-${index}`}
-                                                className={`rounded-xl border p-3 ${
+                                                className={`min-h-[64px] rounded-xl border p-3 ${
                                                     isDeletePending
                                                         ? "border-[#7F1D1D]/40 bg-[#7F1D1D]/10"
                                                         : isLight
@@ -924,9 +929,9 @@ function EmployeeShifts() {
                                                             : "border-white/10 bg-[#172124]"
                                                 }`}
                                             >
-                                                <div className="flex items-start justify-between gap-3">
+                                                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                                                     <div className="min-w-0 flex-1">
-                                                        <p className={`text-sm font-black capitalize ${titleText}`}>
+                                                        <p className={`truncate text-sm font-black capitalize ${titleText}`}>
                                                             {day}
                                                         </p>
                                                         {isEditing ? (
@@ -949,7 +954,7 @@ function EmployeeShifts() {
                                                                 />
                                                             </div>
                                                         ) : (
-                                                            <p className={`mt-1 text-xs font-bold ${mutedText}`}>
+                                                            <p className={`mt-1 text-xs font-bold leading-5 ${mutedText}`}>
                                                                 {shiftStart} to {shiftEnd}
                                                             </p>
                                                         )}

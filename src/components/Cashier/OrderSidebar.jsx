@@ -1,4 +1,4 @@
-import { Minus, Plus, Receipt, ShoppingBag, Trash2 } from "lucide-react";
+import { Minus, Plus, Receipt, ShoppingBag, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
     createCashierOrder,
@@ -15,6 +15,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
     const [paymentMethod, setPaymentMethod] = useState("cash");
     const [isStripeReady, setIsStripeReady] = useState(false);
     const [stripeCardMessage, setStripeCardMessage] = useState("");
+    const [pendingDeleteIndex, setPendingDeleteIndex] = useState(null);
     const stripeCardContainerRef = useRef(null);
     const stripeCardRef = useRef(null);
 
@@ -64,9 +65,18 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
 
     const removeItem = (indexToRemove) => {
         setCartItems((items) => items.filter((_, index) => index !== indexToRemove));
+        setPendingDeleteIndex(null);
     };
 
     const changeQuantity = (indexToChange, amount) => {
+        const item = cartItems[indexToChange];
+
+        if (amount < 0 && Number(item?.quantity ?? 0) <= 1) {
+            setPendingDeleteIndex(indexToChange);
+            return;
+        }
+
+        setPendingDeleteIndex(null);
         setCartItems((items) =>
             items
                 .map((item, index) =>
@@ -151,8 +161,15 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                 : "";
             const status = error.response?.status;
             const message = error.response?.data?.message;
+            const errorText = JSON.stringify(error.response?.data || error.message || "");
+            const isMissingPreparationSnapshotColumn =
+                errorText.includes("preparation_batch_size_snapshot") ||
+                errorText.includes("preparation_time_snapshot");
 
             setErrorMessage(
+                isMissingPreparationSnapshotColumn
+                    ? "Order could not be saved. The backend database needs the latest order-items migration."
+                    :
                 firstValidationError ||
                 (status === 401 || status === 403 || message === "Unauthorized."
                     ? "You need Process Payments permission to pay takeaway orders."
@@ -190,8 +207,15 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                         <p className="mt-1 max-w-52 text-sm leading-5 text-white/48">Choose an item from the menu to start a new order.</p>
                     </div>
                 ) : (
-                    cartItems.map((item, index) => (
-                        <div key={`${item.id}-${item.size}-${index}`} className="rounded-[22px] border border-white/[0.08] bg-[#1B2225]/95 p-3 shadow-[0_12px_26px_rgba(0,0,0,0.16)]">
+                    cartItems.map((item, index) => {
+                        const isDeletePending = pendingDeleteIndex === index;
+
+                        return (
+                        <div key={`${item.id}-${item.size}-${index}`} className={`rounded-[22px] border p-3 shadow-[0_12px_26px_rgba(0,0,0,0.16)] ${
+                            isDeletePending
+                                ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
+                                : "border-white/[0.08] bg-[#1B2225]/95"
+                        }`}>
                             <div className="flex gap-3">
                                 <img src={`${item.image}?auto=format&fit=crop&w=180&q=70`} alt={item.title} className="h-[70px] w-[70px] shrink-0 rounded-[18px] object-cover ring-1 ring-white/10" />
                                 <div className="min-w-0 flex-1">
@@ -200,9 +224,20 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                             <h3 className="truncate text-base font-extrabold">{item.title}</h3>
                                             <p className="mt-0.5 text-sm capitalize text-white/50">{item.size}</p>
                                         </div>
-                                        <button onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-[#FF6B6B]/30 bg-[#9B1C1F] text-white shadow-[0_8px_18px_rgba(155,28,31,0.20)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] active:scale-95">
-                                            <Trash2 size={17} />
-                                        </button>
+                                        {isDeletePending ? (
+                                            <div className="flex shrink-0 gap-1.5">
+                                                <button onClick={() => removeItem(index)} aria-label={`Confirm remove ${item.title}`} className="grid h-8 w-8 place-items-center rounded-xl border border-[#FF6B6B]/60 bg-[#9B1C1F] text-white transition hover:bg-[#C81E2A] active:scale-95">
+                                                    <Trash2 size={16} className="text-white [stroke:white]" />
+                                                </button>
+                                                <button onClick={() => setPendingDeleteIndex(null)} aria-label="Cancel remove" className="grid h-8 w-8 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/65 transition hover:bg-white/10 hover:text-white active:scale-95">
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setPendingDeleteIndex(index)} aria-label={`Remove ${item.title}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-[#FF6B6B]/30 bg-[#9B1C1F] text-white shadow-[0_8px_18px_rgba(155,28,31,0.20)] transition hover:border-[#FF8A8A]/55 hover:bg-[#C81E2A] active:scale-95">
+                                                <Trash2 size={17} className="text-white [stroke:white]" />
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="mt-3 flex items-center justify-between">
@@ -216,8 +251,14 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                 </div>
                             </div>
                             {item.notes && <p className="mt-2 rounded-2xl bg-[#0F1517] px-3 py-2 text-sm italic leading-5 text-white/66">"{item.notes}"</p>}
+                            {isDeletePending && (
+                                <p className="mt-2 rounded-xl border border-[#7F1D1D]/45 bg-[#7F1D1D]/12 px-3 py-2 text-xs font-black !text-[#7F1D1D]">
+                                    Delete this item? Press the red button to confirm.
+                                </p>
+                            )}
                         </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 

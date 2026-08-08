@@ -52,8 +52,10 @@ function WarehouseList({
     restaurants = [],
     selectedRestaurantId = "",
     onRestaurantChange,
+    showStats = true,
 }) {
     const navigate = useNavigate();
+    const { isLight } = useTheme();
     const fallbackStats = {
         total: inventory.length,
         lowStock: inventory.filter(
@@ -73,43 +75,53 @@ function WarehouseList({
 
     return (
         <section className="cashier-scroll px-4 py-6 text-white sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <StatCard
-                    title="Total Ingredients"
-                    value={displayStats.total || 0}
-                    helper="Tracked in this restaurant"
-                    icon={Warehouse}
-                    tone="blue"
-                />
-                <StatCard
-                    title="Healthy Stock"
-                    value={displayStats.healthy || 0}
-                    helper="Above minimum level"
-                    icon={PackageCheck}
-                    tone="green"
-                />
-                <StatCard
-                    title="Low Stock"
-                    value={displayStats.lowStock || 0}
-                    helper="Needs purchasing soon"
-                    icon={TriangleAlert}
-                    tone="red"
-                    onClick={() => navigate(isAdmin ? "/low-stock" : "/warehouse/low-stock")}
-                />
-            </div>
+            {showStats && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <StatCard
+                        title="Total Ingredients"
+                        value={displayStats.total || 0}
+                        helper="Tracked in this restaurant"
+                        icon={Warehouse}
+                        tone="blue"
+                    />
+                    <StatCard
+                        title="Healthy Stock"
+                        value={displayStats.healthy || 0}
+                        helper="Above minimum level"
+                        icon={PackageCheck}
+                        tone="green"
+                    />
+                    <StatCard
+                        title="Low Stock"
+                        value={displayStats.lowStock || 0}
+                        helper="Needs purchasing soon"
+                        icon={TriangleAlert}
+                        tone="red"
+                        onClick={() => navigate(isAdmin ? "/low-stock" : "/warehouse/low-stock")}
+                    />
+                </div>
+            )}
 
             {isAdmin && (
-                <div className="mt-5 rounded-[24px] border border-[#FFD166]/30 bg-[linear-gradient(135deg,#f7ebcf_0%,#efe4cf_34%,#3f4646_100%)] p-4 shadow-[0_18px_38px_rgba(70,45,30,0.14)] ring-1 ring-white/[0.04] dark:bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] dark:shadow-[0_18px_38px_rgba(0,0,0,0.20)]">
+                <div className={`${showStats ? "mt-5" : ""} rounded-[24px] border p-4 ring-1 ring-white/[0.04] ${
+                    isLight
+                        ? "border-[#E8C878]/55 bg-[linear-gradient(135deg,#FFF8E8_0%,#FFFDF8_48%,#F7E5D9_100%)] text-[#241815] shadow-[0_18px_38px_rgba(127,29,29,0.10)]"
+                        : "border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] text-white shadow-[0_18px_38px_rgba(0,0,0,0.20)]"
+                }`}>
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
+                            <div className={`grid h-11 w-11 place-items-center rounded-2xl border ${
+                                isLight
+                                    ? "border-[#D8A22D]/35 bg-[#FFF4DA] text-[#9A6400]"
+                                    : "border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]"
+                            }`}>
                                 <Building2 size={21} />
                             </div>
                             <div>
-                                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+                                <p className={`text-xs font-black uppercase tracking-[0.18em] ${isLight ? "text-[#9A6400]" : "text-[#FFD166]"}`}>
                                     Admin warehouse view
                                 </p>
-                                <h3 className="text-lg font-black text-white">
+                                <h3 className={`text-lg font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
                                     Choose restaurant warehouse
                                 </h3>
                             </div>
@@ -129,8 +141,12 @@ function WarehouseList({
                                         onClick={() => onRestaurantChange?.(restaurant.id)}
                                         className={`shrink-0 rounded-2xl border px-4 py-2 text-sm font-black transition ${
                                             active
-                                                ? "border-[#FFD166]/70 bg-[#FFD166]/16 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
-                                                : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/35 hover:bg-[#FFD166]/10 hover:text-white"
+                                                ? isLight
+                                                    ? "border-[#D8A22D]/55 bg-[#FFE8A3] text-[#8A5600] shadow-[0_12px_26px_rgba(154,100,0,0.12)]"
+                                                    : "border-[#FFD166]/70 bg-[#FFD166]/16 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
+                                                : isLight
+                                                    ? "border-[#E4CFC3] bg-white/78 text-[#6B5A52] hover:border-[#D8A22D]/45 hover:bg-[#FFF4DA] hover:text-[#8A5600]"
+                                                    : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/35 hover:bg-[#FFD166]/10 hover:text-white"
                                         }`}
                                     >
                                         #{restaurant.id} {restaurant.name}

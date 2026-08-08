@@ -13,7 +13,6 @@ const DEFAULT_SETTINGS = {
     redeem_amount: 1,
     min_redeem_points: 100,
     max_redeem_points: 500,
-    max_redeem_discount: 5,
 };
 
 const FIELDS = [
@@ -26,7 +25,6 @@ const FIELDS = [
     { key: "redeem_amount", label: "Redeem amount", min: 0 },
     { key: "min_redeem_points", label: "Minimum redeem points", min: 0 },
     { key: "max_redeem_points", label: "Maximum redeem points", min: 0 },
-    { key: "max_redeem_discount", label: "Maximum redeem discount", min: 0 },
 ];
 
 function getList(data) {
@@ -205,9 +203,9 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
         : "Restaurant-specific loyalty earning and redemption rules.";
 
     return (
-        <main className="admin-rich-page min-h-full p-4 text-white sm:p-6 lg:p-8">
+        <main className="loyalty-settings-page admin-rich-page min-h-full p-4 text-white sm:p-6 lg:p-8">
             <div className="mx-auto max-w-[1100px]">
-                <section className="mb-6 rounded-[18px] border border-white/10 bg-[#15191b] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]">
+                <section className="loyalty-settings-panel mb-6 rounded-[18px] border border-white/10 bg-[#15191b] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
                             <div className="grid h-12 w-12 place-items-center rounded-[10px] border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
@@ -230,11 +228,11 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
 
                 <form
                     onSubmit={saveSettings}
-                    className="rounded-[18px] border border-white/10 bg-[#20262a] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
+                    className="loyalty-settings-panel rounded-[18px] border border-white/10 bg-[#20262a] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
                 >
                     {!isGlobal && isAdmin && (
                         <label className="mb-5 block">
-                            <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/50">
+                            <span className="loyalty-settings-muted mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/50">
                                 Restaurant
                             </span>
                             <select
@@ -242,7 +240,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                 onChange={(event) =>
                                     setSelectedRestaurantId(event.target.value)
                                 }
-                                className="h-12 w-full rounded-[10px] border border-white/10 bg-[#111518] px-4 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
+                                className="loyalty-settings-input h-12 w-full rounded-[10px] border border-white/10 bg-[#111518] px-4 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
                             >
                                 <option value="">Select restaurant</option>
                                 {restaurants.map((restaurant) => (
@@ -273,7 +271,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                     )}
 
                     {isLoading ? (
-                        <div className="grid min-h-[280px] place-items-center rounded-[14px] border border-white/10 bg-[#15191b] text-sm font-black text-white/55">
+                        <div className="loyalty-settings-card loyalty-settings-muted grid min-h-[280px] place-items-center rounded-[14px] border border-white/10 bg-[#15191b] text-sm font-black text-white/55">
                             <span className="inline-flex items-center gap-2">
                                 <Loader2 size={18} className="animate-spin" />
                                 Loading loyalty settings...
@@ -285,9 +283,9 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                 {FIELDS.map((field) => (
                                     <label
                                         key={field.key}
-                                        className="rounded-[12px] border border-white/10 bg-[#15191b] p-4"
+                                        className="loyalty-settings-card rounded-[12px] border border-white/10 bg-[#15191b] p-4"
                                     >
-                                        <span className="mb-3 flex items-center gap-2 text-sm font-black text-white">
+                                        <span className="loyalty-settings-field-label mb-3 flex items-center gap-2 text-sm font-black text-white">
                                             <BadgePercent
                                                 size={17}
                                                 className="text-[#FFD166]"
@@ -317,7 +315,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                                         event.target.value
                                                     )
                                                 }
-                                                className="h-11 w-full rounded-[10px] border border-white/10 bg-[#0f1315] px-3 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
+                                                className="loyalty-settings-input h-11 w-full rounded-[10px] border border-white/10 bg-[#0f1315] px-3 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
                                             />
                                         )}
                                     </label>

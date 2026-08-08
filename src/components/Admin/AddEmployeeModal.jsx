@@ -244,7 +244,7 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                         </div>
                         <div>
                             <label className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                                phone Name
+                                phone Number
                             </label>
 
                             <input
@@ -349,7 +349,7 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                         </div>
                         <div>
                             <label className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                                password
+                                Password
                             </label>
 
                             <input
