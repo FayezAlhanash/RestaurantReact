@@ -596,8 +596,8 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     }));
                                                 }}
                                                 className={`flex items-start justify-between gap-3 ${
-                                                    isExpanded ? "mb-3" : ""
-                                                } ${!isVariant ? "cursor-pointer rounded-2xl outline-none focus:ring-4 focus:ring-[#FFD166]/15" : ""}`}
+                                                    !isVariant ? "cursor-pointer rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#FFD166]/35" : ""
+                                                }`}
                                             >
                                                 <div className="min-w-0">
                                                     <h3 className={`flex items-center gap-2 text-base font-black leading-6 ${
@@ -649,95 +649,103 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     {!isVariant && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
                                                 </span>
                                             </div>
-                                            {isExpanded && (
-                                            <div className="flex flex-wrap gap-2">
-                                                {group.options.map((option) => {
-                                                    const optionId = getOptionId(option);
-                                                    const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
-                                                        ? selectedModifiers[groupId]
-                                                        : [selectedModifiers[groupId]].filter(Boolean);
-                                                    const isSelected = selectedOptionIds.some(
-                                                        (selectedOptionId) => String(selectedOptionId) === String(optionId)
-                                                    );
-                                                    const optionPrice = getModifierOptionPrice(option, group, { basePrice });
-                                                    const isVariant = isVariantGroup(group);
-                                                    const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
-                                                    const isDisabled = !isVariant && !canSelectNonVariantModifiers;
+                                            <div
+                                                className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                                                    isExpanded
+                                                        ? "grid-rows-[1fr] opacity-100"
+                                                        : "grid-rows-[0fr] opacity-0"
+                                                }`}
+                                            >
+                                                <div className="min-h-0 overflow-hidden">
+                                                    <div className="flex flex-wrap gap-2 pt-3">
+                                                        {group.options.map((option) => {
+                                                            const optionId = getOptionId(option);
+                                                            const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
+                                                                ? selectedModifiers[groupId]
+                                                                : [selectedModifiers[groupId]].filter(Boolean);
+                                                            const isSelected = selectedOptionIds.some(
+                                                                (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                            );
+                                                            const optionPrice = getModifierOptionPrice(option, group, { basePrice });
+                                                            const isVariant = isVariantGroup(group);
+                                                            const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
+                                                            const isDisabled = !isVariant && !canSelectNonVariantModifiers;
 
-                                                    return (
-                                                        <button
-                                                            key={optionId}
-                                                            type="button"
-                                                            disabled={isDisabled}
-                                                            onClick={() => {
-                                                                if (isDisabled) return;
+                                                            return (
+                                                                <button
+                                                                    key={optionId}
+                                                                    type="button"
+                                                                    disabled={isDisabled}
+                                                                    onClick={() => {
+                                                                        if (isDisabled) return;
 
-                                                                setSelectedModifiers((current) => {
-                                                                    const maxSelect = getGroupMaxSelect(group);
+                                                                        setSelectedModifiers((current) => {
+                                                                            const maxSelect = getGroupMaxSelect(group);
 
-                                                                    if (maxSelect <= 1) {
-                                                                        if (isSelected && !isGroupRequired(group)) {
-                                                                            const nextModifiers = { ...current };
-                                                                            delete nextModifiers[groupId];
-                                                                            return nextModifiers;
-                                                                        }
+                                                                            if (maxSelect <= 1) {
+                                                                                if (isSelected && !isGroupRequired(group)) {
+                                                                                    const nextModifiers = { ...current };
+                                                                                    delete nextModifiers[groupId];
+                                                                                    return nextModifiers;
+                                                                                }
 
-                                                                        return {
-                                                                            ...current,
-                                                                            [groupId]: optionId,
-                                                                        };
-                                                                    }
+                                                                                return {
+                                                                                    ...current,
+                                                                                    [groupId]: optionId,
+                                                                                };
+                                                                            }
 
-                                                                    const currentOptionIds = Array.isArray(current[groupId])
-                                                                        ? current[groupId]
-                                                                        : [current[groupId]].filter(Boolean);
-                                                                    const alreadySelected = currentOptionIds.some(
-                                                                        (selectedOptionId) => String(selectedOptionId) === String(optionId)
-                                                                    );
-                                                                    const nextOptionIds = alreadySelected
-                                                                        ? currentOptionIds.filter(
-                                                                              (selectedOptionId) => String(selectedOptionId) !== String(optionId)
-                                                                          )
-                                                                        : [...currentOptionIds, optionId].slice(0, maxSelect);
+                                                                            const currentOptionIds = Array.isArray(current[groupId])
+                                                                                ? current[groupId]
+                                                                                : [current[groupId]].filter(Boolean);
+                                                                            const alreadySelected = currentOptionIds.some(
+                                                                                (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                                            );
+                                                                            const nextOptionIds = alreadySelected
+                                                                                ? currentOptionIds.filter(
+                                                                                      (selectedOptionId) => String(selectedOptionId) !== String(optionId)
+                                                                                  )
+                                                                                : [...currentOptionIds, optionId].slice(0, maxSelect);
 
-                                                                    return {
-                                                                        ...current,
-                                                                        [groupId]: nextOptionIds,
-                                                                    };
-                                                                });
-                                                            }}
-                                                            className={`flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-left text-xs font-black transition disabled:cursor-not-allowed ${
-                                                                isDineInDark
-                                                                    ? isDisabled
-                                                                        ? "border-white/8 bg-white/[0.035] text-white/28"
-                                                                        : isSelected
-                                                                            ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.24)]"
-                                                                            : "border-white/10 bg-[#0D1113] text-white/68 hover:border-[#FFD166]/45 hover:bg-white/[0.10]"
-                                                                    : isDisabled
-                                                                        ? "border-[#E4CFC3] bg-[#F1E7DF] text-[#A28F87]"
-                                                                        : isSelected
-                                                                            ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.18)]"
-                                                                            : "border-[#E4CFC3] bg-[#FFF9F2] text-[#6F5C54] hover:border-[#7F1D1D]"
-                                                            }`}
-                                                        >
-                                                            {isSelected && <Check size={14} />}
-                                                            <span>{option.name}</span>
-                                                            {(isVariant || optionPrice > 0) && (
-                                                                <span className={`rounded-full px-2 py-0.5 text-[10px] ${
-                                                                    isSelected
-                                                                        ? "bg-white/18 text-white"
-                                                                        : isDineInDark
-                                                                            ? "bg-white/10 text-[#FFD166]"
-                                                                            : "bg-white text-[#7F1D1D]"
-                                                                }`}>
-                                                                    {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
-                                                                </span>
-                                                            )}
-                                                        </button>
-                                                    );
-                                                })}
+                                                                            return {
+                                                                                ...current,
+                                                                                [groupId]: nextOptionIds,
+                                                                            };
+                                                                        });
+                                                                    }}
+                                                                    className={`flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-left text-xs font-black transition disabled:cursor-not-allowed ${
+                                                                        isDineInDark
+                                                                            ? isDisabled
+                                                                                ? "border-white/8 bg-white/[0.035] text-white/28"
+                                                                                : isSelected
+                                                                                    ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.24)]"
+                                                                                    : "border-white/10 bg-[#0D1113] text-white/68 hover:border-[#FFD166]/45 hover:bg-white/[0.10]"
+                                                                            : isDisabled
+                                                                                ? "border-[#E4CFC3] bg-[#F1E7DF] text-[#A28F87]"
+                                                                                : isSelected
+                                                                                    ? "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_10px_20px_rgba(127,29,29,0.18)]"
+                                                                                    : "border-[#E4CFC3] bg-[#FFF9F2] text-[#6F5C54] hover:border-[#7F1D1D]"
+                                                                    }`}
+                                                                >
+                                                                    {isSelected && <Check size={14} />}
+                                                                    <span>{option.name}</span>
+                                                                    {(isVariant || optionPrice > 0) && (
+                                                                        <span className={`rounded-full px-2 py-0.5 text-[10px] ${
+                                                                            isSelected
+                                                                                ? "bg-white/18 text-white"
+                                                                                : isDineInDark
+                                                                                    ? "bg-white/10 text-[#FFD166]"
+                                                                                    : "bg-white text-[#7F1D1D]"
+                                                                        }`}>
+                                                                            {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            )}
                                         </div>
                                         );
                                     })}
