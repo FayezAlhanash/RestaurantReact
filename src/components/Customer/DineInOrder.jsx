@@ -510,6 +510,73 @@ const collectInvoiceIds = (value, ids = []) => {
 
 const getCreatedInvoiceId = (data) => collectInvoiceIds(data)[0] ?? null;
 
+const getFirstPresent = (values) =>
+    values.find((value) => value !== undefined && value !== null && value !== "");
+
+const getPreparationTimingFromObject = (value = {}) => {
+    const source = value?.restaurant_order ?? value?.restaurantOrder ?? value;
+    const remainingMinutes = getFirstPresent([
+        value?.remaining_minutes,
+        value?.remainingMinutes,
+        source?.remaining_minutes,
+        source?.remainingMinutes,
+    ]);
+    const waitingForPreparation = getFirstPresent([
+        value?.waiting_for_preparation,
+        value?.waitingForPreparation,
+        source?.waiting_for_preparation,
+        source?.waitingForPreparation,
+    ]);
+
+    return {
+        remainingMinutes,
+        waitingForPreparation:
+            waitingForPreparation === true ||
+            waitingForPreparation === 1 ||
+            String(waitingForPreparation).toLowerCase() === "true",
+    };
+};
+
+const hasPreparationTiming = (timing) =>
+    Boolean(timing?.waitingForPreparation) ||
+    (timing?.remainingMinutes !== undefined &&
+        timing?.remainingMinutes !== null &&
+        timing?.remainingMinutes !== "");
+
+const findPreparationTiming = (value, seen = new Set()) => {
+    if (!value || typeof value !== "object" || seen.has(value)) return null;
+
+    seen.add(value);
+
+    const timing = getPreparationTimingFromObject(value);
+
+    if (hasPreparationTiming(timing)) return timing;
+
+    for (const child of Object.values(value)) {
+        const nestedTiming = Array.isArray(child)
+            ? child.map((item) => findPreparationTiming(item, seen)).find(Boolean)
+            : findPreparationTiming(child, seen);
+
+        if (nestedTiming) return nestedTiming;
+    }
+
+    return null;
+};
+
+async function fetchDineInOrderTiming(orderId, sessionToken) {
+    if (!orderId || !sessionToken) return null;
+
+    try {
+        const response = await api.get(`/customer-dine-in/orders/${orderId}`, {
+            headers: getSessionTokenHeaders(sessionToken),
+        });
+
+        return findPreparationTiming(response.data);
+    } catch {
+        return null;
+    }
+}
+
 async function selectDineInPayment(invoiceId, orderId, sessionToken, paymentMethod) {
     const formData = new FormData();
 
@@ -1685,6 +1752,7 @@ function DineInOrder() {
     const [isSessionAvailable, setIsSessionAvailable] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [orderTiming, setOrderTiming] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState(() =>
         sessionStorage.getItem(orderStorageKey)
@@ -1802,6 +1870,28 @@ function DineInOrder() {
         setActiveOrderId(storedOrderId);
         setActiveInvoiceId(storedInvoiceId);
     }, [invoiceStorageKey, orderStorageKey]);
+
+    useEffect(() => {
+        if (!activeOrderId || !sessionToken || !successMessage) return undefined;
+
+        let isMounted = true;
+
+        const refreshTiming = async () => {
+            const timing = await fetchDineInOrderTiming(activeOrderId, sessionToken);
+
+            if (isMounted && timing) {
+                setOrderTiming(timing);
+            }
+        };
+
+        refreshTiming();
+        const intervalId = window.setInterval(refreshTiming, 5000);
+
+        return () => {
+            isMounted = false;
+            window.clearInterval(intervalId);
+        };
+    }, [activeOrderId, sessionToken, successMessage]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1955,6 +2045,7 @@ function DineInOrder() {
         setIsSubmitting(true);
         setErrorMessage("");
         setSuccessMessage("");
+        setOrderTiming(null);
 
         try {
             if (!sessionToken) {
@@ -1970,10 +2061,13 @@ function DineInOrder() {
             const invoiceId = getCreatedInvoiceId(response);
 
             if (createdOrderId) {
-                sessionStorage.removeItem(orderStorageKey);
-                sessionStorage.removeItem(invoiceStorageKey);
-                setActiveOrderId(null);
-                setActiveInvoiceId(null);
+                sessionStorage.setItem(orderStorageKey, String(createdOrderId));
+                setActiveOrderId(String(createdOrderId));
+
+                if (invoiceId) {
+                    sessionStorage.setItem(invoiceStorageKey, String(invoiceId));
+                    setActiveInvoiceId(String(invoiceId));
+                }
             } else {
                 throw new Error("Order was created without an order id.");
             }
@@ -1992,6 +2086,12 @@ function DineInOrder() {
                 );
             }
 
+            const nextOrderTiming =
+                findPreparationTiming(paymentResponse) ||
+                findPreparationTiming(response) ||
+                (await fetchDineInOrderTiming(createdOrderId, sessionToken));
+
+            setOrderTiming(nextOrderTiming);
             setCartItems([]);
             setIsConfirmOrderOpen(false);
             setIsMobileCartOpen(false);
@@ -2155,10 +2255,34 @@ function DineInOrder() {
                         />
 
                         {successMessage && (
-                            <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
-                                <CheckCircle2 size={18} />
-                                {successMessage}
-                            </p>
+                            <div className="mb-4 space-y-3">
+                                <p className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
+                                    <CheckCircle2 size={18} />
+                                    {successMessage}
+                                </p>
+                                {hasPreparationTiming(orderTiming) && (
+                                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#FFD166]/45 bg-[#FFD166]/16 px-4 py-3 text-white shadow-[0_12px_26px_rgba(255,209,102,0.10)]">
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#FFD166] text-[#151A1D] shadow-[0_10px_20px_rgba(255,209,102,0.18)]">
+                                                <Clock3 size={20} />
+                                            </span>
+                                            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                                                Remaining
+                                            </p>
+                                        </div>
+                                        <p className="text-2xl font-black leading-none text-white">
+                                            {orderTiming?.waitingForPreparation
+                                                ? "Waiting"
+                                                : `${orderTiming.remainingMinutes} min`}
+                                            {!orderTiming?.waitingForPreparation && (
+                                                <span className="ml-2 align-middle text-xs font-black uppercase tracking-[0.12em] text-white/50">
+                                                    left
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         {errorMessage && (
