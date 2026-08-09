@@ -806,6 +806,7 @@ export function createCashierOrderPayload(cartItems, type = "takeaway") {
             return {
                 food_id: item.food_id || item.id,
                 menu_item_id: item.food_id || item.id,
+                restaurant_id: item.restaurant_id,
                 quantity,
                 unit_price: unitPrice,
                 price: unitPrice,
@@ -845,6 +846,7 @@ function createCashierOrderFormData(cartItems, type = "takeaway") {
     payload.items.forEach((item, itemIndex) => {
         appendIfPresent(formData, `items[${itemIndex}][food_id]`, item.food_id);
         appendIfPresent(formData, `items[${itemIndex}][menu_item_id]`, item.menu_item_id);
+        appendIfPresent(formData, `items[${itemIndex}][restaurant_id]`, item.restaurant_id);
         appendIfPresent(formData, `items[${itemIndex}][quantity]`, item.quantity);
         appendIfPresent(formData, `items[${itemIndex}][unit_price]`, item.unit_price);
         appendIfPresent(formData, `items[${itemIndex}][price]`, item.price);

@@ -23,6 +23,7 @@ import {
 import { BookOpen, House, ReceiptText, ShieldAlert, Store } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import PermissionToast from "../Shared/PermissionToast";
+import { getRestaurantTaxRate } from "../../utils/tax";
 
 const REPORTS_BACKGROUND =
     "bg-[radial-gradient(circle_at_86%_12%,rgba(127,29,29,0.14),transparent_30%),radial-gradient(circle_at_16%_22%,rgba(255,209,102,0.10),transparent_26%),linear-gradient(145deg,#0D1214_0%,#12191C_54%,#211619_100%)]";
@@ -83,6 +84,15 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     food_id: food.id,
     restaurant_id: food.restaurant_id ?? food.restaurant?.id ?? restaurant?.id,
     restaurantName: food.restaurant?.name ?? restaurant?.name ?? "",
+    restaurantTaxPercentage:
+        food.restaurant?.tax_percentage ??
+        food.restaurant?.taxPercentage ??
+        restaurant?.tax_percentage ??
+        restaurant?.taxPercentage ??
+        food.tax_percentage ??
+        food.taxPercentage ??
+        0,
+    restaurantTaxRate: getRestaurantTaxRate(food.restaurant ?? restaurant ?? food),
     title: food.name ?? food.title ?? "Food item",
     description: food.description ?? "",
     price: Number(food.price ?? 0),

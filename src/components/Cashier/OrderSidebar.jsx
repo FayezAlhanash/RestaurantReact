@@ -7,6 +7,7 @@ import {
     payCashierOrderInvoices,
 } from "../../utils/kitchenOrders";
 import { createStripeCardElement } from "../../utils/stripePayments";
+import { getCartTotals } from "../../utils/tax";
 
 function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
     const [successMessage, setSuccessMessage] = useState("");
@@ -88,9 +89,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
         );
     };
 
-    const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax;
+    const { subtotal, tax, total } = getCartTotals(cartItems);
     const itemCount = cartItems.reduce((totalCount, item) => totalCount + item.quantity, 0);
 
     const placeOrder = async () => {
@@ -265,7 +264,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             <div className="border-t border-white/[0.08] bg-[linear-gradient(180deg,#11191B_0%,#0D1214_100%)] px-4 py-3 shadow-[0_-18px_36px_rgba(0,0,0,0.26)] sm:px-5">
                 <div className="space-y-1 text-sm">
                     <div className="flex justify-between text-white/55"><span>Subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between text-white/55"><span>Tax (5%)</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-white/55"><span>Tax</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
                 </div>
                 <div className="my-2 border-t border-dashed border-white/15" />
                 <div className="mb-2.5 flex items-end justify-between">

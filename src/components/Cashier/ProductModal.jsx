@@ -1,5 +1,6 @@
 import {
     Check,
+    ChevronDown,
     Clock3,
     Flame,
     Leaf,
@@ -22,6 +23,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [notes, setNotes] = useState("");
     const [isClosing, setIsClosing] = useState(false);
     const [isAdded, setIsAdded] = useState(false);
+    const [expandedModifierGroups, setExpandedModifierGroups] = useState({});
     const closeTimerRef = useRef(null);
     const addTimerRef = useRef(null);
 
@@ -30,6 +32,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         setQuantity(1);
         setSelectedSize("small");
         setSelectedModifiers({});
+        setExpandedModifierGroups({});
         setNotes("");
     }, [item]);
 
@@ -49,6 +52,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             setQuantity(1);
             setSelectedSize("small");
             setSelectedModifiers({});
+            setExpandedModifierGroups({});
             setNotes("");
             setIsAdded(false);
             setIsClosing(false);
@@ -549,38 +553,74 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </div>
                             ) : hasModifiers ? (
                                 <div className="mt-5 space-y-4">
-                                    {modifierGroups.map((group) => (
+                                    {modifierGroups.map((group) => {
+                                        const groupId = getModifierGroupId(group);
+                                        const isVariant = isVariantGroup(group);
+                                        const isExpanded = isVariant || expandedModifierGroups[groupId];
+
+                                        return (
                                         <div
-                                            key={getModifierGroupId(group)}
+                                            key={groupId}
                                             className={`rounded-[22px] border p-3 shadow-[0_10px_24px_rgba(127,29,29,0.07)] ${
                                                 isDineInDark
-                                                    ? isVariantGroup(group)
+                                                    ? isVariant
                                                         ? "border-[#FFD166]/30 bg-[#FFD166]/8"
                                                         : "border-white/10 bg-white/[0.07]"
-                                                    : isVariantGroup(group)
+                                                    : isVariant
                                                         ? "border-[#D8A22D]/45 bg-[#FFF9E8]"
                                                         : "border-[#E4CFC3] bg-white"
                                             } ${
-                                                !isVariantGroup(group) && !canSelectNonVariantModifiers
+                                                !isVariant && !canSelectNonVariantModifiers
                                                     ? "opacity-55"
                                                     : ""
                                             }`}
                                         >
-                                            <div className="mb-3 flex items-start justify-between gap-3">
+                                            <div
+                                                role={!isVariant ? "button" : undefined}
+                                                tabIndex={!isVariant ? 0 : undefined}
+                                                onClick={() => {
+                                                    if (isVariant) return;
+
+                                                    setExpandedModifierGroups((current) => ({
+                                                        ...current,
+                                                        [groupId]: !current[groupId],
+                                                    }));
+                                                }}
+                                                onKeyDown={(event) => {
+                                                    if (isVariant || (event.key !== "Enter" && event.key !== " ")) return;
+
+                                                    event.preventDefault();
+                                                    setExpandedModifierGroups((current) => ({
+                                                        ...current,
+                                                        [groupId]: !current[groupId],
+                                                    }));
+                                                }}
+                                                className={`flex items-start justify-between gap-3 ${
+                                                    isExpanded ? "mb-3" : ""
+                                                } ${!isVariant ? "cursor-pointer rounded-2xl outline-none focus:ring-4 focus:ring-[#FFD166]/15" : ""}`}
+                                            >
                                                 <div className="min-w-0">
-                                                    <h3 className={`text-base font-black leading-6 ${
+                                                    <h3 className={`flex items-center gap-2 text-base font-black leading-6 ${
                                                         isDineInDark ? "text-[#FFD166]" : "text-[#7F1D1D]"
                                                     }`}>
+                                                        {!isVariant && (
+                                                            <ChevronDown
+                                                                size={18}
+                                                                className={`shrink-0 transition-transform ${
+                                                                    isExpanded ? "rotate-180" : ""
+                                                                }`}
+                                                            />
+                                                        )}
                                                         {group.name}
                                                     </h3>
-                                                    {isVariantGroup(group) && (
+                                                    {isVariant && (
                                                         <p className={`mt-1 text-xs font-bold ${
                                                             isDineInDark ? "text-white/55" : "text-[#7A6258]"
                                                         }`}>
                                                             Select one size. The amount includes the base item price.
                                                         </p>
                                                     )}
-                                                    {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
+                                                    {!isVariant && !canSelectNonVariantModifiers && (
                                                         <p className={`mt-1 text-xs font-bold ${
                                                             isDineInDark ? "text-white/45" : "text-[#8A7761]"
                                                         }`}>
@@ -590,28 +630,28 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                 </div>
                                                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
                                                     isDineInDark
-                                                        ? isVariantGroup(group)
+                                                        ? isVariant
                                                             ? "border border-[#FFD166]/30 bg-[#FFD166]/14 text-[#FFD166]"
                                                             : isGroupRequired(group)
                                                                 ? "bg-[#7F1D1D]/24 text-[#FFD6D6]"
                                                                 : "bg-white/10 text-white/62"
-                                                        : isVariantGroup(group)
+                                                        : isVariant
                                                             ? "bg-[#FFF0C4] text-[#9A6400]"
                                                             : isGroupRequired(group)
                                                                 ? "bg-[#F9ECEC] text-[#7F1D1D]"
                                                                 : "bg-[#F7F2EF] text-[#7A6258]"
                                                 }`}>
-                                                    {isVariantGroup(group)
+                                                    {isVariant
                                                         ? "Final prices"
                                                         : isGroupRequired(group)
                                                             ? "Required"
                                                             : "Optional"}
-                                                    {!isVariantGroup(group) && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
+                                                    {!isVariant && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
                                                 </span>
                                             </div>
+                                            {isExpanded && (
                                             <div className="flex flex-wrap gap-2">
                                                 {group.options.map((option) => {
-                                                    const groupId = getModifierGroupId(group);
                                                     const optionId = getOptionId(option);
                                                     const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
                                                         ? selectedModifiers[groupId]
@@ -697,8 +737,10 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     );
                                                 })}
                                             </div>
+                                            )}
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="mt-5">

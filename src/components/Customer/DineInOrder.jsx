@@ -27,6 +27,7 @@ import {
     createStripeCardElement,
     findStripeClientSecret,
 } from "../../utils/stripePayments";
+import { getCartTotals, getRestaurantTaxRate } from "../../utils/tax";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredToken } from "../../utils/auth";
 import CategoryTabs from "../Cashier/CategoryTabs";
@@ -85,6 +86,15 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     food_id: food.id,
     restaurant_id: food.restaurant_id ?? food.restaurant?.id ?? restaurant?.id,
     restaurantName: food.restaurant?.name ?? restaurant?.name ?? "Restaurant",
+    restaurantTaxPercentage:
+        food.restaurant?.tax_percentage ??
+        food.restaurant?.taxPercentage ??
+        restaurant?.tax_percentage ??
+        restaurant?.taxPercentage ??
+        food.tax_percentage ??
+        food.taxPercentage ??
+        0,
+    restaurantTaxRate: getRestaurantTaxRate(food.restaurant ?? restaurant ?? food),
     title: food.name ?? food.title ?? "Food item",
     description: food.description ?? "",
     price: Number(food.price ?? 0),
@@ -1047,6 +1057,8 @@ function OrderPanel({
     cartItems,
     itemCount,
     subtotal,
+    tax,
+    total,
     onChangeQuantity,
     onRemoveItem,
     onSubmit,
@@ -1271,11 +1283,17 @@ function OrderPanel({
                         ${subtotal.toFixed(2)}
                     </span>
                 </div>
+                <div className="flex items-center justify-between text-white/65">
+                    <span>Tax</span>
+                    <span className="font-black text-white">
+                        ${tax.toFixed(2)}
+                    </span>
+                </div>
                 <div className="border-t border-dashed border-white/20" />
                 <div className="flex items-end justify-between">
                     <span className="text-lg font-black">Total</span>
                     <span className={`${isMobile ? "text-2xl" : "text-3xl"} font-black text-[#FFD166]`}>
-                        ${subtotal.toFixed(2)}
+                        ${total.toFixed(2)}
                     </span>
                 </div>
             </div>
@@ -1299,6 +1317,8 @@ function MobileOrderBar({
     cartItems,
     itemCount,
     subtotal,
+    tax,
+    total,
     onChangeQuantity,
     onRemoveItem,
     onSubmit,
@@ -1342,6 +1362,8 @@ function MobileOrderBar({
                             cartItems={cartItems}
                             itemCount={itemCount}
                             subtotal={subtotal}
+                            tax={tax}
+                            total={total}
                             onChangeQuantity={onChangeQuantity}
                             onRemoveItem={onRemoveItem}
                             onSubmit={onSubmit}
@@ -1380,7 +1402,7 @@ function MobileOrderBar({
                             </span>
                         </span>
                         <span className="ml-auto shrink-0 rounded-xl bg-[#FFF1CF] px-3 py-1.5 text-base font-black text-[#9A6400] dark:bg-white/10 dark:text-[#FFD166] sm:text-lg">
-                            ${subtotal.toFixed(2)}
+                            ${total.toFixed(2)}
                         </span>
                     </button>
 
@@ -1401,6 +1423,8 @@ function MobileOrderBar({
 function ConfirmOrderModal({
     cartItems,
     subtotal,
+    tax,
+    total,
     paymentMethod,
     onPaymentMethodChange,
     isStripeReady,
@@ -1521,10 +1545,20 @@ function ConfirmOrderModal({
                             </div>
                         )}
 
-                        <div className="mt-3 flex items-end justify-between border-t border-dashed border-white/20 pt-3">
+                        <div className="mt-3 space-y-2 border-t border-dashed border-white/20 pt-3">
+                            <div className="flex items-center justify-between text-sm font-bold text-white/65">
+                                <span>Subtotal</span>
+                                <span className="text-white">${subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm font-bold text-white/65">
+                                <span>Tax</span>
+                                <span className="text-white">${tax.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="mt-3 flex items-end justify-between">
                             <span className="text-lg font-black">Total</span>
                             <span className="text-3xl font-black text-[#FFD166]">
-                                ${subtotal.toFixed(2)}
+                                ${total.toFixed(2)}
                             </span>
                         </div>
                     </div>
@@ -2033,9 +2067,9 @@ function DineInOrder() {
         setActiveRestaurant("all");
     }, [activeRestaurant, restaurants]);
 
-    const subtotal = cartItems.reduce(
-        (total, item) => total + Number(item.price ?? 0) * Number(item.quantity ?? 1),
-        0
+    const { subtotal, tax, total } = useMemo(
+        () => getCartTotals(cartItems),
+        [cartItems]
     );
     const itemCount = cartItems.reduce(
         (total, item) => total + Number(item.quantity ?? 1),
@@ -2449,6 +2483,8 @@ function DineInOrder() {
                             cartItems={cartItems}
                             itemCount={itemCount}
                             subtotal={subtotal}
+                            tax={tax}
+                            total={total}
                             onChangeQuantity={changeQuantity}
                             onRemoveItem={(indexToRemove) =>
                                 setCartItems((items) =>
@@ -2472,6 +2508,8 @@ function DineInOrder() {
                 cartItems={cartItems}
                 itemCount={itemCount}
                 subtotal={subtotal}
+                tax={tax}
+                total={total}
                 onChangeQuantity={changeQuantity}
                 onRemoveItem={(indexToRemove) =>
                     setCartItems((items) =>
@@ -2504,6 +2542,8 @@ function DineInOrder() {
                 <ConfirmOrderModal
                     cartItems={cartItems}
                     subtotal={subtotal}
+                    tax={tax}
+                    total={total}
                     paymentMethod={paymentMethod}
                     onPaymentMethodChange={setPaymentMethod}
                     isStripeReady={isStripeReady}
