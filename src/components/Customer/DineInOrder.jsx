@@ -88,7 +88,6 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     title: food.name ?? food.title ?? "Food item",
     description: food.description ?? "",
     price: Number(food.price ?? 0),
-    preparation_time: food.preparation_time ?? food.preparationTime ?? "",
     image: getFoodImageUrl(food.image),
     category: String(food.category_id ?? food.category?.id ?? "uncategorized"),
     categoryName: food.category?.name ?? "Menu",
@@ -543,6 +542,16 @@ const hasPreparationTiming = (timing) =>
         timing?.remainingMinutes !== null &&
         timing?.remainingMinutes !== "");
 
+const readStoredOrderTimings = (key) => {
+    try {
+        const value = JSON.parse(sessionStorage.getItem(key) || "[]");
+
+        return Array.isArray(value) ? value : [];
+    } catch {
+        return [];
+    }
+};
+
 const findPreparationTiming = (value, seen = new Set()) => {
     if (!value || typeof value !== "object" || seen.has(value)) return null;
 
@@ -684,7 +693,6 @@ function CustomerFoodCard({ item, onOpen }) {
         item?.diet_food ??
         item?.dietFood ??
         item?.is_diet_food;
-    const preparationTime = item?.preparation_time ?? item?.preparationTime;
 
     return (
         <article
@@ -718,12 +726,6 @@ function CustomerFoodCard({ item, onOpen }) {
                 <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-[#FFD166] backdrop-blur sm:bottom-3 sm:right-3 sm:px-3 sm:text-sm">
                     ${Number(item.price ?? 0).toFixed(2)}
                 </span>
-                {preparationTime && (
-                    <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-[#FFD166] px-2.5 py-1 text-xs font-black text-[#151A1D] shadow-[0_10px_22px_rgba(255,209,102,0.22)] sm:bottom-3 sm:left-3 sm:px-3 sm:text-sm">
-                        <Clock3 size={14} />
-                        {preparationTime} min
-                    </span>
-                )}
             </div>
 
             <div className="flex min-h-[150px] min-w-0 flex-col p-3 sm:min-h-44 sm:p-4">
@@ -1731,6 +1733,7 @@ function DineInOrder() {
     );
     const orderStorageKey = `customer-dine-in-order:${tableId}`;
     const invoiceStorageKey = `customer-dine-in-invoice:${tableId}`;
+    const orderTimingsStorageKey = `customer-dine-in-order-times:${tableId}`;
     const sessionTokenStorageKey = `customer-dine-in-session-token:${tableId}`;
     const onboardingStorageKey = `customer-dine-in-onboarding:${tableId}`;
     const [restaurants, setRestaurants] = useState([]);
@@ -1752,20 +1755,35 @@ function DineInOrder() {
     const [isSessionAvailable, setIsSessionAvailable] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
-    const [orderTiming, setOrderTiming] = useState(null);
+    const [orderTimings, setOrderTimings] = useState(() =>
+        readStoredOrderTimings(orderTimingsStorageKey)
+    );
+    const [showOrderTimings, setShowOrderTimings] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [activeOrderId, setActiveOrderId] = useState(() =>
-        sessionStorage.getItem(orderStorageKey)
-    );
-    const [activeInvoiceId, setActiveInvoiceId] = useState(() =>
-        sessionStorage.getItem(invoiceStorageKey)
-    );
     const [showOnboarding, setShowOnboarding] = useState(
         () => sessionStorage.getItem(onboardingStorageKey) !== "done"
     );
     const menuSectionRef = useRef(null);
     const stripeCardContainerRef = useRef(null);
     const stripeCardRef = useRef(null);
+    const orderTimingsRef = useRef(orderTimings);
+
+    const saveOrderTimings = (getNextTimings) => {
+        setOrderTimings((current) => {
+            const nextTimings = getNextTimings(current);
+
+            sessionStorage.setItem(
+                orderTimingsStorageKey,
+                JSON.stringify(nextTimings)
+            );
+
+            return nextTimings;
+        });
+    };
+
+    useEffect(() => {
+        orderTimingsRef.current = orderTimings;
+    }, [orderTimings]);
 
     useEffect(() => {
         const loadMenu = async () => {
@@ -1819,10 +1837,13 @@ function DineInOrder() {
                     sessionStorage.removeItem(sessionTokenStorageKey);
                     sessionStorage.removeItem(orderStorageKey);
                     sessionStorage.removeItem(invoiceStorageKey);
+                    sessionStorage.removeItem(orderTimingsStorageKey);
                     setSessionToken("");
                     setCartItems([]);
                     setRestaurants([]);
                     setMenuItems([]);
+                    setOrderTimings([]);
+                    setShowOrderTimings(false);
                     setIsSessionAvailable(false);
                     setErrorMessage(error.message || "This table session has ended.");
                     return;
@@ -1859,29 +1880,42 @@ function DineInOrder() {
     }, [
         invoiceStorageKey,
         orderStorageKey,
+        orderTimingsStorageKey,
         sessionTokenFromUrl,
         sessionTokenStorageKey,
         tableId,
     ]);
 
     useEffect(() => {
-        const storedOrderId = sessionStorage.getItem(orderStorageKey);
-        const storedInvoiceId = sessionStorage.getItem(invoiceStorageKey);
-        setActiveOrderId(storedOrderId);
-        setActiveInvoiceId(storedInvoiceId);
-    }, [invoiceStorageKey, orderStorageKey]);
-
-    useEffect(() => {
-        if (!activeOrderId || !sessionToken || !successMessage) return undefined;
+        if (!orderTimings.length || !sessionToken || !successMessage) {
+            return undefined;
+        }
 
         let isMounted = true;
 
         const refreshTiming = async () => {
-            const timing = await fetchDineInOrderTiming(activeOrderId, sessionToken);
+            const currentOrderTimings = orderTimingsRef.current;
 
-            if (isMounted && timing) {
-                setOrderTiming(timing);
-            }
+            if (!currentOrderTimings.length) return;
+
+            const refreshedTimings = await Promise.all(
+                currentOrderTimings.map(async (orderTiming) => ({
+                    ...orderTiming,
+                    timing:
+                        (await fetchDineInOrderTiming(
+                            orderTiming.orderId,
+                            sessionToken
+                        )) ?? orderTiming.timing,
+                }))
+            );
+
+            if (!isMounted) return;
+
+            setOrderTimings(refreshedTimings);
+            sessionStorage.setItem(
+                orderTimingsStorageKey,
+                JSON.stringify(refreshedTimings)
+            );
         };
 
         refreshTiming();
@@ -1891,7 +1925,7 @@ function DineInOrder() {
             isMounted = false;
             window.clearInterval(intervalId);
         };
-    }, [activeOrderId, sessionToken, successMessage]);
+    }, [orderTimings.length, orderTimingsStorageKey, sessionToken, successMessage]);
 
     useEffect(() => {
         let isMounted = true;
@@ -2045,7 +2079,6 @@ function DineInOrder() {
         setIsSubmitting(true);
         setErrorMessage("");
         setSuccessMessage("");
-        setOrderTiming(null);
 
         try {
             if (!sessionToken) {
@@ -2062,11 +2095,9 @@ function DineInOrder() {
 
             if (createdOrderId) {
                 sessionStorage.setItem(orderStorageKey, String(createdOrderId));
-                setActiveOrderId(String(createdOrderId));
 
                 if (invoiceId) {
                     sessionStorage.setItem(invoiceStorageKey, String(invoiceId));
-                    setActiveInvoiceId(String(invoiceId));
                 }
             } else {
                 throw new Error("Order was created without an order id.");
@@ -2091,7 +2122,19 @@ function DineInOrder() {
                 findPreparationTiming(response) ||
                 (await fetchDineInOrderTiming(createdOrderId, sessionToken));
 
-            setOrderTiming(nextOrderTiming);
+            saveOrderTimings((currentTimings) => {
+                const nextOrderTimingItem = {
+                    orderId: String(createdOrderId),
+                    timing: nextOrderTiming,
+                };
+                const nextTimings = currentTimings.filter(
+                    (orderTiming) =>
+                        String(orderTiming.orderId) !== String(createdOrderId)
+                );
+
+                return [...nextTimings, nextOrderTimingItem];
+            });
+            setShowOrderTimings(true);
             setCartItems([]);
             setIsConfirmOrderOpen(false);
             setIsMobileCartOpen(false);
@@ -2260,26 +2303,59 @@ function DineInOrder() {
                                     <CheckCircle2 size={18} />
                                     {successMessage}
                                 </p>
-                                {hasPreparationTiming(orderTiming) && (
-                                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#FFD166]/45 bg-[#FFD166]/16 px-4 py-3 text-white shadow-[0_12px_26px_rgba(255,209,102,0.10)]">
-                                        <div className="flex items-center gap-3">
-                                            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#FFD166] text-[#151A1D] shadow-[0_10px_20px_rgba(255,209,102,0.18)]">
-                                                <Clock3 size={20} />
-                                            </span>
-                                            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
-                                                Remaining
-                                            </p>
-                                        </div>
-                                        <p className="text-2xl font-black leading-none text-white">
-                                            {orderTiming?.waitingForPreparation
-                                                ? "Waiting"
-                                                : `${orderTiming.remainingMinutes} min`}
-                                            {!orderTiming?.waitingForPreparation && (
-                                                <span className="ml-2 align-middle text-xs font-black uppercase tracking-[0.12em] text-white/50">
-                                                    left
+                                {orderTimings.length > 0 && (
+                                    <div className="space-y-3">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowOrderTimings((current) => !current)
+                                            }
+                                            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#FFD166]/45 bg-[#FFD166]/16 px-4 py-3 text-left text-white shadow-[0_12px_26px_rgba(255,209,102,0.10)]"
+                                        >
+                                            <span className="flex items-center gap-3">
+                                                <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#FFD166] text-[#151A1D] shadow-[0_10px_20px_rgba(255,209,102,0.18)]">
+                                                    <Clock3 size={20} />
                                                 </span>
-                                            )}
-                                        </p>
+                                                <span>
+                                                    <span className="block text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                                                        Order times
+                                                    </span>
+                                                    <span className="mt-0.5 block text-sm font-black text-white">
+                                                        {orderTimings.length} active order{orderTimings.length === 1 ? "" : "s"}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <span className="text-sm font-black text-white/70">
+                                                {showOrderTimings ? "Hide" : "Show"}
+                                            </span>
+                                        </button>
+
+                                        {showOrderTimings && (
+                                            <div className="space-y-2 rounded-2xl border border-white/10 bg-[#12181B] p-3 text-white">
+                                                {orderTimings.map((orderTiming, index) => {
+                                                    const timing = orderTiming.timing;
+                                                    const label = timing?.waitingForPreparation
+                                                        ? "Waiting"
+                                                        : hasPreparationTiming(timing)
+                                                            ? `${timing.remainingMinutes} min left`
+                                                            : "-";
+
+                                                    return (
+                                                        <div
+                                                            key={orderTiming.orderId}
+                                                            className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.07] px-3 py-3"
+                                                        >
+                                                            <span className="text-sm font-black text-white/70">
+                                                                Order {index + 1}
+                                                            </span>
+                                                            <span className="text-xl font-black text-white">
+                                                                {label}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
