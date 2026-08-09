@@ -44,6 +44,40 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         []
     );
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const scrollY = window.scrollY;
+        const previousBodyStyles = {
+            overflow: document.body.style.overflow,
+            position: document.body.style.position,
+            top: document.body.style.top,
+            left: document.body.style.left,
+            right: document.body.style.right,
+            width: document.body.style.width,
+        };
+        const previousHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+        document.body.style.overflow = "hidden";
+        document.body.style.position = "fixed";
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = "0";
+        document.body.style.right = "0";
+        document.body.style.width = "100%";
+        document.documentElement.style.overscrollBehavior = "none";
+
+        return () => {
+            document.body.style.overflow = previousBodyStyles.overflow;
+            document.body.style.position = previousBodyStyles.position;
+            document.body.style.top = previousBodyStyles.top;
+            document.body.style.left = previousBodyStyles.left;
+            document.body.style.right = previousBodyStyles.right;
+            document.body.style.width = previousBodyStyles.width;
+            document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+            window.scrollTo(0, scrollY);
+        };
+    }, [isOpen]);
+
     const closeModal = () => {
         if (closeTimerRef.current) return;
 
@@ -376,7 +410,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
     if (isDineIn) {
         return (
-            <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${
+            <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center overscroll-contain p-3 backdrop-blur-md sm:p-6 ${
                 isDineInDark ? "bg-black/72" : "bg-[#211715]/55"
             } ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
                 <div className={`product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] overflow-hidden rounded-[30px] border shadow-[0_34px_90px_rgba(0,0,0,0.48)] ${
@@ -436,7 +470,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             />
                         </div>
 
-                        <div className="product-modal-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-20 sm:px-5 sm:pt-24">
+                        <div className="product-modal-scroll min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-4 pb-4 pt-20 sm:px-5 sm:pt-24">
                             <div className="mb-4 flex items-center justify-between gap-3">
                                 <div className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black shadow-[0_8px_22px_rgba(127,29,29,0.08)] ${
                                     isDineInDark
@@ -878,7 +912,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     }
 
     return (
-        <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"} ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
+        <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center overscroll-contain p-3 backdrop-blur-md sm:p-6 ${isDark ? "bg-black/65" : "bg-[#211715]/55"} ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
             <div className={`product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[760px] w-full max-w-[820px] overflow-hidden rounded-[28px] border shadow-2xl md:grid-cols-[0.86fr_1.14fr] ${
                 isDark
                     ? "border-white/10 bg-[#12181B] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]"
@@ -899,7 +933,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         <X size={20} />
                     </button>
 
-                    <div className="product-modal-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+                    <div className="product-modal-scroll min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto p-4 sm:p-5">
                     <p className={`text-xs font-bold uppercase tracking-[0.18em] ${isDark ? "text-[#FFD166]" : "text-[#A28F87]"}`}>Customize item</p>
                     <h2 className={`mt-2 pr-12 text-2xl font-black ${isDark ? "text-white" : "text-[#2D2421]"}`}>{item?.title}</h2>
                     <p className={`mt-2 text-base font-semibold leading-7 ${isDark ? "text-white/68" : "text-[#6F5C54]"}`}>{item?.description}</p>
