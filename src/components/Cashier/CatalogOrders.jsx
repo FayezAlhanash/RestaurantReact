@@ -99,6 +99,100 @@ const formatTime = (value) => {
     });
 };
 
+const getFirstPresent = (values) =>
+    values.find((value) => value !== undefined && value !== null && value !== "");
+
+const getPreparationTiming = (value = {}) => {
+    const source = value?.restaurant_order ?? value?.restaurantOrder ?? value;
+
+    return {
+        preparingAt: getFirstPresent([
+            value?.preparing_at,
+            value?.preparingAt,
+            source?.preparing_at,
+            source?.preparingAt,
+        ]),
+        estimatedReadyAt: getFirstPresent([
+            value?.estimated_ready_at,
+            value?.estimatedReadyAt,
+            source?.estimated_ready_at,
+            source?.estimatedReadyAt,
+        ]),
+        remainingMinutes: getFirstPresent([
+            value?.remaining_minutes,
+            value?.remainingMinutes,
+            source?.remaining_minutes,
+            source?.remainingMinutes,
+        ]),
+        waitingForPreparation: isTruthyFlag(
+            getFirstPresent([
+                value?.waiting_for_preparation,
+                value?.waitingForPreparation,
+                source?.waiting_for_preparation,
+                source?.waitingForPreparation,
+            ])
+        ),
+        isDelayed: isTruthyFlag(
+            getFirstPresent([
+                value?.is_delayed,
+                value?.isDelayed,
+                source?.is_delayed,
+                source?.isDelayed,
+            ])
+        ),
+    };
+};
+
+const hasPreparationTiming = (timing = {}) =>
+    timing.waitingForPreparation ||
+    timing.preparingAt ||
+    timing.estimatedReadyAt ||
+    timing.remainingMinutes !== undefined ||
+    timing.isDelayed;
+
+function PreparationTimingPanel({ timing }) {
+    if (!hasPreparationTiming(timing)) {
+        return (
+            <div className="rounded-xl border border-white/10 bg-[#12181B] px-3 py-3 text-sm font-black text-white/50">
+                No preparation time from kitchen yet.
+            </div>
+        );
+    }
+
+    if (timing.waitingForPreparation) {
+        return (
+            <div className="rounded-xl border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 py-3">
+                <p className="mt-1 text-sm font-black text-white">
+                    Waiting for preparation to start
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#FFD166]/45 bg-[#FFD166]/16 px-4 py-3 shadow-[0_12px_26px_rgba(255,209,102,0.10)]">
+            <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#FFD166] text-[#151A1D] shadow-[0_10px_20px_rgba(255,209,102,0.18)]">
+                    <Clock3 size={20} />
+                </span>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                    Remaining
+                </p>
+            </div>
+            <p className="text-2xl font-black leading-none text-white">
+                {timing.remainingMinutes !== undefined &&
+                timing.remainingMinutes !== null &&
+                timing.remainingMinutes !== ""
+                    ? `${timing.remainingMinutes} min`
+                    : "-"}
+                <span className="ml-2 align-middle text-xs font-black uppercase tracking-[0.12em] text-white/50">
+                    left
+                </span>
+            </p>
+        </div>
+    );
+}
+
 const getRestaurantOrderId = (value) =>
     value?.restaurant_order_id ??
     value?.restaurantOrderId ??
@@ -171,6 +265,7 @@ const normalizeRestaurantGroup = (restaurantOrder) => {
         restaurantId: getRestaurantId(restaurantOrder) ?? firstItem?.restaurantId,
         restaurantName: getRestaurantName(restaurantOrder) || firstItem?.restaurantName,
         items,
+        timing: getPreparationTiming(restaurantOrder),
     };
 };
 
@@ -257,6 +352,7 @@ const normalizeOrder = (order) => {
         createdAt: order?.created_at || order?.time || order?.ordered_at,
         items,
         restaurantOrders,
+        timing: getPreparationTiming(order),
     };
 };
 
@@ -290,6 +386,49 @@ const statusLabels = {
     waiting_pickup: "Ready",
 };
 
+const statusBadgeClasses = {
+    pending: "border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166]",
+    confirmed: "border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166]",
+    preparing: "border-sky-300/35 bg-sky-400/16 text-sky-200",
+    in_progress: "border-sky-300/35 bg-sky-400/16 text-sky-200",
+    in_preparation: "border-sky-300/35 bg-sky-400/16 text-sky-200",
+    started: "border-sky-300/35 bg-sky-400/16 text-sky-200",
+    ready: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
+    prepared: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
+    ready_for_pickup: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
+    waiting_pickup: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
+};
+
+const preparingStatuses = new Set([
+    "preparing",
+    "in_progress",
+    "in_preparation",
+    "started",
+]);
+
+const readyStatuses = new Set([
+    "ready",
+    "prepared",
+    "ready_for_pickup",
+    "waiting_pickup",
+]);
+
+const getLockedOrderMessage = (order, action = "changed") => {
+    const status = normalizeStatus(order?.status);
+    const orderNumber = order?.number ?? order?.id;
+    const orderLabel = orderNumber ? `Order #${orderNumber}` : "This order";
+
+    if (preparingStatuses.has(status)) {
+        return `${orderLabel} is already being prepared and can no longer be ${action}.`;
+    }
+
+    if (readyStatuses.has(status)) {
+        return `${orderLabel} is ready and can no longer be ${action}.`;
+    }
+
+    return "";
+};
+
 const getOrderItemCount = (order) => {
     const groupedItemCount = order.restaurantOrders.reduce(
         (total, group) => total + group.items.length,
@@ -297,6 +436,15 @@ const getOrderItemCount = (order) => {
     );
 
     return groupedItemCount || order.items.length;
+};
+
+const getOrderTiming = (order) => {
+    if (hasPreparationTiming(order?.timing)) return order.timing;
+
+    return (
+        order?.restaurantOrders?.find((group) => hasPreparationTiming(group.timing))
+            ?.timing ?? {}
+    );
 };
 
 const normalizeOrders = (orders) => orders.map(normalizeOrder).filter(Boolean);
@@ -309,6 +457,7 @@ function CatalogOrders() {
     const [errorMessage, setErrorMessage] = useState("");
     const [confirmAction, setConfirmAction] = useState(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+    const [expandedTimingOrderId, setExpandedTimingOrderId] = useState("");
 
     const loadOrderDetails = useCallback(async (orders) => {
         const detailResponses = await Promise.allSettled(
@@ -413,7 +562,8 @@ function CatalogOrders() {
         window.setTimeout(() => setConfirmAction(null), 180);
     };
 
-    const cancelOrder = async (orderId) => {
+    const cancelOrder = async (order) => {
+        const orderId = order?.id;
         const key = `order:${orderId}`;
 
         setSubmittingKey(key);
@@ -427,13 +577,18 @@ function CatalogOrders() {
             );
             setMessage(`Order #${orderId} canceled.`);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || "Could not cancel order.");
+            setErrorMessage(
+                getLockedOrderMessage(order, "canceled") ||
+                    error.response?.data?.message ||
+                    "Could not cancel order."
+            );
         } finally {
             setSubmittingKey("");
         }
     };
 
-    const cancelRestaurantOrder = async (restaurantOrderId, orderId) => {
+    const cancelRestaurantOrder = async (restaurantOrderId, order) => {
+        const orderId = order?.id;
         const key = `restaurant:${restaurantOrderId}`;
 
         setSubmittingKey(key);
@@ -466,14 +621,16 @@ function CatalogOrders() {
             setMessage(`Restaurant order #${restaurantOrderId} canceled.`);
         } catch (error) {
             setErrorMessage(
-                error.response?.data?.message || "Could not cancel restaurant order."
+                getLockedOrderMessage(order, "changed") ||
+                    error.response?.data?.message ||
+                    "Could not cancel restaurant order."
             );
         } finally {
             setSubmittingKey("");
         }
     };
 
-    const deleteOrderItem = async (itemId) => {
+    const deleteOrderItem = async (itemId, order) => {
         const key = `item-delete:${itemId}`;
 
         setSubmittingKey(key);
@@ -485,7 +642,11 @@ function CatalogOrders() {
             await loadOrders();
             setMessage(`Item #${itemId} deleted.`);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || "Could not delete item.");
+            setErrorMessage(
+                getLockedOrderMessage(order, "changed") ||
+                    error.response?.data?.message ||
+                    "Could not delete item."
+            );
         } finally {
             setSubmittingKey("");
         }
@@ -524,9 +685,19 @@ function CatalogOrders() {
             )}
 
             {errorMessage && (
-                <p className="mb-4 rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/12 px-4 py-3 text-sm font-extrabold text-[#7F1D1D]">
-                    {errorMessage}
-                </p>
+                <div className="mb-4 flex items-start gap-3 rounded-[22px] border border-[#7F1D1D]/18 bg-[linear-gradient(135deg,#FFF4EE_0%,#FBE5E5_100%)] px-4 py-3.5 text-[#7F1D1D] shadow-[0_14px_30px_rgba(127,29,29,0.08)] ring-1 ring-white/70">
+                    <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.18)]">
+                        <AlertTriangle size={18} />
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block text-xs font-black uppercase tracking-[0.14em] text-[#9A6400]">
+                            Order update
+                        </span>
+                        <span className="mt-0.5 block text-sm font-black leading-6">
+                            {errorMessage}
+                        </span>
+                    </span>
+                </div>
             )}
 
             {isLoading ? (
@@ -535,10 +706,18 @@ function CatalogOrders() {
                 </div>
             ) : visibleOrders.length ? (
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-                    {visibleOrders.map((order) => (
+                    {visibleOrders.map((order) => {
+                        const timing = getOrderTiming(order);
+                        const isDineInOrder = order.type === "dine_in";
+                        const isTakeawayOrder = order.type === "takeaway";
+                        const showDineInTiming =
+                            isDineInOrder &&
+                            expandedTimingOrderId === String(order.id);
+
+                        return (
                         <article
                             key={order.id}
-                            className="flex max-h-[460px] min-h-[300px] flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#252A2D] shadow-[0_14px_32px_rgba(0,0,0,0.16)]"
+                            className="flex max-h-[520px] min-h-[300px] flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#252A2D] shadow-[0_14px_32px_rgba(0,0,0,0.16)]"
                         >
                             <header className="shrink-0 flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-4">
                                 <div>
@@ -549,7 +728,12 @@ function CatalogOrders() {
                                         <h2 className="text-2xl font-black text-[#FFD166]">
                                             #{order.number}
                                         </h2>
-                                        <span className="rounded-full bg-[#7F1D1D]/14 px-3 py-1 text-xs font-black uppercase text-[#7F1D1D]">
+                                        <span
+                                            className={`rounded-full border px-3 py-1 text-xs font-black uppercase shadow-sm ${
+                                                statusBadgeClasses[order.status] ||
+                                                "border-white/15 bg-white/10 text-white"
+                                            }`}
+                                        >
                                             {statusLabels[order.status] || order.status}
                                         </span>
                                     </div>
@@ -560,6 +744,36 @@ function CatalogOrders() {
                                     <span>{formatTime(order.createdAt) || "Now"}</span>
                                 </div>
                             </header>
+
+                            {(isTakeawayOrder || isDineInOrder) && (
+                                <div className="shrink-0 border-b border-white/10 px-4 py-3">
+                                    {isTakeawayOrder ? (
+                                        <PreparationTimingPanel timing={timing} compact />
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setExpandedTimingOrderId((current) =>
+                                                        current === String(order.id)
+                                                            ? ""
+                                                            : String(order.id)
+                                                    )
+                                                }
+                                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/12 px-3 text-xs font-black text-[#FFD166] transition hover:bg-[#FFD166]/18"
+                                            >
+                                                <Clock3 size={15} />
+                                                {showDineInTiming
+                                                    ? "Hide food time"
+                                                    : "Show food time"}
+                                            </button>
+                                            {showDineInTiming && (
+                                                <PreparationTimingPanel timing={timing} compact />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
                                 {order.restaurantOrders.map((group, groupIndex) => (
@@ -595,7 +809,7 @@ function CatalogOrders() {
                                                             onConfirm: () =>
                                                                 cancelRestaurantOrder(
                                                                     group.id,
-                                                                    order.id
+                                                                    order
                                                                 ),
                                                         })
                                                     }
@@ -645,7 +859,8 @@ function CatalogOrders() {
                                                                     submittingKey: `item-delete:${item.id}`,
                                                                     onConfirm: () =>
                                                                         deleteOrderItem(
-                                                                            item.id
+                                                                            item.id,
+                                                                            order
                                                                         ),
                                                                 })
                                                             }
@@ -683,7 +898,7 @@ function CatalogOrders() {
                                             confirmLabel: "Cancel order",
                                             submittingLabel: "Canceling...",
                                             submittingKey: `order:${order.id}`,
-                                            onConfirm: () => cancelOrder(order.id),
+                                            onConfirm: () => cancelOrder(order),
                                         })
                                     }
                                     disabled={submittingKey === `order:${order.id}`}
@@ -696,7 +911,8 @@ function CatalogOrders() {
                                 </button>
                             </footer>
                         </article>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="rounded-[28px] border border-dashed border-white/15 bg-[#252A2D] px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">

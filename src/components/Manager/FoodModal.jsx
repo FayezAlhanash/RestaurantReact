@@ -8,6 +8,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
     price: "",
     description: "",
     preparation_time: "",
+    preparation_batch_size: "",
     calories: "",
     protein: "",
     carbs: "",
@@ -26,6 +27,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
         price: food?.price ?? "",
         description: food?.description ?? "",
         preparation_time: food?.preparation_time ?? "",
+        preparation_batch_size: food?.preparation_batch_size ?? "",
         calories: food?.calories ?? "",
         protein: food?.protein ?? "",
         carbs: food?.carbs ?? "",
@@ -143,6 +145,21 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
                 onChange={handleChange}
                 className={fieldClass}
                 placeholder="15"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                Batch Size
+              </label>
+              <input
+                type="number"
+                min="1"
+                name="preparation_batch_size"
+                value={form.preparation_batch_size}
+                onChange={handleChange}
+                className={fieldClass}
+                placeholder="6"
               />
             </div>
           </div>

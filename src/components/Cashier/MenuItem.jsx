@@ -1,4 +1,4 @@
-import { Plus, Star } from "lucide-react";
+import { Clock3, Plus, Star } from "lucide-react";
 
 const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
 
@@ -224,6 +224,7 @@ function MenuItemCard({ item, onOpen }) {
     const sizePrices = getSizeModifierOptions(item);
     const hasSizePrices = sizePrices.length > 0;
     const displayPrice = Number(item.price ?? 0);
+    const preparationTime = item?.preparation_time ?? item?.preparationTime;
 
     return (
         <article className="group flex min-h-[350px] flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1B2225]/92 shadow-[0_16px_34px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.025] transition duration-300 hover:-translate-y-1 hover:border-[#FFD166]/22 hover:bg-[#20282B] hover:shadow-[0_24px_48px_rgba(0,0,0,0.26)] sm:min-h-[372px]">
@@ -237,6 +238,12 @@ function MenuItemCard({ item, onOpen }) {
                 <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-[#101517]/78 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur">
                     <Star size={13} className="fill-[#F7C948] text-[#F7C948]" /> 4.8
                 </span>
+                {preparationTime && (
+                    <span className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-[#FFD166] px-3 py-1.5 text-xs font-black text-[#151A1D] shadow-[0_10px_22px_rgba(255,209,102,0.22)]">
+                        <Clock3 size={14} />
+                        {preparationTime} min
+                    </span>
+                )}
                 <span
                     className={`menu-type-badge absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_10px_24px_rgba(0,0,0,0.20)] ${
                         isDietItem(item)

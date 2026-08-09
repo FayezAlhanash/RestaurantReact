@@ -20,6 +20,7 @@ import { getStoredUser, storeUser } from "../../utils/auth";
 import {
   canAssignPermissionToRole,
   filterPermissionsForRole,
+  roleRequiresRestaurantAssignment,
 } from "../../utils/permissionScopes";
 
 const getList = (data, key) => {
@@ -248,9 +249,7 @@ export default function RolesPermission() {
     setEditRoleForm({
       name: selectedRole.name ?? "",
       description: selectedRole.description ?? "",
-      requires_restaurant: Boolean(
-        selectedRole.requires_restaurant ?? selectedRole.restaurant_required
-      ),
+      requires_restaurant: roleRequiresRestaurantAssignment(selectedRole),
     });
     setEditRoleError("");
     setIsEditingRole(true);

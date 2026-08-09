@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import api from "../../API/axios";
-import { isRestaurantRole } from "../../utils/permissionScopes";
+import { roleRequiresRestaurantAssignment } from "../../utils/permissionScopes";
 import "react-datepicker/dist/react-datepicker.css";
 
 const getList = (data, key) => {
@@ -26,6 +26,91 @@ const formatRoleLabel = (role) =>
         .replace(/[_-]+/g, " ")
         .trim()
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+function StyledSelect({
+    value,
+    options,
+    placeholder,
+    onChange,
+    getOptionLabel,
+    getOptionValue = (option) => option.id,
+    disabled = false,
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(
+        (option) => String(getOptionValue(option)) === String(value)
+    );
+    const selectedLabel = selectedOption ? getOptionLabel(selectedOption) : placeholder;
+
+    const handleSelect = (option) => {
+        onChange(String(getOptionValue(option)));
+        setIsOpen(false);
+    };
+
+    const handleBlur = (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            setIsOpen(false);
+        }
+    };
+
+    return (
+        <div className="relative" onBlur={handleBlur}>
+            <button
+                type="button"
+                disabled={disabled}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                onClick={() => setIsOpen((current) => !current)}
+                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left font-bold text-white outline-none transition-all focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10 ${
+                    disabled
+                        ? "cursor-not-allowed border-white/5 bg-white/[0.03] text-white/30"
+                        : "border-white/10 bg-[#0D1214] hover:border-[#FFD166]/35"
+                }`}
+            >
+                <span className={selectedOption ? "truncate" : "truncate text-white/35"}>
+                    {selectedLabel}
+                </span>
+                <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-[#FFD166] transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                    }`}
+                />
+            </button>
+
+            {isOpen && !disabled && (
+                <div
+                    role="listbox"
+                    tabIndex={-1}
+                    className="absolute left-0 right-0 z-[340] mt-2 max-h-60 overflow-y-auto rounded-2xl border border-white/10 bg-[#11181B] p-1.5 shadow-2xl shadow-black/45"
+                >
+                    {options.map((option) => {
+                        const optionValue = String(getOptionValue(option));
+                        const isSelected = optionValue === String(value);
+
+                        return (
+                            <button
+                                key={optionValue}
+                                type="button"
+                                role="option"
+                                aria-selected={isSelected}
+                                onClick={() => handleSelect(option)}
+                                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+                                    isSelected
+                                        ? "bg-[#FFD166] text-[#151A1D]"
+                                        : "text-white/78 hover:bg-white/[0.07] hover:text-white"
+                                }`}
+                            >
+                                <span className="truncate">{getOptionLabel(option)}</span>
+                                {isSelected && <Check size={16} className="shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
     const [role, setRole] = useState("");
@@ -56,7 +141,7 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
             formatRoleLabel(firstRole).localeCompare(formatRoleLabel(secondRole))
         );
     const selectedRole = roleOptions.find((item) => String(item.id) === role);
-    const needsRestaurant = isRestaurantRole(selectedRole);
+    const needsRestaurant = roleRequiresRestaurantAssignment(selectedRole);
 
     useEffect(() => {
         const fetchModalData = async () => {
@@ -400,24 +485,17 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                                 Role
                             </label>
 
-                            <select
+                            <StyledSelect
                                 value={role}
-                                onChange={(e) => {
-                                    setRole(e.target.value);
+                                options={roleOptions}
+                                placeholder="Select role"
+                                getOptionLabel={formatRoleLabel}
+                                onChange={(nextRole) => {
+                                    setRole(nextRole);
                                     setRestaurantId("");
                                 }}
-                                className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 font-bold text-white outline-none transition-all focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
-
-                            >
-                                <option className="text-gray-400" value="" disabled>
-                                    Select role
-                                </option>
-                                {roleOptions.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                        {formatRoleLabel(item)}
-                                    </option>
-                                ))}
-                            </select>
+                                disabled={!roleOptions.length}
+                            />
                             {!roleOptions.length && (
                                 <p className="mt-2 text-xs font-bold text-[#FFD166]/75">
                                     No assignable roles available.
@@ -430,22 +508,14 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
                                             Restaurant
                                         </label>
 
-                                        <select
+                                        <StyledSelect
                                             value={restaurantId}
-                                            onChange={(e) => setRestaurantId(e.target.value)}
-                                            className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-white"
-                                        >
-                                            <option value="">Select Restaurant</option>
-
-                                            {restaurants.map((restaurant) => (
-                                                <option
-                                                    key={restaurant.id}
-                                                    value={restaurant.id}
-                                                >
-                                                    {restaurant.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            options={restaurants}
+                                            placeholder="Select Restaurant"
+                                            getOptionLabel={(restaurant) => restaurant.name}
+                                            onChange={setRestaurantId}
+                                            disabled={!restaurants.length}
+                                        />
                                     </div>
 
 

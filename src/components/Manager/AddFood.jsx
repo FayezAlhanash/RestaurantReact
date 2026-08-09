@@ -173,6 +173,7 @@ export default function AddFood() {
       formData.append("price", food.price);
       formData.append("description", food.description);
       formData.append("preparation_time", food.preparation_time);
+      formData.append("preparation_batch_size", food.preparation_batch_size);
       formData.append("calories", food.calories);
       formData.append("protein", food.protein);
       formData.append("carbs", food.carbs);
@@ -271,6 +272,7 @@ export default function AddFood() {
         food.category?.name,
         food.price,
         food.preparation_time,
+        food.preparation_batch_size,
         food.is_available ? "available" : "unavailable",
         food.is_diet ? "diet" : "",
       ]
@@ -619,7 +621,7 @@ export default function AddFood() {
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <div className="rounded-2xl border border-white/8 bg-[#172124] p-3">
                           <p className="text-[11px] font-black uppercase tracking-[0.1em] text-white/35">
                             Category
@@ -635,6 +637,16 @@ export default function AddFood() {
                           <p className="mt-1 text-xs font-black text-white/80">
                             {food.preparation_time
                               ? `${food.preparation_time} min`
+                              : "-"}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-sky-400/18 bg-sky-400/10 p-3">
+                          <p className="text-[11px] font-black uppercase tracking-[0.1em] text-sky-300/75">
+                            Batch
+                          </p>
+                          <p className="mt-1 text-xs font-black text-white/80">
+                            {food.preparation_batch_size
+                              ? `${food.preparation_batch_size} pcs`
                               : "-"}
                           </p>
                         </div>

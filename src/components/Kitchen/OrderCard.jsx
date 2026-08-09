@@ -60,8 +60,8 @@ function canStartPreparing(status) {
     return normalizeStatus(status) === "pending";
 }
 
-function canMarkReady(status) {
-    return normalizeStatus(status) === "preparing";
+function canMarkReady(status, waitingForPreparation) {
+    return normalizeStatus(status) === "preparing" && !waitingForPreparation;
 }
 
 function formatItemCount(count) {
@@ -78,6 +78,10 @@ export default function OrderCard({
     const type = orderTypeConfig[order.type] || orderTypeConfig.dine_in;
     const TypeIcon = type.icon;
     const normalizedStatus = normalizeStatus(order.status);
+    const waitingForPreparation = Boolean(order.waiting_for_preparation);
+    const statusLabel = waitingForPreparation
+        ? "Waiting for Preparation"
+        : statusLabels[normalizedStatus];
     const isStarting = pendingAction === "start";
     const isMarkingReady = pendingAction === "ready";
     const isUpdating = Boolean(pendingAction);
@@ -127,7 +131,7 @@ export default function OrderCard({
 
                 <div className="mt-4 flex justify-start">
                     <span className={`rounded-full px-4 py-2 text-sm font-black ${statusClasses[normalizedStatus]}`}>
-                        {statusLabels[normalizedStatus]}
+                        {statusLabel}
                     </span>
                 </div>
 
@@ -175,7 +179,7 @@ export default function OrderCard({
                         </button>
                     )}
 
-                    {canMarkReady(order.status) && (
+                    {canMarkReady(order.status, waitingForPreparation) && (
                         <button
                             type="button"
                             onClick={() => onReady?.(order.id)}

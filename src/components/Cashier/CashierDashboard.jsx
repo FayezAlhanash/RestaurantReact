@@ -86,6 +86,7 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     title: food.name ?? food.title ?? "Food item",
     description: food.description ?? "",
     price: Number(food.price ?? 0),
+    preparation_time: food.preparation_time ?? food.preparationTime ?? "",
     image: getFoodImageUrl(food.image),
     category: String(food.category_id ?? food.category?.id ?? "uncategorized"),
     categoryName: food.category?.name ?? "Uncategorized",
@@ -134,44 +135,6 @@ const fetchRestaurantMenu = async (restaurant) => {
         normalizeFoodItem(food, restaurant)
     );
     return foods;
-};
-
-const loadFoodDetailsInBatches = async (foods, batchSize = 6) => {
-    const detailedFoods = [];
-
-    for (let index = 0; index < foods.length; index += batchSize) {
-        const batch = foods.slice(index, index + batchSize);
-        const detailResponses = await Promise.allSettled(
-            batch.map(fetchFoodDetails)
-        );
-
-        detailedFoods.push(
-            ...detailResponses.map((result, batchIndex) =>
-                result.status === "fulfilled" ? result.value : batch[batchIndex]
-            )
-        );
-    }
-
-    return detailedFoods;
-};
-
-const hydrateMenuItemDetails = async (foods, onHydrated) => {
-    const foodsMissingDetails = foods.filter((food) => !hasModifierGroups(food));
-
-    if (!foodsMissingDetails.length) return;
-
-    const hydratedFoods = await loadFoodDetailsInBatches(foodsMissingDetails, 6);
-    const hydratedById = new Map(
-        hydratedFoods.map((food) => [String(food.food_id ?? food.id), food])
-    );
-
-    onHydrated((currentFoods) =>
-        currentFoods.map((food) => {
-            const hydratedFood = hydratedById.get(String(food.food_id ?? food.id));
-
-            return hydratedFood ? { ...food, ...hydratedFood } : food;
-        })
-    );
 };
 
 const getActiveViewFromSearch = (search) => {
@@ -286,7 +249,6 @@ function CashierDashboard({ embedded = false }) {
                     );
 
                     setMenuItems(nextMenuItems);
-                    hydrateMenuItemDetails(nextMenuItems, setMenuItems).catch(() => {});
                     return;
                 }
 
@@ -297,7 +259,6 @@ function CashierDashboard({ embedded = false }) {
                 const foods = getList(foodResponse.data).map(normalizeFoodItem);
 
                 setMenuItems(foods);
-                hydrateMenuItemDetails(foods, setMenuItems).catch(() => {});
             } catch (error) {
                 if (needsRestaurantId(error)) {
                     try {
@@ -312,7 +273,6 @@ function CashierDashboard({ embedded = false }) {
                         );
 
                         setMenuItems(nextMenuItems);
-                        hydrateMenuItemDetails(nextMenuItems, setMenuItems).catch(() => {});
                     } catch (fallbackError) {
                         setMenuError(
                             fallbackError.response?.data?.message ||
@@ -476,10 +436,12 @@ function CashierDashboard({ embedded = false }) {
                 {embedded ? (
                     <div className="border-b border-white/[0.08] bg-[#0F1517]/72 px-4 py-3 backdrop-blur-xl sm:px-6">
                         <nav
-                            className="relative inline-grid max-w-full grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] p-1 shadow-[0_16px_38px_rgba(0,0,0,0.18)]"
-                            style={{ "--active-index": embeddedNavigation.findIndex((item) => item.id === activeView) }}
+                            className={`grid w-full grid-cols-3 gap-3 rounded-[24px] border p-2 shadow-[0_16px_38px_rgba(127,29,29,0.10)] ${
+                                isLight
+                                    ? "border-[#E8D2C7] bg-[#FFF9F2]/92"
+                                    : "border-white/10 bg-white/[0.045]"
+                            }`}
                         >
-                            <span className="pointer-events-none absolute bottom-1 left-1 top-1 w-[calc((100%-0.5rem)/3)] rounded-xl bg-[#FFD166] shadow-[0_10px_22px_rgba(255,209,102,0.18)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] [transform:translateX(calc(var(--active-index)*100%))]" />
                             {embeddedNavigation.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = activeView === item.id;
@@ -489,14 +451,30 @@ function CashierDashboard({ embedded = false }) {
                                         key={item.id}
                                         type="button"
                                         onClick={() => setActiveView(item.id)}
-                                        className={`relative z-10 inline-flex h-10 min-w-28 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition-colors duration-300 ${
+                                        className={`group relative flex h-14 w-full items-center justify-center gap-3 overflow-hidden rounded-[18px] border px-4 py-3 text-sm font-black transition duration-200 active:scale-[0.99] sm:h-16 sm:text-base ${
                                             isActive
-                                                ? "text-[#151A1D]"
-                                                : "text-white/58 hover:bg-white/[0.07] hover:text-white"
+                                                ? isLight
+                                                    ? "border-[#D8A22D]/70 bg-[linear-gradient(135deg,#FFF8E6_0%,#FFD166_100%)] text-[#241815] shadow-[0_16px_34px_rgba(154,100,0,0.18)] ring-1 ring-white/80"
+                                                    : "border-[#7F1D1D] bg-[#7F1D1D] text-white shadow-[0_14px_30px_rgba(127,29,29,0.22)]"
+                                                : isLight
+                                                    ? "border-[#E8D2C7] bg-white text-[#6B5A52] shadow-sm hover:border-[#D8A22D]/45 hover:bg-[#FFF4DA] hover:text-[#241815]"
+                                                    : "border-white/10 bg-white/[0.05] text-white/62 hover:bg-white/[0.09] hover:text-white"
                                         }`}
                                     >
-                                        <Icon size={16} strokeWidth={isActive ? 2.7 : 2.2} />
-                                        <span>{item.label}</span>
+                                        <span
+                                            className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl shadow-sm transition ${
+                                                isActive
+                                                    ? isLight
+                                                        ? "bg-[#7F1D1D] text-white"
+                                                        : "bg-[#FFD166] text-[#241707]"
+                                                    : isLight
+                                                        ? "bg-[#FFF4DA] text-[#9A6400] group-hover:bg-[#FFE8A3]"
+                                                        : "bg-white/10 text-[#FFD166] group-hover:bg-[#FFD166]/14"
+                                            }`}
+                                        >
+                                            <Icon size={18} strokeWidth={isActive ? 2.7 : 2.2} />
+                                        </span>
+                                        <span className="min-w-0 truncate">{item.label}</span>
                                     </button>
                                 );
                             })}
@@ -550,7 +528,7 @@ function CashierDashboard({ embedded = false }) {
 
                         <div
                             ref={restaurantFilterTrackRef}
-                            className="customer-order-scroll relative mb-8 inline-flex max-w-full gap-2 overflow-x-auto rounded-[22px] border border-white/10 bg-white/[0.035] p-1 pb-2"
+                            className="relative mb-8 flex w-full max-w-[980px] gap-2 overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035] p-1"
                         >
                             <span
                                 className="pointer-events-none absolute top-1 z-0 h-14 rounded-2xl bg-[#FFD166] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition-[opacity,transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -562,7 +540,7 @@ function CashierDashboard({ embedded = false }) {
                                 }}
                                 type="button"
                                 onClick={() => setActiveRestaurant("all")}
-                                className={`relative z-10 inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black transition-colors duration-300 ${
+                                className={`relative z-10 inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors duration-300 ${
                                     activeRestaurant === "all"
                                         ? "text-[#151A1D]"
                                         : "text-white/70 hover:bg-white/[0.07] hover:text-white"
@@ -582,14 +560,14 @@ function CashierDashboard({ embedded = false }) {
                                         key={restaurant.id}
                                         type="button"
                                         onClick={() => setActiveRestaurant(restaurant.id)}
-                                        className={`relative z-10 inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-black transition-colors duration-300 ${
+                                        className={`relative z-10 inline-flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors duration-300 ${
                                             isActive
                                                 ? "text-[#151A1D]"
                                                 : "text-white/70 hover:bg-white/[0.07] hover:text-white"
                                         }`}
                                     >
                                         <Store size={17} />
-                                        <span>{restaurant.name}</span>
+                                        <span className="min-w-0 truncate">{restaurant.name}</span>
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-xs ${
                                                 isActive

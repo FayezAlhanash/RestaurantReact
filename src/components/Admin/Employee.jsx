@@ -17,7 +17,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
-import { isRestaurantRole } from "../../utils/permissionScopes";
+import { roleRequiresRestaurantAssignment } from "../../utils/permissionScopes";
 import AddEmployeeModal from "./AddEmployeeModal";
 
 const getList = (data, key) => {
@@ -104,7 +104,7 @@ function Employee() {
     const selectedEmployeeRole =
         roleOptions.find((role) => String(role.id) === String(selectedEmployee?.role_id)) ??
         selectedEmployee?.role;
-    const needsRestaurant = isRestaurantRole(selectedEmployeeRole);
+    const needsRestaurant = roleRequiresRestaurantAssignment(selectedEmployeeRole);
 
     const getEmployees = useCallback(async () => {
         setIsLoading(true);

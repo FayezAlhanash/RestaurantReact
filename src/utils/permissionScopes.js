@@ -148,6 +148,17 @@ export function isRestaurantRole(role) {
     );
 }
 
+export function roleRequiresRestaurantAssignment(role = {}) {
+    const explicitRequirement =
+        role?.requires_restaurant ?? role?.restaurant_required;
+
+    if (explicitRequirement !== undefined && explicitRequirement !== null) {
+        return isTruthyFlag(explicitRequirement);
+    }
+
+    return isRestaurantRole(role);
+}
+
 export function userHasRestaurantScope(user) {
     return Boolean(user?.restaurant_id) || isRestaurantRole(user?.role);
 }

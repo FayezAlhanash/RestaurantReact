@@ -16,7 +16,16 @@ function getList(data) {
 }
 
 function getRecord(data) {
-    return data?.order ?? data?.data?.order ?? data?.data ?? data;
+    return (
+        data?.order ??
+        data?.restaurant_order ??
+        data?.restaurantOrder ??
+        data?.data?.order ??
+        data?.data?.restaurant_order ??
+        data?.data?.restaurantOrder ??
+        data?.data ??
+        data
+    );
 }
 
 function normalizeOrderType(type, fallback = "dine_in") {
@@ -426,6 +435,62 @@ function mergeStatus(statuses) {
     return normalizedStatuses[0] || "pending";
 }
 
+function isTruthyFlag(value) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value === 1;
+
+    return ["1", "true", "yes"].includes(
+        String(value ?? "")
+            .trim()
+            .toLowerCase()
+    );
+}
+
+function getFirstPresent(values) {
+    return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function getKitchenTimingFields(order = {}) {
+    const source = order?.restaurant_order ?? order?.restaurantOrder ?? order;
+
+    return {
+        preparing_at: getFirstPresent([
+            order?.preparing_at,
+            order?.preparingAt,
+            source?.preparing_at,
+            source?.preparingAt,
+        ]),
+        estimated_ready_at: getFirstPresent([
+            order?.estimated_ready_at,
+            order?.estimatedReadyAt,
+            source?.estimated_ready_at,
+            source?.estimatedReadyAt,
+        ]),
+        remaining_minutes: getFirstPresent([
+            order?.remaining_minutes,
+            order?.remainingMinutes,
+            source?.remaining_minutes,
+            source?.remainingMinutes,
+        ]),
+        waiting_for_preparation: isTruthyFlag(
+            getFirstPresent([
+                order?.waiting_for_preparation,
+                order?.waitingForPreparation,
+                source?.waiting_for_preparation,
+                source?.waitingForPreparation,
+            ])
+        ),
+        is_delayed: isTruthyFlag(
+            getFirstPresent([
+                order?.is_delayed,
+                order?.isDelayed,
+                source?.is_delayed,
+                source?.isDelayed,
+            ])
+        ),
+    };
+}
+
 function getUserRestaurantId(user) {
     return (
         user?.restaurant_id ??
@@ -471,6 +536,7 @@ export function normalizeKitchenOrder(order) {
         time: formatOrderTime(order.created_at || order.time || order.ordered_at),
         status: order.status || order.kitchen_status || "pending",
         items: normalizedItems,
+        ...getKitchenTimingFields(order),
     };
 }
 
@@ -498,6 +564,14 @@ function mergeKitchenOrders(orders) {
         ];
         existingOrder.items = [...existingOrder.items, ...order.items];
         existingOrder.status = mergeStatus([existingOrder.status, order.status]);
+        existingOrder.preparing_at = existingOrder.preparing_at ?? order.preparing_at;
+        existingOrder.estimated_ready_at =
+            existingOrder.estimated_ready_at ?? order.estimated_ready_at;
+        existingOrder.remaining_minutes =
+            existingOrder.remaining_minutes ?? order.remaining_minutes;
+        existingOrder.waiting_for_preparation =
+            existingOrder.waiting_for_preparation || order.waiting_for_preparation;
+        existingOrder.is_delayed = existingOrder.is_delayed || order.is_delayed;
         existingOrder.needsTypeDetail =
             existingOrder.needsTypeDetail && order.needsTypeDetail;
         existingOrder.detailIds = [
@@ -665,12 +739,23 @@ export async function startKitchenOrder(orderId) {
     const response = await api.patch(
         `/kitchen/orders/${orderId}/start-preparing`
     );
-    return response.data;
+    const record = getRecord(response.data);
+    const hasOrderShape =
+        record &&
+        typeof record === "object" &&
+        (record.id ||
+            record.restaurant_order_id ||
+            record.restaurantOrderId ||
+            record.order_id ||
+            record.status ||
+            record.kitchen_status);
+
+    return hasOrderShape ? normalizeKitchenOrder(record) : response.data;
 }
 
 export async function markKitchenOrderReady(orderId) {
     const response = await api.patch(`/kitchen/orders/${orderId}/mark-ready`);
-    return response.data;
+    return getRecord(response.data);
 }
 
 export function createCashierOrderPayload(cartItems, type = "takeaway") {

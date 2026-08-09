@@ -22,6 +22,40 @@ const isCompletedOrder = (order) =>
 
 const ADMIN_ALL_RESTAURANTS = "all";
 
+const getFirstPresent = (values) =>
+    values.find((value) => value !== undefined && value !== null && value !== "");
+
+function applyBackendTimingUpdate(order, updates = []) {
+    const backendUpdates = updates.filter(
+        (update) => update && typeof update === "object"
+    );
+
+    if (!backendUpdates.length) return order;
+
+    const nextStatus = getFirstPresent(
+        backendUpdates.map((update) => update.status)
+    );
+
+    return {
+        ...order,
+        status: nextStatus ?? order.status,
+        preparing_at:
+            getFirstPresent(backendUpdates.map((update) => update.preparing_at)) ??
+            order.preparing_at,
+        estimated_ready_at:
+            getFirstPresent(
+                backendUpdates.map((update) => update.estimated_ready_at)
+            ) ?? order.estimated_ready_at,
+        remaining_minutes:
+            getFirstPresent(backendUpdates.map((update) => update.remaining_minutes)) ??
+            order.remaining_minutes,
+        waiting_for_preparation: backendUpdates.some(
+            (update) => update.waiting_for_preparation
+        ),
+        is_delayed: backendUpdates.some((update) => update.is_delayed),
+    };
+}
+
 export default function KitchenDashboard() {
     const [orders, setOrders] = useState([]);
     const [completedOrders, setCompletedOrders] = useState([]);
@@ -175,7 +209,14 @@ export default function KitchenDashboard() {
                 ...current,
                 [String(orderId)]: "start",
             }));
-            await Promise.all(backendIds.map(startKitchenOrder));
+            const backendUpdates = await Promise.all(backendIds.map(startKitchenOrder));
+            setOrders((current) =>
+                current.map((currentOrder) =>
+                    String(currentOrder.id) === String(orderId)
+                        ? applyBackendTimingUpdate(currentOrder, backendUpdates)
+                        : currentOrder
+                )
+            );
             await loadQueue();
         } catch (error) {
             setErrorMessage(

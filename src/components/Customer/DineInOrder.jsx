@@ -3,6 +3,7 @@ import {
     ChevronLeft,
     ChevronRight,
     CheckCircle2,
+    Clock3,
     CreditCard,
     Minus,
     Moon,
@@ -87,6 +88,7 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     title: food.name ?? food.title ?? "Food item",
     description: food.description ?? "",
     price: Number(food.price ?? 0),
+    preparation_time: food.preparation_time ?? food.preparationTime ?? "",
     image: getFoodImageUrl(food.image),
     category: String(food.category_id ?? food.category?.id ?? "uncategorized"),
     categoryName: food.category?.name ?? "Menu",
@@ -615,6 +617,7 @@ function CustomerFoodCard({ item, onOpen }) {
         item?.diet_food ??
         item?.dietFood ??
         item?.is_diet_food;
+    const preparationTime = item?.preparation_time ?? item?.preparationTime;
 
     return (
         <article
@@ -648,6 +651,12 @@ function CustomerFoodCard({ item, onOpen }) {
                 <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-[#FFD166] backdrop-blur sm:bottom-3 sm:right-3 sm:px-3 sm:text-sm">
                     ${Number(item.price ?? 0).toFixed(2)}
                 </span>
+                {preparationTime && (
+                    <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-[#FFD166] px-2.5 py-1 text-xs font-black text-[#151A1D] shadow-[0_10px_22px_rgba(255,209,102,0.22)] sm:bottom-3 sm:left-3 sm:px-3 sm:text-sm">
+                        <Clock3 size={14} />
+                        {preparationTime} min
+                    </span>
+                )}
             </div>
 
             <div className="flex min-h-[150px] min-w-0 flex-col p-3 sm:min-h-44 sm:p-4">
