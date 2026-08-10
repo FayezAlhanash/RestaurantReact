@@ -948,11 +948,16 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         </div>
                     ) : hasModifiers ? (
                         <div className="mt-5 space-y-4">
-                            {modifierGroups.map((group) => (
+                            {modifierGroups.map((group) => {
+                                const groupId = getModifierGroupId(group);
+                                const isVariant = isVariantGroup(group);
+                                const isExpanded = isVariant || expandedModifierGroups[groupId];
+
+                                return (
                                 <div
-                                    key={getModifierGroupId(group)}
+                                    key={groupId}
                                     className={`product-modal-group rounded-2xl border p-3 ${
-                                        isVariantGroup(group)
+                                        isVariant
                                             ? isDark
                                                 ? "border-[#FFD166]/35 bg-[#FFD166]/8"
                                                 : "border-[#D8A23A]/45 bg-[#FFF9E8]"
@@ -960,22 +965,53 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             ? "border-white/10 bg-black/18"
                                             : "border-[#E7DCD6] bg-[#FBF8F6]"
                                     } ${
-                                        !isVariantGroup(group) && !canSelectNonVariantModifiers
+                                        !isVariant && !canSelectNonVariantModifiers
                                             ? "opacity-55"
                                             : ""
                                     }`}
                                 >
-                                    <div className="mb-3 flex items-start justify-between gap-3">
+                                    <div
+                                        role={!isVariant ? "button" : undefined}
+                                        tabIndex={!isVariant ? 0 : undefined}
+                                        onClick={() => {
+                                            if (isVariant) return;
+
+                                            setExpandedModifierGroups((current) => ({
+                                                ...current,
+                                                [groupId]: !current[groupId],
+                                            }));
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (isVariant || (event.key !== "Enter" && event.key !== " ")) return;
+
+                                            event.preventDefault();
+                                            setExpandedModifierGroups((current) => ({
+                                                ...current,
+                                                [groupId]: !current[groupId],
+                                            }));
+                                        }}
+                                        className={`flex items-start justify-between gap-3 ${
+                                            !isVariant ? "cursor-pointer rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#FFD166]/35" : ""
+                                        }`}
+                                    >
                                         <div className="min-w-0">
-                                            <h3 className={`text-xl font-black leading-6 ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
+                                            <h3 className={`flex items-center gap-2 text-xl font-black leading-6 ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
+                                                {!isVariant && (
+                                                    <ChevronDown
+                                                        size={18}
+                                                        className={`shrink-0 transition-transform ${
+                                                            isExpanded ? "rotate-180" : ""
+                                                        }`}
+                                                    />
+                                                )}
                                                 {group.name}
                                             </h3>
-                                            {isVariantGroup(group) && (
+                                            {isVariant && (
                                                 <p className={`mt-1 text-xs font-bold ${isDark ? "text-white/55" : "text-[#7A6258]"}`}>
                                                     Select one size. The shown amount includes the base item price.
                                                 </p>
                                             )}
-                                            {!isVariantGroup(group) && !canSelectNonVariantModifiers && (
+                                            {!isVariant && !canSelectNonVariantModifiers && (
                                                 <p className={`mt-1 text-xs font-bold ${isDark ? "text-white/45" : "text-[#8D7B74]"}`}>
                                                     Choose a size first.
                                                 </p>
@@ -983,7 +1019,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         </div>
                                         <span
                                             className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                                isVariantGroup(group)
+                                                isVariant
                                                     ? isDark
                                                         ? "border border-[#FFD166]/30 bg-[#FFD166]/14 text-[#FFD166]"
                                                         : "border border-[#D8A23A]/35 bg-[#FFF0C4] text-[#9A6400]"
@@ -996,117 +1032,126 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                         : "bg-white text-[#8D7B74]"
                                             }`}
                                         >
-                                            {isVariantGroup(group)
+                                            {isVariant
                                                 ? "Final prices"
                                                 : isGroupRequired(group)
                                                     ? "Required"
                                                     : "Optional"}
-                                            {!isVariantGroup(group) && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
+                                            {!isVariant && getGroupMaxSelect(group) > 1 ? ` · ${getGroupMaxSelect(group)} max` : ""}
                                         </span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2.5">
-                                        {group.options.map((option) => {
-                                            const groupId = getModifierGroupId(group);
-                                            const optionId = getOptionId(option);
-                                            const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
-                                                ? selectedModifiers[groupId]
-                                                : [selectedModifiers[groupId]].filter(Boolean);
-                                            const isSelected = selectedOptionIds.some(
-                                                (selectedOptionId) => String(selectedOptionId) === String(optionId)
-                                            );
-                                            const optionPrice = getModifierOptionPrice(option, group, { basePrice });
-                                            const isVariant = isVariantGroup(group);
-                                            const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
-                                            const isDisabled = !isVariant && !canSelectNonVariantModifiers;
+                                    <div
+                                        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                                            isExpanded
+                                                ? "grid-rows-[1fr] opacity-100"
+                                                : "grid-rows-[0fr] opacity-0"
+                                        }`}
+                                    >
+                                        <div className="min-h-0 overflow-hidden">
+                                            <div className="grid grid-cols-2 gap-2.5 pt-3">
+                                                {group.options.map((option) => {
+                                                    const optionId = getOptionId(option);
+                                                    const selectedOptionIds = Array.isArray(selectedModifiers[groupId])
+                                                        ? selectedModifiers[groupId]
+                                                        : [selectedModifiers[groupId]].filter(Boolean);
+                                                    const isSelected = selectedOptionIds.some(
+                                                        (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                    );
+                                                    const optionPrice = getModifierOptionPrice(option, group, { basePrice });
+                                                    const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
+                                                    const isDisabled = !isVariant && !canSelectNonVariantModifiers;
 
-                                            return (
-                                                <button
-                                                    key={optionId}
-                                                    type="button"
-                                                    disabled={isDisabled}
-                                                    onClick={() => {
-                                                        if (isDisabled) return;
+                                                    return (
+                                                        <button
+                                                            key={optionId}
+                                                            type="button"
+                                                            disabled={isDisabled}
+                                                            onClick={() => {
+                                                                if (isDisabled) return;
 
-                                                        setSelectedModifiers((current) => {
-                                                            const maxSelect = getGroupMaxSelect(group);
+                                                                setSelectedModifiers((current) => {
+                                                                    const maxSelect = getGroupMaxSelect(group);
 
-                                                            if (maxSelect <= 1) {
-                                                                if (isSelected && !isGroupRequired(group)) {
-                                                                    const nextModifiers = { ...current };
-                                                                    delete nextModifiers[groupId];
-                                                                    return nextModifiers;
-                                                                }
+                                                                    if (maxSelect <= 1) {
+                                                                        if (isSelected && !isGroupRequired(group)) {
+                                                                            const nextModifiers = { ...current };
+                                                                            delete nextModifiers[groupId];
+                                                                            return nextModifiers;
+                                                                        }
 
-                                                                return {
-                                                                    ...current,
-                                                                    [groupId]: optionId,
-                                                                };
-                                                            }
+                                                                        return {
+                                                                            ...current,
+                                                                            [groupId]: optionId,
+                                                                        };
+                                                                    }
 
-                                                            const currentOptionIds = Array.isArray(current[groupId])
-                                                                ? current[groupId]
-                                                                : [current[groupId]].filter(Boolean);
-                                                            const alreadySelected = currentOptionIds.some(
-                                                                (selectedOptionId) => String(selectedOptionId) === String(optionId)
-                                                            );
-                                                            const nextOptionIds = alreadySelected
-                                                                ? currentOptionIds.filter(
-                                                                      (selectedOptionId) => String(selectedOptionId) !== String(optionId)
-                                                                  )
-                                                                : [...currentOptionIds, optionId].slice(0, maxSelect);
+                                                                    const currentOptionIds = Array.isArray(current[groupId])
+                                                                        ? current[groupId]
+                                                                        : [current[groupId]].filter(Boolean);
+                                                                    const alreadySelected = currentOptionIds.some(
+                                                                        (selectedOptionId) => String(selectedOptionId) === String(optionId)
+                                                                    );
+                                                                    const nextOptionIds = alreadySelected
+                                                                        ? currentOptionIds.filter(
+                                                                              (selectedOptionId) => String(selectedOptionId) !== String(optionId)
+                                                                          )
+                                                                        : [...currentOptionIds, optionId].slice(0, maxSelect);
 
-                                                            return {
-                                                                ...current,
-                                                                [groupId]: nextOptionIds,
-                                                            };
-                                                        });
-                                                    }}
-                                                    className={`product-modal-option ${isSelected ? "product-modal-option-selected" : ""} rounded-xl border px-3 py-2.5 text-left transition disabled:cursor-not-allowed ${
-                                                        isDisabled
-                                                            ? isDark
-                                                                ? "border-white/8 bg-white/[0.035] text-white/28"
-                                                                : "border-[#E7DCD6] bg-[#F4EEE9] text-[#9C8B84]"
-                                                            :
-                                                        isSelected
-                                                            ? isVariant
-                                                                ? isDark
-                                                                    ? "border-[#FFD166] bg-[#FFD166]/16 text-white shadow-[0_12px_26px_rgba(255,209,102,0.12)] ring-2 ring-[#FFD166]/20"
-                                                                    : "border-[#D8A23A] bg-[#FFF0C4] text-[#241707] shadow-[0_12px_26px_rgba(216,162,58,0.12)] ring-2 ring-[#D8A23A]/20"
-                                                                : isDark
-                                                                ? "border-[#7F1D1D] bg-[#7F1D1D]/18 text-white shadow-[0_12px_26px_rgba(127,29,29,0.12)]"
-                                                                : "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]"
-                                                            : isVariant
-                                                                ? isDark
-                                                                    ? "border-[#FFD166]/20 bg-[#1D2528] text-white hover:border-[#FFD166]/55 hover:bg-[#FFD166]/10"
-                                                                    : "border-[#E1C06B] bg-white text-[#5E4422] hover:border-[#D8A23A]"
-                                                                : isDark
-                                                                ? "border-white/10 bg-white/[0.06] text-white/68 hover:border-[#FFD166]/45 hover:bg-white/[0.10] hover:text-white"
-                                                                : "border-[#E7DCD6] text-[#77665F] hover:border-[#CBB9B1]"
-                                                    }`}
-                                                >
-                                                    <span className="flex items-start justify-between gap-3">
-                                                        <span className="min-w-0 text-[13px] font-extrabold">
-                                                            {option.name}
-                                                        </span>
-                                                        {isVariant && (
-                                                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
-                                                                isDark ? "bg-[#FFD166] text-[#151A1D]" : "bg-[#7F1D1D] text-white"
-                                                            }`}>
-                                                                {isSelected ? "Selected" : "Final price"}
+                                                                    return {
+                                                                        ...current,
+                                                                        [groupId]: nextOptionIds,
+                                                                    };
+                                                                });
+                                                            }}
+                                                            className={`product-modal-option ${isSelected ? "product-modal-option-selected" : ""} rounded-xl border px-3 py-2.5 text-left transition disabled:cursor-not-allowed ${
+                                                                isDisabled
+                                                                    ? isDark
+                                                                        ? "border-white/8 bg-white/[0.035] text-white/28"
+                                                                        : "border-[#E7DCD6] bg-[#F4EEE9] text-[#9C8B84]"
+                                                                    :
+                                                                isSelected
+                                                                    ? isVariant
+                                                                        ? isDark
+                                                                            ? "border-[#FFD166] bg-[#FFD166]/16 text-white shadow-[0_12px_26px_rgba(255,209,102,0.12)] ring-2 ring-[#FFD166]/20"
+                                                                            : "border-[#D8A23A] bg-[#FFF0C4] text-[#241707] shadow-[0_12px_26px_rgba(216,162,58,0.12)] ring-2 ring-[#D8A23A]/20"
+                                                                        : isDark
+                                                                        ? "border-[#7F1D1D] bg-[#7F1D1D]/18 text-white shadow-[0_12px_26px_rgba(127,29,29,0.12)]"
+                                                                        : "border-[#7F1D1D] bg-[#F9ECEC] text-[#7F1D1D]"
+                                                                    : isVariant
+                                                                        ? isDark
+                                                                            ? "border-[#FFD166]/20 bg-[#1D2528] text-white hover:border-[#FFD166]/55 hover:bg-[#FFD166]/10"
+                                                                            : "border-[#E1C06B] bg-white text-[#5E4422] hover:border-[#D8A23A]"
+                                                                        : isDark
+                                                                        ? "border-white/10 bg-white/[0.06] text-white/68 hover:border-[#FFD166]/45 hover:bg-white/[0.10] hover:text-white"
+                                                                        : "border-[#E7DCD6] text-[#77665F] hover:border-[#CBB9B1]"
+                                                            }`}
+                                                        >
+                                                            <span className="flex items-start justify-between gap-3">
+                                                                <span className="min-w-0 text-[13px] font-extrabold">
+                                                                    {option.name}
+                                                                </span>
+                                                                {isVariant && (
+                                                                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
+                                                                        isDark ? "bg-[#FFD166] text-[#151A1D]" : "bg-[#7F1D1D] text-white"
+                                                                    }`}>
+                                                                        {isSelected ? "Selected" : "Final price"}
+                                                                    </span>
+                                                                )}
                                                             </span>
-                                                        )}
-                                                    </span>
-                                                    {(isVariant || optionPrice > 0) && (
-                                                        <span className={`mt-2 block text-2xl font-black leading-none ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
-                                                            {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
+                                                            {(isVariant || optionPrice > 0) && (
+                                                                <span className={`mt-2 block text-2xl font-black leading-none ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
+                                                                    {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="mt-5">
@@ -1138,22 +1183,50 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         </div>
                     )}
 
-                    <div className={`mt-5 flex items-center justify-between rounded-2xl p-3 ${isDark ? "border border-white/10 bg-white/[0.07]" : "bg-[#F8F4F1]"}`}>
+                    <div className={`mt-5 flex items-center justify-between rounded-2xl border p-3 shadow-[0_12px_26px_rgba(0,0,0,0.12)] ${
+                        isDark
+                            ? "border-[#FFD166]/18 bg-[#1D2528]"
+                            : "border-[#E7DCD6] bg-[#FFF9F2]"
+                    }`}>
                         <div>
-                            <p className="text-sm font-extrabold">Quantity</p>
-                            <p className={`text-xs ${isDark ? "text-white/45" : "text-[#998780]"}`}>How many?</p>
+                            <p className={`text-base font-black ${isDark ? "text-white" : "text-[#241815]"}`}>
+                                Quantity
+                            </p>
+                            <p className={`text-xs font-bold ${isDark ? "text-[#FFD166]/80" : "text-[#7F1D1D]/70"}`}>
+                                How many?
+                            </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button onClick={() => setQuantity((value) => Math.max(1, value - 1))} className={`grid h-8 w-8 place-items-center rounded-xl shadow-sm ${isDark ? "bg-white/10 text-[#FFD166]" : "bg-white text-[#7F1D1D]"}`}><Minus size={15} /></button>
-                            <span className="w-5 text-center font-black">{quantity}</span>
-                            <button onClick={() => setQuantity((value) => value + 1)} className={`grid h-8 w-8 place-items-center rounded-xl text-white shadow-sm ${isDark ? "bg-[#7F1D1D]" : "bg-[#7F1D1D]"}`}><Plus size={15} /></button>
+                            <button
+                                type="button"
+                                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                                className={`grid h-10 w-10 place-items-center rounded-xl border text-[#FFD166] shadow-sm transition active:scale-95 ${
+                                    isDark
+                                        ? "border-white/10 bg-white/10 hover:bg-white/15"
+                                        : "border-[#E7DCD6] bg-white hover:bg-[#FFF0C4]"
+                                }`}
+                                aria-label="Decrease quantity"
+                            >
+                                <Minus size={17} />
+                            </button>
+                            <span className={`w-8 text-center text-xl font-black ${isDark ? "text-white" : "text-[#241815]"}`}>
+                                {quantity}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setQuantity((value) => value + 1)}
+                                className="grid h-10 w-10 place-items-center rounded-xl bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] active:scale-95"
+                                aria-label="Increase quantity"
+                            >
+                                <Plus size={17} />
+                            </button>
                         </div>
                     </div>
 
-                    <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Special instructions (optional)" rows={2} className={`mt-3 w-full resize-none rounded-2xl border p-3 text-sm outline-none transition ${
+                    <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Special instructions (optional)" rows={2} className={`mt-3 w-full resize-none rounded-2xl border p-4 text-sm font-bold outline-none transition ${
                         isDark
-                            ? "border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/15"
-                            : "border-[#E7DCD6] bg-white placeholder:text-[#AA9A94] focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
+                            ? "border-white/14 bg-[#1D2528] text-white placeholder:text-white/62 focus:border-[#FFD166]/45 focus:ring-4 focus:ring-[#FFD166]/12"
+                            : "border-[#E7DCD6] bg-[#FFF9F2] text-[#241815] placeholder:text-[#7A6258] focus:border-[#7F1D1D] focus:ring-4 focus:ring-[#7F1D1D]/10"
                     }`} />
                     </div>
 

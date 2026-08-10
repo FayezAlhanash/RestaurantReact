@@ -661,12 +661,12 @@ export default function AddMenu() {
               onClick={() => setActiveTab(tab.id)}
               className={`group relative overflow-hidden rounded-[24px] border p-4 text-left transition duration-200 hover:-translate-y-1 active:scale-[0.99] ${
                 isActive
-                  ? "border-[#7F1D1D] bg-[#FFF1E8] text-[#231815] shadow-[0_18px_38px_rgba(127,29,29,0.18)] ring-2 ring-[#7F1D1D]/18"
+                  ? "border-[#7F1D1D]/70 bg-[linear-gradient(145deg,rgba(127,29,29,0.20),rgba(32,43,47,0.96)_58%,rgba(22,31,34,0.98))] text-white shadow-[0_18px_38px_rgba(127,29,29,0.20)] ring-2 ring-[#7F1D1D]/22"
                   : "border-white/10 bg-[#202B2F] text-white/72 shadow-[0_14px_32px_rgba(0,0,0,0.18)] hover:border-white/18 hover:bg-[#253236]"
               }`}
             >
               {isActive && (
-                <span className="absolute inset-x-0 top-0 h-1.5 bg-[#7F1D1D]" />
+                <span className="absolute inset-x-0 top-0 h-1.5 bg-[linear-gradient(90deg,#7F1D1D,#FFD166,#7F1D1D)]" />
               )}
               <div className="mb-4 flex items-center justify-between gap-3">
                 <span
@@ -679,18 +679,18 @@ export default function AddMenu() {
                   <Icon size={20} className="transition duration-200 group-hover:-rotate-6" />
                 </span>
                 {isActive && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#7F1D1D] px-3 py-1 text-xs font-black uppercase tracking-[0.10em] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FFD166]/30 bg-[#7F1D1D] px-3 py-1 text-xs font-black uppercase tracking-[0.10em] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)]">
                     <CheckCircle2 size={14} />
                     Selected
                   </span>
                 )}
               </div>
-              <h2 className={`font-black ${isActive ? "text-[#231815]" : ""}`}>
+              <h2 className={`font-black ${isActive ? "text-white" : ""}`}>
                 {tab.label}
               </h2>
               <p
                 className={`mt-2 text-sm leading-5 ${
-                  isActive ? "text-[#6F5D55]" : "text-white/48"
+                  isActive ? "text-white/68" : "text-white/48"
                 }`}
               >
                 {tab.description}

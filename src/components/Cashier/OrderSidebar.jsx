@@ -2,7 +2,9 @@ import { Minus, Plus, Receipt, ShoppingBag, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
     createCashierOrder,
+    fetchCashierOrderDetail,
     fetchKitchenQueue,
+    getCashierOrderTotal,
     getCreatedOrderId,
     payCashierOrderInvoices,
 } from "../../utils/kitchenOrders";
@@ -89,7 +91,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
         );
     };
 
-    const { subtotal, tax, total } = getCartTotals(cartItems);
+    const { subtotal, tax, total: estimatedTotal } = getCartTotals(cartItems);
     const itemCount = cartItems.reduce((totalCount, item) => totalCount + item.quantity, 0);
 
     const placeOrder = async () => {
@@ -111,15 +113,36 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             }
 
             const response = await createCashierOrder(cartItems, "takeaway");
-            await payCashierOrderInvoices(
-                response,
-                paymentMethod,
-                stripeCardRef.current
-            );
             const orderIds = String(getCreatedOrderId(response) || "")
                 .split(",")
                 .map((id) => id.trim())
                 .filter(Boolean);
+            const orderDetails = [];
+
+            for (const orderId of orderIds) {
+                const orderDetail = await fetchCashierOrderDetail(orderId);
+
+                if (orderDetail) {
+                    orderDetails.push(orderDetail);
+                }
+            }
+
+            const backendTotal =
+                getCashierOrderTotal(orderDetails) ?? getCashierOrderTotal(response);
+            const responseOrders = Array.isArray(response?.orders)
+                ? response.orders
+                : Array.isArray(response?.data)
+                    ? response.data
+                    : [];
+            const paymentSource = orderDetails.length
+                ? { ...response, orders: [...orderDetails, ...responseOrders] }
+                : response;
+
+            await payCashierOrderInvoices(
+                paymentSource,
+                paymentMethod,
+                stripeCardRef.current
+            );
             let isInKitchenQueue = false;
 
             try {
@@ -137,11 +160,13 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             const orderLabel = orderIds.length
                 ? `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")}`
                 : "Order";
+            const backendTotalLabel =
+                backendTotal !== null ? ` · backend total $${backendTotal.toFixed(2)}` : "";
 
             setSuccessMessage(
                 isInKitchenQueue
-                    ? `${orderLabel} paid and sent to kitchen`
-                    : `${orderLabel} paid, but not in kitchen queue`
+                    ? `${orderLabel} paid${backendTotalLabel} and sent to kitchen`
+                    : `${orderLabel} paid${backendTotalLabel}, but not in kitchen queue`
             );
             window.dispatchEvent(new CustomEvent("big4:orders-updated"));
             window.dispatchEvent(new CustomEvent("big4:poll-notifications-now"));
@@ -263,13 +288,13 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
 
             <div className="border-t border-white/[0.08] bg-[linear-gradient(180deg,#11191B_0%,#0D1214_100%)] px-4 py-3 shadow-[0_-18px_36px_rgba(0,0,0,0.26)] sm:px-5">
                 <div className="space-y-1 text-sm">
-                    <div className="flex justify-between text-white/55"><span>Subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between text-white/55"><span>Tax</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-white/55"><span>Estimated subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-white/55"><span>Estimated tax</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
                 </div>
                 <div className="my-2 border-t border-dashed border-white/15" />
                 <div className="mb-2.5 flex items-end justify-between">
-                    <span className="text-base font-black">Total</span>
-                    <span className="text-2xl font-black text-[#FFD166]">${total.toFixed(2)}</span>
+                    <span className="text-base font-black">Estimated total</span>
+                    <span className="text-2xl font-black text-[#FFD166]">${estimatedTotal.toFixed(2)}</span>
                 </div>
                 <div className="mb-2.5">
                     <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-white/45">
@@ -327,7 +352,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                     </p>
                 )}
                 <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 disabled:shadow-none">
-                    {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${total.toFixed(2)}`}
+                    {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · est. $${estimatedTotal.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
                     <button onClick={() => setCartItems([])} className="mt-1.5 w-full py-1 text-sm font-bold text-white/45 transition hover:text-[#7F1D1D]">Clear order</button>

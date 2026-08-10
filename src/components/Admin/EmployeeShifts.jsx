@@ -14,6 +14,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
+import { getStoredUser, ROLE_IDS } from "../../utils/auth";
+import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 
 const WEEK_DAYS = [
     { value: "monday", label: "Monday", short: "Mon" },
@@ -85,6 +87,19 @@ function getRoleName(employee) {
     return employee?.role?.name || employee?.role_name || "Staff";
 }
 
+function getEmployeeRestaurantId(employee) {
+    return (
+        employee?.restaurant_id ??
+        employee?.restaurantId ??
+        employee?.restaurant?.id ??
+        employee?.employee?.restaurant_id ??
+        employee?.employee?.restaurant?.id ??
+        employee?.staff?.restaurant_id ??
+        employee?.staff?.restaurant?.id ??
+        null
+    );
+}
+
 function getEmployeeApiId(employee) {
     return (
         employee?.employee_id ??
@@ -147,6 +162,11 @@ function getErrorMessage(error) {
 
 function EmployeeShifts() {
     const { isLight } = useTheme();
+    const [isAdmin] = useState(() => {
+        const user = getStoredUser();
+
+        return Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
+    });
     const [employees, setEmployees] = useState([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
     const [selectedDays, setSelectedDays] = useState(["monday"]);
@@ -217,8 +237,33 @@ function EmployeeShifts() {
             setErrorMessage("");
 
             try {
-                const response = await api.get("/admin/staff-users");
-                setEmployees(getList(response.data, "users"));
+                if (isAdmin) {
+                    const response = await api.get("/admin/staff-users");
+                    setEmployees(getList(response.data, "users"));
+                    return;
+                }
+
+                const restaurantId = await ensureCurrentRestaurantId();
+
+                if (!restaurantId) {
+                    setEmployees([]);
+                    setErrorMessage("This manager account is not linked to a restaurant.");
+                    return;
+                }
+
+                const response = await api.get(`/restaurants/${restaurantId}/staff`);
+                const staffList = getList(response.data, "staff");
+                const hasRestaurantScope = staffList.some(
+                    (employee) => getEmployeeRestaurantId(employee) != null
+                );
+                const scopedStaff = hasRestaurantScope
+                    ? staffList.filter(
+                          (employee) =>
+                              String(getEmployeeRestaurantId(employee)) === String(restaurantId)
+                      )
+                    : staffList;
+
+                setEmployees(scopedStaff);
             } catch (error) {
                 setErrorMessage(
                     error.response?.data?.message || "Could not load employees."
@@ -229,7 +274,7 @@ function EmployeeShifts() {
         };
 
         fetchEmployees();
-    }, []);
+    }, [isAdmin]);
 
     const getShiftList = (data) => {
         const collectShiftLists = (node, depth = 0) => {
@@ -504,6 +549,24 @@ function EmployeeShifts() {
     const goldText = isLight ? "text-[#9A6400]" : "text-[#FFD166]";
     const goldBorder = isLight ? "border-[#D8A22D]/38" : "border-[#FFD166]/30";
     const goldBackground = isLight ? "bg-[#FFF4DA]" : "bg-[#FFD166]/10";
+    const dangerText = isLight ? "text-[#8C1D18]" : "text-red-200";
+    const dangerStrongText = isLight ? "text-[#8C1D18]" : "text-red-100";
+    const dangerSurface = isLight
+        ? "border-[#8C1D18]/25 bg-[#FEF2F2]"
+        : "border-red-300/24 bg-red-300/[0.085]";
+    const dangerSoftSurface = isLight
+        ? "border-[#8C1D18]/30 bg-[#FFF7F6]"
+        : "border-red-300/25 bg-red-300/[0.085]";
+    const dangerSoftButton = isLight
+        ? "border-[#8C1D18]/30 bg-[#FEF2F2] text-[#8C1D18] hover:bg-[#FEE2E2]"
+        : "border-red-300/24 bg-red-300/[0.085] text-red-200 hover:bg-red-300/[0.14]";
+    const dangerSolidButton = isLight
+        ? "border-[#8C1D18]/45 bg-[#8C1D18] text-white hover:bg-[#731A17]"
+        : "border-red-300/30 bg-red-300/[0.18] text-red-50 hover:bg-red-300/[0.26]";
+    const dangerMainButton = isLight
+        ? "bg-[#8C1D18] shadow-[0_16px_34px_rgba(140,29,24,0.24)] hover:bg-[#731A17]"
+        : "border border-red-300/24 bg-red-300/[0.16] shadow-[0_16px_34px_rgba(248,113,113,0.12)] hover:bg-red-300/[0.24]";
+    const dangerTopBorderColor = isLight ? "#8C1D18" : "#FCA5A5";
 
     return (
         <div className={`min-h-full space-y-6 p-4 sm:p-6 lg:p-8 ${pageSurface}`}>
@@ -533,8 +596,8 @@ function EmployeeShifts() {
                                 {isLoading ? "..." : employees.length}
                             </strong>
                         </div>
-                        <div className={`rounded-2xl border p-4 ${isLight ? "border-[#E4CFC3] bg-[#FFF4EA]" : "border-white/10 bg-white/[0.055]"}`}>
-                            <p className="text-xs font-black uppercase tracking-[0.12em] text-[#7F1D1D]">Days</p>
+                        <div className={`rounded-2xl border p-4 ${dangerSurface}`}>
+                            <p className={`text-xs font-black uppercase tracking-[0.12em] ${dangerText}`}>Days</p>
                             <strong className={`mt-2 block text-4xl font-black tabular-nums ${titleText}`}>
                                 {selectedDays.length}
                             </strong>
@@ -674,9 +737,9 @@ function EmployeeShifts() {
                                         <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#15803D]">Available</p>
                                         <strong className="block text-xl font-black tabular-nums text-[#15803D]">{availableDaysCount}</strong>
                                     </div>
-                                    <div className={`rounded-2xl border px-3 py-2 text-center ${isLight ? "border-[#8C1D18]/25 bg-[#FEF2F2]" : "border-red-300/20 bg-red-300/10"}`}>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#8C1D18]">Booked</p>
-                                        <strong className="block text-xl font-black tabular-nums text-[#8C1D18]">{bookedDaysCount}</strong>
+                                    <div className={`rounded-2xl border px-3 py-2 text-center ${dangerSurface}`}>
+                                        <p className={`text-[10px] font-black uppercase tracking-[0.1em] ${dangerText}`}>Booked</p>
+                                        <strong className={`block text-xl font-black tabular-nums ${dangerStrongText}`}>{bookedDaysCount}</strong>
                                     </div>
                                 </div>
                             )}
@@ -719,7 +782,7 @@ function EmployeeShifts() {
                                         <button
                                             type="button"
                                             onClick={clearDays}
-                                            className="rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-black text-[#EF4444] transition hover:bg-[#7F1D1D]/18"
+                                            className={`rounded-xl border px-3 py-2 text-xs font-black transition ${dangerSoftButton}`}
                                         >
                                         Clear
                                     </button>
@@ -734,8 +797,8 @@ function EmployeeShifts() {
                                             <span className="h-1.5 w-5 rounded-full bg-[#15803D]" />
                                             Available
                                         </span>
-                                        <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 ${isLight ? "border-[#8C1D18]/20 bg-[#FEF2F2] text-[#8C1D18]" : "border-red-300/20 bg-red-300/10 text-red-200"}`}>
-                                            <span className="h-1.5 w-5 rounded-full bg-[#8C1D18]" />
+                                        <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 ${dangerSurface} ${dangerText}`}>
+                                            <span className={`h-1.5 w-5 rounded-full ${isLight ? "bg-[#8C1D18]" : "bg-red-300"}`} />
                                             Not available
                                         </span>
                                     </div>
@@ -759,9 +822,7 @@ function EmployeeShifts() {
                                                     }
                                                     className={`relative h-20 overflow-hidden rounded-2xl border px-3 pt-4 text-left transition active:scale-[0.99] disabled:cursor-not-allowed ${
                                                         isBooked
-                                                            ? isLight
-                                                                ? "border-[#8C1D18]/25 bg-[#FFF7F6] text-[#8C1D18] shadow-[0_12px_26px_rgba(140,29,24,0.08)]"
-                                                                : "border-red-300/25 bg-red-300/[0.055] text-red-200 shadow-[0_12px_26px_rgba(127,29,29,0.14)]"
+                                                            ? `${dangerSoftSurface} ${dangerText} shadow-[0_12px_26px_rgba(140,29,24,0.10)]`
                                                             : isSelected
                                                             ? `${goldBorder} ${goldBackground} ${goldText} shadow-[0_10px_24px_rgba(255,209,102,0.08)]`
                                                             : isLight
@@ -770,7 +831,7 @@ function EmployeeShifts() {
                                                     }`}
                                                     style={{
                                                         borderTop: `4px solid ${
-                                                            isBooked ? "#8C1D18" : "#15803D"
+                                                            isBooked ? dangerTopBorderColor : "#15803D"
                                                         }`,
                                                     }}
                                                 >
@@ -840,7 +901,7 @@ function EmployeeShifts() {
                         )}
 
                         {errorMessage && (
-                            <div className="flex items-start gap-3 rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 px-4 py-3 text-sm font-bold text-[#EF4444]">
+                            <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${dangerSurface} ${dangerText}`}>
                                 <AlertCircle size={18} className="mt-0.5 shrink-0" />
                                 <span>{errorMessage}</span>
                             </div>
@@ -861,7 +922,7 @@ function EmployeeShifts() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting || !selectedDays.length}
-                                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:bg-[#681718] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                                className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-black text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 ${dangerMainButton}`}
                             >
                                 {isSubmitting ? (
                                     <>
@@ -923,7 +984,7 @@ function EmployeeShifts() {
                                                 key={shift?.id ?? `${day}-${index}`}
                                                 className={`min-h-[64px] rounded-xl border p-3 ${
                                                     isDeletePending
-                                                        ? "border-[#7F1D1D]/40 bg-[#7F1D1D]/10"
+                                                        ? dangerSurface
                                                         : isLight
                                                             ? "border-[#E4CFC3] bg-white"
                                                             : "border-white/10 bg-[#172124]"
@@ -967,7 +1028,7 @@ function EmployeeShifts() {
                                                                     type="button"
                                                                     onClick={() => handleDeleteShift(shift)}
                                                                     disabled={isBusy}
-                                                                    className="grid h-9 w-9 place-items-center rounded-xl border border-red-400/60 bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C] disabled:opacity-60"
+                                                                    className={`grid h-9 w-9 place-items-center rounded-xl border transition disabled:opacity-60 ${dangerSolidButton}`}
                                                                     title="Confirm delete"
                                                                 >
                                                                     {isBusy ? (
@@ -1023,7 +1084,7 @@ function EmployeeShifts() {
                                                                     type="button"
                                                                     onClick={() => openDeleteShift(shift)}
                                                                     disabled={isBusy}
-                                                                    className="grid h-9 w-9 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#EF4444] transition hover:bg-[#7F1D1D]/18 disabled:opacity-60"
+                                                                    className={`grid h-9 w-9 place-items-center rounded-xl border transition disabled:opacity-60 ${dangerSoftButton}`}
                                                                     title="Delete shift"
                                                                 >
                                                                     <Trash2 size={15} />
@@ -1033,7 +1094,7 @@ function EmployeeShifts() {
                                                     </div>
                                                 </div>
                                                 {isDeletePending && (
-                                                    <div className="mt-3 rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-bold text-[#EF4444]">
+                                                    <div className={`mt-3 rounded-xl border px-3 py-2 text-xs font-bold ${dangerSurface} ${dangerText}`}>
                                                         Delete this shift? Press the red button to confirm.
                                                     </div>
                                                 )}

@@ -28,6 +28,123 @@ function getRecord(data) {
     );
 }
 
+const backendTotalKeys = [
+    "total",
+    "grand_total",
+    "grandTotal",
+    "final_total",
+    "finalTotal",
+    "payable_amount",
+    "payableAmount",
+    "amount_due",
+    "amountDue",
+    "due_amount",
+    "dueAmount",
+    "total_amount",
+    "totalAmount",
+    "total_price",
+    "totalPrice",
+    "amount",
+];
+
+const backendNetTotalKeys = ["net_paid_amount", "netPaidAmount"];
+
+function toMoneyNumber(value) {
+    if (value === undefined || value === null || value === "") return null;
+
+    const numericValue = Number(value);
+
+    return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function getFirstMoneyValue(source, keys) {
+    if (!source || typeof source !== "object") return null;
+
+    for (const key of keys) {
+        const value = toMoneyNumber(source[key]);
+
+        if (value !== null) return value;
+    }
+
+    return null;
+}
+
+function normalizePaymentStatus(value) {
+    return String(value || "")
+        .toLowerCase()
+        .replaceAll("-", "_")
+        .replaceAll(" ", "_");
+}
+
+function hasPaidTotalSignal(source = {}) {
+    const paymentStatus = normalizePaymentStatus(
+        source.payment_status || source.paymentStatus || source.status
+    );
+
+    return (
+        ["paid", "partially_refunded", "refunded", "completed"].includes(paymentStatus) ||
+        Boolean(source.paid_at || source.paidAt) ||
+        Number(source.paid_amount ?? source.paidAmount ?? 0) > 0
+    );
+}
+
+function getBackendTotalFromSource(source) {
+    if (!source || typeof source !== "object") return null;
+
+    const netTotal = getFirstMoneyValue(source, backendNetTotalKeys);
+    const directTotal = getFirstMoneyValue(source, backendTotalKeys);
+
+    if (hasPaidTotalSignal(source) && netTotal !== null) return netTotal;
+    if (directTotal !== null) return directTotal;
+    if (netTotal !== null) return netTotal;
+
+    return null;
+}
+
+function getInvoiceSources(source = {}) {
+    return [
+        source.invoice,
+        source.restaurant_invoice?.invoice,
+        source.restaurantInvoice?.invoice,
+        source.data?.invoice,
+        source.data?.restaurant_invoice?.invoice,
+        source.data?.restaurantInvoice?.invoice,
+        ...getList(source.restaurant_invoices).map(
+            (invoice) => invoice?.invoice ?? invoice
+        ),
+        ...getList(source.restaurantInvoices).map(
+            (invoice) => invoice?.invoice ?? invoice
+        ),
+    ].filter(Boolean);
+}
+
+function sumMoneyValues(values) {
+    const moneyValues = values.filter((value) => value !== null);
+
+    if (!moneyValues.length) return null;
+
+    return moneyValues.reduce((sum, value) => sum + value, 0);
+}
+
+export function getCashierOrderTotal(data) {
+    if (Array.isArray(data)) {
+        return sumMoneyValues(data.map(getCashierOrderTotal));
+    }
+
+    const orderList = getList(data?.orders ?? data?.data?.orders);
+
+    if (orderList.length) {
+        return sumMoneyValues(orderList.map(getCashierOrderTotal));
+    }
+
+    const record = getRecord(data);
+    const directTotal = getBackendTotalFromSource(record);
+
+    if (directTotal !== null) return directTotal;
+
+    return sumMoneyValues(getInvoiceSources(record).map(getBackendTotalFromSource));
+}
+
 function normalizeOrderType(type, fallback = "dine_in") {
     const value = String(type || fallback)
         .toLowerCase()
@@ -618,7 +735,7 @@ function findOrderDetailInList(orderId, orders) {
     });
 }
 
-async function fetchKitchenOrderDetail(orderId) {
+export async function fetchCashierOrderDetail(orderId) {
     if (!orderId) return null;
 
     const cacheKey = String(orderId);
@@ -656,7 +773,7 @@ async function enrichKitchenOrdersWithOrderDetails(orders) {
             let detail = null;
 
             for (const detailId of detailIds) {
-                detail = await fetchKitchenOrderDetail(detailId);
+                detail = await fetchCashierOrderDetail(detailId);
                 if (detail) break;
             }
 
@@ -901,41 +1018,91 @@ export async function createCashierOrder(cartItems, type = "takeaway") {
     throw lastError;
 }
 
-function collectInvoiceIds(value, ids = []) {
-    if (!value || typeof value !== "object") return ids;
-
-    const invoiceId =
+function getInvoiceId(value = {}) {
+    return (
         value.invoice_id ??
+        value.invoiceId ??
         value.invoice?.id ??
         value.order?.invoice_id ??
+        value.order?.invoiceId ??
         value.order?.invoice?.id ??
         value.data?.invoice_id ??
+        value.data?.invoiceId ??
         value.data?.invoice?.id ??
         value.data?.order?.invoice_id ??
-        value.data?.order?.invoice?.id;
+        value.data?.order?.invoiceId ??
+        value.data?.order?.invoice?.id
+    );
+}
 
-    if (invoiceId && !ids.some((id) => String(id) === String(invoiceId))) {
-        ids.push(invoiceId);
+function getInvoicePaymentAmount(value = {}) {
+    return (
+        getBackendTotalFromSource(value.invoice) ??
+        getBackendTotalFromSource(value.data?.invoice) ??
+        getBackendTotalFromSource(value.order?.invoice) ??
+        getBackendTotalFromSource(value.data?.order?.invoice) ??
+        getCashierOrderTotal(value)
+    );
+}
+
+function collectInvoicePaymentTargets(value, targets = []) {
+    if (!value || typeof value !== "object") return targets;
+
+    const invoiceId = getInvoiceId(value);
+
+    if (
+        invoiceId &&
+        !targets.some((target) => String(target.id) === String(invoiceId))
+    ) {
+        targets.push({
+            id: invoiceId,
+            amount: getInvoicePaymentAmount(value),
+        });
     }
 
     if (Array.isArray(value.orders)) {
-        value.orders.forEach((order) => collectInvoiceIds(order, ids));
+        value.orders.forEach((order) => collectInvoicePaymentTargets(order, targets));
     }
 
     if (Array.isArray(value.data)) {
-        value.data.forEach((item) => collectInvoiceIds(item, ids));
+        value.data.forEach((item) => collectInvoicePaymentTargets(item, targets));
     }
 
-    return ids;
+    if (Array.isArray(value.restaurant_invoices)) {
+        value.restaurant_invoices.forEach((invoice) =>
+            collectInvoicePaymentTargets(invoice, targets)
+        );
+    }
+
+    if (Array.isArray(value.restaurantInvoices)) {
+        value.restaurantInvoices.forEach((invoice) =>
+            collectInvoicePaymentTargets(invoice, targets)
+        );
+    }
+
+    return targets;
 }
 
 export function getCreatedInvoiceIds(data) {
-    return collectInvoiceIds(data);
+    return collectInvoicePaymentTargets(data).map((target) => target.id);
 }
 
-export async function payCashierInvoice(invoiceId, paymentMethod = "cash", stripeCard = null) {
+export async function payCashierInvoice(
+    invoiceId,
+    paymentMethod = "cash",
+    stripeCard = null,
+    amount = null
+) {
     const formData = new FormData();
     formData.append("invoice_id", invoiceId);
+
+    const backendAmount = toMoneyNumber(amount);
+
+    if (backendAmount !== null) {
+        formData.append("amount", backendAmount.toFixed(2));
+        formData.append("paid_amount", backendAmount.toFixed(2));
+        formData.append("received_amount", backendAmount.toFixed(2));
+    }
 
     const endpoint =
         paymentMethod === "stripe"
@@ -961,16 +1128,23 @@ export async function payCashierOrderInvoices(
     paymentMethod = "cash",
     stripeCard = null
 ) {
-    const invoiceIds = getCreatedInvoiceIds(orderResponse);
+    const invoiceTargets = collectInvoicePaymentTargets(orderResponse);
 
-    if (!invoiceIds.length) {
+    if (!invoiceTargets.length) {
         throw new Error("No invoice was returned for this order.");
     }
 
     const payments = [];
 
-    for (const invoiceId of invoiceIds) {
-        payments.push(await payCashierInvoice(invoiceId, paymentMethod, stripeCard));
+    for (const invoiceTarget of invoiceTargets) {
+        payments.push(
+            await payCashierInvoice(
+                invoiceTarget.id,
+                paymentMethod,
+                stripeCard,
+                invoiceTarget.amount
+            )
+        );
     }
 
     return payments;

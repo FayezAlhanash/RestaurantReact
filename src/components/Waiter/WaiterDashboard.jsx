@@ -6,21 +6,17 @@ import {
     LogOut,
     RefreshCw,
     ReceiptText,
+    Search,
     Table2,
     Utensils,
     XCircle,
 } from "lucide-react";
-import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { clearSession, getStoredUser } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
-
-const tableDeviceApi = axios.create({
-    baseURL: "https://big4.me/api",
-});
 
 const getList = (data) => {
     if (Array.isArray(data)) return data;
@@ -30,6 +26,30 @@ const getList = (data) => {
     if (Array.isArray(data?.invoices)) return data.invoices;
     if (Array.isArray(data?.restaurant_orders)) return data.restaurant_orders;
     if (Array.isArray(data?.restaurantOrders)) return data.restaurantOrders;
+    return [];
+};
+
+const normalizeTruthyValue = (value) => {
+    const textValue = String(value ?? "").trim().toLowerCase();
+
+    if (value === true || value === 1 || value === "1") return true;
+    if (["true", "yes", "open", "opened", "active", "running"].includes(textValue)) return true;
+    if (/\b(open|opened|active|running)\b/.test(textValue)) {
+        return !/\b(closed|inactive|not active|finished|ended)\b/.test(textValue);
+    }
+
+    return false;
+};
+
+const getTablesList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.tables)) return data.tables;
+    if (Array.isArray(data?.data?.tables)) return data.data.tables;
+    if (Array.isArray(data?.restaurant_tables)) return data.restaurant_tables;
+    if (Array.isArray(data?.restaurantTables)) return data.restaurantTables;
+    if (Array.isArray(data?.table_sessions)) return data.table_sessions;
+    if (Array.isArray(data?.tableSessions)) return data.tableSessions;
+    if (Array.isArray(data?.data)) return data.data;
     return [];
 };
 
@@ -60,6 +80,152 @@ const getTableNumber = (item) =>
     item?.restaurant_order?.table_number ??
     item?.restaurantOrder?.table_number ??
     "-";
+
+const getWaiterTableId = (table) =>
+    table?.id ??
+    table?.table_id ??
+    table?.tableId ??
+    table?.table?.id ??
+    table?.restaurant_table_id ??
+    table?.restaurantTableId ??
+    null;
+
+const getWaiterTableNumber = (table) =>
+    table?.table_number ??
+    table?.tableNumber ??
+    table?.number ??
+    table?.name ??
+    table?.table?.table_number ??
+    table?.table?.tableNumber ??
+    getWaiterTableId(table) ??
+    "-";
+
+const mergeTableSessionStatus = (table, statusData = {}) => {
+    const hasActiveSession = statusData.has_active_session === true;
+
+    return {
+        ...table,
+        has_active_session: hasActiveSession,
+        table: statusData.table ?? table.table,
+        active_session: statusData.session ?? null,
+        session: statusData.session ?? null,
+        session_token: statusData.session_token ?? "",
+        qr_path: statusData.qr_path ?? "",
+    };
+};
+
+const getSessionCandidate = (table) =>
+    table?.active_session ??
+    table?.activeSession ??
+    table?.active_table_session ??
+    table?.activeTableSession ??
+    table?.current_session ??
+    table?.currentSession ??
+    table?.open_session ??
+    table?.openSession ??
+    table?.table_session ??
+    table?.tableSession ??
+    table?.dine_in_session ??
+    table?.dineInSession ??
+    table?.session ??
+    table?.sessions ??
+    null;
+
+const isClosedStatus = (value) =>
+    ["closed", "close", "inactive", "not_active", "not active", "finished", "ended"].includes(
+        String(value).toLowerCase()
+    );
+
+const getExplicitTableSessionState = (table) => {
+    const explicitActiveValue =
+        table?.has_active_session ??
+        table?.hasActiveSession ??
+        table?.is_open ??
+        table?.isOpen ??
+        table?.opened ??
+        table?.is_session_open ??
+        table?.isSessionOpen;
+
+    if (explicitActiveValue !== undefined && explicitActiveValue !== null && explicitActiveValue !== "") {
+        return normalizeTruthyValue(explicitActiveValue) || Number(explicitActiveValue) > 0;
+    }
+
+    const statusValue =
+        table?.session_status ??
+        table?.sessionStatus ??
+        table?.status ??
+        table?.dine_in_status ??
+        table?.dineInStatus;
+
+    if (statusValue !== undefined && statusValue !== null && statusValue !== "") {
+        if (isClosedStatus(statusValue)) return false;
+        if (normalizeTruthyValue(statusValue)) return true;
+    }
+
+    return undefined;
+};
+
+const isTableSessionOpen = (table) => {
+    const explicitState = getExplicitTableSessionState(table);
+
+    if (explicitState !== undefined) return explicitState;
+
+    const directValue =
+        table?.active_session_id ??
+        table?.activeSessionId ??
+        table?.active_table_session_id ??
+        table?.activeTableSessionId ??
+        table?.current_session_id ??
+        table?.currentSessionId ??
+        table?.open_session_id ??
+        table?.openSessionId ??
+        table?.session_id ??
+        table?.sessionId ??
+        table?.table_session_id ??
+        table?.tableSessionId ??
+        table?.dine_in_session_id ??
+        table?.dineInSessionId ??
+        table?.session_token ??
+        table?.sessionToken ??
+        table?.table_session_token ??
+        table?.tableSessionToken ??
+        table?.dine_in_token ??
+        table?.dineInToken;
+
+    if (directValue !== undefined && directValue !== null && directValue !== "") {
+        return normalizeTruthyValue(directValue) || Number(directValue) > 0 || String(directValue).length > 3;
+    }
+
+    const session = getSessionCandidate(table);
+
+    if (Array.isArray(session)) {
+        return session.some((item) => isTableSessionOpen(item));
+    }
+
+    if (!session) return false;
+
+    if (typeof session !== "object") {
+        return normalizeTruthyValue(session) || Number(session) > 0 || String(session).length > 3;
+    }
+
+    const sessionStatus = session.status ?? session.session_status ?? session.sessionStatus;
+
+    if (sessionStatus !== undefined && sessionStatus !== null && sessionStatus !== "") {
+        if (isClosedStatus(sessionStatus)) return false;
+        if (normalizeTruthyValue(sessionStatus)) return true;
+    }
+
+    return Boolean(
+        session.id ||
+            session.session_id ||
+            session.sessionId ||
+            session.token ||
+            session.session_token ||
+            session.sessionToken ||
+            session.table_session_token ||
+            session.tableSessionToken
+    );
+};
 
 const getTotal = (item) =>
     Number(
@@ -409,18 +575,6 @@ const buildSessionUrl = (qrPath, sessionToken) => {
     return `${window.location.origin}${normalizedPath}`;
 };
 
-const getStoredDeviceKey = (tableId) => {
-    try {
-        const storedDevice = JSON.parse(
-            localStorage.getItem(`table-device:${tableId}`) || "null"
-        );
-
-        return storedDevice?.device_key ?? storedDevice?.device?.device_key ?? "";
-    } catch {
-        return "";
-    }
-};
-
 function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, action }) {
     return (
         <article className="flex min-h-[260px] min-w-0 flex-col rounded-[28px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
@@ -456,7 +610,8 @@ function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, a
 export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [cashPayments, setCashPayments] = useState([]);
     const [readyOrders, setReadyOrders] = useState([]);
-    const [tableSessionNumber, setTableSessionNumber] = useState("");
+    const [tableSessions, setTableSessions] = useState([]);
+    const [tableSearch, setTableSearch] = useState("");
     const permissions = getUserPermissions();
     const canServeDineInOrders = permissions.includes("serve_dine_in_orders");
     const canProcessPayments = permissions.includes("process_payments");
@@ -479,28 +634,47 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const waiterName =
         user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Waiter";
 
+    const loadServiceTables = useCallback(async () => {
+        try {
+            const response = await api.get("/tables-serve-dine-in");
+
+            return getTablesList(response.data);
+        } catch (error) {
+            if (error.response?.status === 404) {
+                const fallbackResponse = await api.get("/tables");
+
+                return getTablesList(fallbackResponse.data);
+            }
+
+            throw error;
+        }
+    }, []);
+
     const loadData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [cashResponse, readyResponse] = await Promise.all([
+            const [cashResponse, readyResponse, tablesResponse] = await Promise.all([
                 canProcessPayments
                     ? api.get("/waiter/pending-cash-payments")
                     : Promise.resolve({ data: [] }),
                 canServeDineInOrders
                     ? api.get("/waiter/ready-restaurant-orders")
                     : Promise.resolve({ data: [] }),
+                canServeDineInOrders
+                    ? loadServiceTables()
+                    : Promise.resolve([]),
             ]);
 
-            const nextReadyOrders = getList(readyResponse.data);
             setCashPayments(getList(cashResponse.data));
-            setReadyOrders(nextReadyOrders);
+            setReadyOrders(getList(readyResponse.data));
+            setTableSessions(tablesResponse);
             setErrorMessage("");
         } catch (error) {
             setErrorMessage(error.response?.data?.message || "Could not load waiter data.");
         } finally {
             setIsLoading(false);
         }
-    }, [canProcessPayments, canServeDineInOrders]);
+    }, [canProcessPayments, canServeDineInOrders, loadServiceTables]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(loadData, 0);
@@ -537,6 +711,16 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         await api.post(`/waiter/restaurant-orders/${getRestaurantOrderId(order)}/served`, formData);
     };
 
+    const applyTableSessionStatus = useCallback((tableId, statusData) => {
+        setTableSessions((currentTables) =>
+            currentTables.map((table) =>
+                String(getWaiterTableId(table)) === String(tableId)
+                    ? mergeTableSessionStatus(table, statusData)
+                    : table
+            )
+        );
+    }, []);
+
     const openTableSession = async (tableId) => {
         if (!canServeDineInOrders) return;
 
@@ -557,23 +741,6 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             };
         };
 
-        const fetchCurrentSessionFromDeviceKey = async (deviceKey) => {
-
-            if (!deviceKey) return null;
-
-            const response = await tableDeviceApi.get("/table-device/current-session", {
-                headers: {
-                    Authorization: `Bearer ${deviceKey}`,
-                    "X-Table-Device-Key": deviceKey,
-                },
-            });
-
-            return buildOpenedSession(response.data);
-        };
-
-        const fetchCurrentSessionFromStoredDevice = async () =>
-            fetchCurrentSessionFromDeviceKey(getStoredDeviceKey(tableId));
-
         const fetchCurrentSessionFromTableDetails = async () => {
             try {
                 const response = await api.get(`/tables/${tableId}`);
@@ -588,10 +755,15 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             const response = await api.post(`/tables/${tableId}/session/open`);
             const nextOpenedSession =
                 buildOpenedSession(response.data) ||
-                (await fetchCurrentSessionFromTableDetails()) ||
-                (await fetchCurrentSessionFromStoredDevice());
+                (await fetchCurrentSessionFromTableDetails());
 
             setOpenedSession(nextOpenedSession);
+            applyTableSessionStatus(tableId, {
+                has_active_session: true,
+                session: response.data?.session ?? response.data?.data?.session ?? null,
+                session_token: getSessionTokenFromResponse(response.data),
+                qr_path: getQrPathFromResponse(response.data, getSessionTokenFromResponse(response.data)),
+            });
 
             return nextOpenedSession?.sessionToken
                 ? `Session opened for table ${tableId}. QR is shown below.`
@@ -600,10 +772,20 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             if (error.response?.status === 409) {
                 const sessionId = error.response?.data?.session_id;
                 const nextOpenedSession =
-                    (await fetchCurrentSessionFromTableDetails()) ||
-                    (await fetchCurrentSessionFromStoredDevice());
+                    (await fetchCurrentSessionFromTableDetails());
 
                 setOpenedSession(nextOpenedSession);
+                applyTableSessionStatus(tableId, {
+                    has_active_session: true,
+                    session: {
+                        id: sessionId,
+                    },
+                    session_token: getSessionTokenFromResponse(error.response?.data),
+                    qr_path: getQrPathFromResponse(
+                        error.response?.data,
+                        getSessionTokenFromResponse(error.response?.data)
+                    ),
+                });
 
                 if (nextOpenedSession?.sessionToken) {
                     return sessionId
@@ -631,10 +813,18 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         try {
             await api.post(`/tables/${tableId}/session/close`);
             setOpenedSession(null);
+            applyTableSessionStatus(tableId, {
+                has_active_session: false,
+                session: null,
+            });
             return `Session closed for table ${tableId}.`;
         } catch (error) {
             if (error.response?.status === 422) {
                 setOpenedSession(null);
+                applyTableSessionStatus(tableId, {
+                    has_active_session: false,
+                    session: null,
+                });
                 return error.response?.data?.message || `Table ${tableId} has no active session.`;
             }
 
@@ -649,7 +839,9 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             setErrorMessage("");
             const actionMessage = await action();
             setMessage(actionMessage || successText);
-            await loadData();
+            if (!key.startsWith("session:")) {
+                await loadData();
+            }
         } catch (error) {
             setErrorMessage(error.response?.data?.message || "Action failed.");
         } finally {
@@ -685,6 +877,54 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         () => cashPayments.reduce((total, item) => total + getTotal(item), 0),
         [cashPayments]
     );
+    const normalizedTableSessions = useMemo(
+        () =>
+            tableSessions
+                .map((table) => {
+                    const waiterTableId = getWaiterTableId(table);
+                    const explicitState = getExplicitTableSessionState(table);
+
+                    return {
+                        ...table,
+                        waiterTableId,
+                        waiterTableNumber: getWaiterTableNumber(table),
+                        isSessionOpen:
+                            explicitState !== undefined ? explicitState : isTableSessionOpen(table),
+                        sessionId:
+                            table?.session_id ??
+                            table?.sessionId ??
+                            table?.session?.id ??
+                            "",
+                    };
+                })
+                .filter((table) => table.waiterTableId !== null && table.waiterTableId !== undefined)
+                .sort((firstTable, secondTable) =>
+                    String(firstTable.waiterTableNumber).localeCompare(
+                        String(secondTable.waiterTableNumber),
+                        undefined,
+                        { numeric: true, sensitivity: "base" }
+                    )
+                ),
+        [tableSessions]
+    );
+    const filteredTableSessions = useMemo(() => {
+        const query = tableSearch.trim().toLowerCase();
+
+        if (!query) return normalizedTableSessions;
+
+        return normalizedTableSessions.filter((table) =>
+            [
+                `table ${table.waiterTableNumber}`,
+                table.waiterTableNumber,
+                table.waiterTableId,
+                table.isSessionOpen ? "open" : "closed",
+            ]
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(query))
+        );
+    }, [normalizedTableSessions, tableSearch]);
+    const openTables = normalizedTableSessions.filter((table) => table.isSessionOpen).length;
+    const closedTables = normalizedTableSessions.length - openTables;
 
     return (
         <main className={`${embedded ? "min-h-[calc(100dvh-88px)]" : "min-h-screen"} bg-[radial-gradient(circle_at_85%_8%,rgba(127,29,29,0.18),transparent_28%),radial-gradient(circle_at_15%_20%,rgba(255,209,102,0.12),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)] text-white`}>
@@ -723,25 +963,28 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
             )}
 
             <section className="mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-6">
-                <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-[26px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
-                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/55">Table session</p>
-                        <p className="mt-3 text-5xl font-black text-[#FFD166]">New</p>
-                        <p className="mt-2 text-sm font-bold text-white/58">
-                            Open guest QR access
+                <div className="mb-5 grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-[22px] border border-emerald-400/25 bg-emerald-400/10 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.18)] sm:rounded-[26px] sm:p-5">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-100/70 sm:text-sm">Open</p>
+                        <p className="mt-2 text-4xl font-black text-emerald-300 sm:mt-3 sm:text-5xl">{openTables}</p>
+                        <p className="mt-2 text-sm font-bold text-emerald-50/62">
+                            Active sessions
                         </p>
                     </div>
-                    <div className="rounded-[26px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
-                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/55">Cash due</p>
-                        <p className="mt-3 text-5xl font-black text-[#FFD166]">{cashPayments.length}</p>
+                    <div className="rounded-[22px] border border-[#7F1D1D]/35 bg-[#7F1D1D]/16 p-4 text-white shadow-[0_18px_42px_rgba(0,0,0,0.18)] sm:rounded-[26px] sm:p-5">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-white/65 sm:text-sm">Closed</p>
+                        <p className="mt-2 text-4xl font-black text-[#FFB4A8] sm:mt-3 sm:text-5xl">{closedTables}</p>
+                        <p className="mt-2 text-sm font-bold text-white/58">
+                            No active session
+                        </p>
                     </div>
-                    <div className="rounded-[26px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
-                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/55">Ready</p>
-                        <p className="mt-3 text-5xl font-black text-[#FFD166]">{readyOrders.length}</p>
+                    <div className="rounded-[22px] border border-white/10 bg-[#252A2D] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.18)] sm:rounded-[26px] sm:p-5">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-white/55 sm:text-sm">Cash due</p>
+                        <p className="mt-2 text-4xl font-black text-[#FFD166] sm:mt-3 sm:text-5xl">{cashPayments.length}</p>
                     </div>
-                    <div className="rounded-[26px] border border-[#7F1D1D]/25 bg-[#7F1D1D]/14 p-5 text-white shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
-                        <p className="text-sm font-black uppercase tracking-[0.14em] text-white/65">Money to collect</p>
-                        <p className="mt-3 text-5xl font-black text-[#FFD166]">
+                    <div className="rounded-[22px] border border-[#7F1D1D]/25 bg-[#7F1D1D]/14 p-4 text-white shadow-[0_18px_42px_rgba(0,0,0,0.18)] sm:rounded-[26px] sm:p-5">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-white/65 sm:text-sm">Money to collect</p>
+                        <p className="mt-2 text-4xl font-black text-[#FFD166] sm:mt-3 sm:text-5xl">
                             ${cashTotal.toFixed(2)}
                         </p>
                         <p className="mt-2 text-sm font-bold text-white/58">
@@ -782,7 +1025,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                         </div>
                         <div className="min-w-0">
                             <p className="waiter-success-title text-xs font-black uppercase tracking-[0.16em]">
-                                Table opened successfully
+                                Table session updated
                             </p>
                             <p className="waiter-success-copy mt-0.5 text-sm font-black">
                                 {message}
@@ -797,81 +1040,156 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                 )}
 
                 {safeActiveTab === "sessions" ? (
-                    <div className="rounded-[28px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                        <div className="flex flex-col gap-4 border-b border-white/[0.08] bg-white/[0.025] p-5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
                                     <Table2 size={18} />
-                                    Open table session
+                                    Table sessions
                                 </p>
                                 <h2 className="mt-2 text-2xl font-black text-white">
-                                    Start a new dine-in session
+                                    {filteredTableSessions.length} table{filteredTableSessions.length === 1 ? "" : "s"}
                                 </h2>
-                                <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/58">
-                                    Enter the table ID. The generated customer session token appears here after the session opens.
-                                </p>
                             </div>
 
-                            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-[620px]">
-                                <input
-                                    value={tableSessionNumber}
-                                    onChange={(event) => {
-                                        const nextTableId = event.target.value;
-
-                                        setTableSessionNumber(nextTableId);
-                                        setOpenedSession(null);
-                                    }}
-                                    placeholder="Table ID"
-                                    className="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#101517] px-4 text-base font-black text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                                />
+                            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-[460px]">
+                                <div className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-[#101517] px-4 shadow-inner">
+                                    <Search size={18} className="shrink-0 text-[#FFD166]" />
+                                    <input
+                                        value={tableSearch}
+                                        onChange={(event) => setTableSearch(event.target.value)}
+                                        placeholder="Search tables..."
+                                        className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35"
+                                    />
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        const tableId = tableSessionNumber.trim();
-
-                                        runAction(
-                                            "session:open",
-                                            () => openTableSession(tableId),
-                                            "Session opened."
-                                        );
-                                    }}
-                                    disabled={busyKey === "session:open" || !tableSessionNumber.trim()}
-                                    className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#FFD166] px-5 text-sm font-black text-[#151A1D] shadow-[0_14px_28px_rgba(255,209,102,0.16)] transition hover:bg-[#ffdc82] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 dark:disabled:!bg-[#7F1D1D] dark:disabled:!text-white"
+                                    onClick={loadData}
+                                    className="grid h-12 w-full place-items-center rounded-2xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18 sm:w-12"
+                                    aria-label="Refresh tables"
+                                    title="Refresh tables"
                                 >
-                                    <DoorOpen size={18} />
-                                    {busyKey === "session:open" ? "Opening..." : "Open session"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const tableId = tableSessionNumber.trim();
-
-                                        runAction(
-                                            "session:close",
-                                            () => closeTableSession(tableId),
-                                            "Session closed."
-                                        );
-                                    }}
-                                    disabled={busyKey === "session:close" || !tableSessionNumber.trim()}
-                                    className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 px-5 text-sm font-black text-[#FFB4A8] transition hover:bg-[#7F1D1D]/18 disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 dark:disabled:!bg-[#7F1D1D] dark:disabled:!text-white"
-                                >
-                                    <XCircle size={18} />
-                                    {busyKey === "session:close" ? "Closing..." : "Close session"}
+                                    <RefreshCw size={18} />
                                 </button>
                             </div>
                         </div>
 
+                        {isLoading ? (
+                            <div className="px-6 py-16 text-center text-xl font-black">
+                                Loading table sessions...
+                            </div>
+                        ) : filteredTableSessions.length ? (
+                            <div className="grid gap-5 p-5 sm:grid-cols-2 xl:grid-cols-3">
+                                {filteredTableSessions.map((table) => {
+                                    const isOpen = table.isSessionOpen;
+                                    const tableId = table.waiterTableId;
+                                    const tableNumber = table.waiterTableNumber;
+                                    const actionKey = `session:${isOpen ? "close" : "open"}:${tableId}`;
+                                    const isBusy = busyKey === actionKey;
+
+                                    return (
+                                        <article
+                                            key={tableId}
+                                            className={`group relative min-h-[270px] overflow-hidden rounded-[24px] border p-5 shadow-[0_22px_54px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.06] transition hover:-translate-y-1 ${
+                                                isOpen
+                                                    ? "border-emerald-300/28 bg-[linear-gradient(145deg,rgba(255,255,255,0.045)_0%,rgba(16,185,129,0.10)_38%,rgba(255,255,255,0.025)_100%),linear-gradient(160deg,#20282A_0%,#142521_56%,#101719_100%)]"
+                                                    : "border-[#FFB4A8]/40 bg-[radial-gradient(circle_at_50%_-10%,rgba(255,180,168,0.26),transparent_42%),linear-gradient(155deg,#8F1D1D_0%,#681718_58%,#431313_100%)]"
+                                            }`}
+                                        >
+                                            <span className={`absolute inset-x-5 top-0 h-1 rounded-b-full ${isOpen ? "bg-emerald-300/80" : "bg-[#FFB4A8]"}`} />
+                                            <span className={`absolute bottom-5 left-0 top-5 w-1 rounded-r-full ${isOpen ? "bg-emerald-300/50" : "bg-[#FFB4A8]/70"}`} />
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex min-w-0 items-center gap-2 text-sm font-black text-white/78">
+                                                    <Table2 size={17} className="shrink-0" />
+                                                    <span className="min-w-0 truncate">Floor table</span>
+                                                </div>
+                                                <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black shadow-sm ${
+                                                    isOpen
+                                                        ? "border-emerald-50/35 bg-emerald-50/18 text-emerald-50"
+                                                        : "border-[#FFD1CB]/35 bg-white/12 text-[#FFD1CB]"
+                                                }`}>
+                                                    {isOpen ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                                                    {isOpen ? "Open" : "Closed"}
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-7 flex justify-center">
+                                                <div className={`grid h-24 w-24 place-items-center rounded-[24px] border text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_38px_rgba(0,0,0,0.18)] transition group-hover:scale-105 ${
+                                                    isOpen
+                                                        ? "border-emerald-200/28 bg-emerald-300/10"
+                                                        : "border-white/28 bg-white/14"
+                                                }`}>
+                                                    <Utensils size={38} />
+                                                </div>
+                                            </div>
+
+                                            <h3 className="mt-5 text-center text-3xl font-black leading-tight text-white">
+                                                Table {tableNumber}
+                                            </h3>
+                                            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                                                <span className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs font-black text-white/78">
+                                                    ID #{tableId}
+                                                </span>
+                                                <span className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs font-black text-white/78">
+                                                    {isOpen ? "Serving now" : "Ready to open"}
+                                                </span>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    runAction(
+                                                        actionKey,
+                                                        () =>
+                                                            isOpen
+                                                                ? closeTableSession(tableId)
+                                                                : openTableSession(tableId),
+                                                        isOpen ? "Session closed." : "Session opened."
+                                                    )
+                                                }
+                                                disabled={isBusy}
+                                                className={`mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black shadow-[0_14px_28px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 ${
+                                                    isOpen
+                                                        ? "border border-emerald-300/35 bg-emerald-300/10 text-emerald-50 hover:border-emerald-200/55 hover:bg-emerald-300/16"
+                                                        : "bg-[#FFD166] text-[#151A1D] hover:bg-[#ffdc82]"
+                                                }`}
+                                            >
+                                                {isOpen ? <XCircle size={18} /> : <DoorOpen size={18} />}
+                                                {isBusy
+                                                    ? isOpen
+                                                        ? "Closing..."
+                                                        : "Opening..."
+                                                    : isOpen
+                                                        ? "Close session"
+                                                        : "Open session"}
+                                            </button>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="px-6 py-16 text-center shadow-[0_18px_42px_rgba(0,0,0,0.18)]">
+                                <Table2 className="mx-auto text-[#FFD166]" size={38} />
+                                <h2 className="mt-3 text-xl font-black">No tables found</h2>
+                                <p className="mt-2 text-sm font-bold text-white/55">
+                                    Refresh after adding tables in management.
+                                </p>
+                            </div>
+                        )}
+
                         {openedSession?.sessionToken && (
-                            <div className="mt-5 grid place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#101517] p-5">
-                                {openedSession.qrImageUrl && (
-                                    <div className="rounded-[28px] bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.30)]">
-                                        <img
-                                            src={openedSession.qrImageUrl}
-                                            alt={`QR code for table ${openedSession.tableId}`}
-                                            className="h-[min(58dvh,22rem)] w-[min(58dvh,22rem)] min-w-[240px] min-h-[240px]"
-                                        />
-                                    </div>
-                                )}
+                            <div className="border-t border-white/[0.08] p-5">
+                                <div className="grid place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#101517] p-5">
+                                    {openedSession.qrImageUrl && (
+                                        <div className="rounded-[28px] bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.30)]">
+                                            <img
+                                                src={openedSession.qrImageUrl}
+                                                alt={`QR code for table ${openedSession.tableId}`}
+                                                className="h-[min(58dvh,22rem)] min-h-[240px] w-[min(58dvh,22rem)] min-w-[240px]"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

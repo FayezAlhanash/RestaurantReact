@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Building2, Check, ChevronDown, Clock3, PackagePlus, Pencil, Search, Trash2 } from "lucide-react";
+import { Building2, Check, ChevronDown, Clock3, PackageMinus, PackagePlus, Pencil, Search, Trash2 } from "lucide-react";
 import RefillModal from "./RefillModal";
 import WasteModal from "./WasteModal";
 import AdjustModal from "./AdjustModal";
+import StockOutModal from "./StockOutModal";
 import api from "../../API/axios";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
@@ -264,6 +265,18 @@ function StockActions() {
             };
         }
 
+        if (
+            normalizedType.includes("stock-out") ||
+            normalizedType.includes("stock_out") ||
+            normalizedType.includes("stock out") ||
+            normalizedType === "out"
+        ) {
+            return {
+                label: "Stock Out",
+                className: "border-sky-400/45 bg-sky-400/14 text-sky-300",
+            };
+        }
+
         return {
             label: "Refill",
             className: "border-emerald-400/45 bg-emerald-400/12 text-emerald-300",
@@ -517,70 +530,122 @@ function StockActions() {
             </div>
 
             {/* ACTIONS */}
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                {actionCards.map((card) => {
-                    const Icon = card.icon;
-                    const isWaste = card.id === "waste";
-                    const isRefill = card.id === "refill";
-
-                    return (
-                        <button
-                            key={card.id}
-                            disabled={!selectedIngredient}
-                            onClick={() => openAction(card.id)}
-                            className={`group rounded-[26px] border p-5 text-left shadow-[0_16px_34px_rgba(0,0,0,0.18)] transition ${
+            <div className="space-y-5">
+                <button
+                    type="button"
+                    disabled={!selectedIngredient}
+                    onClick={() => openAction("stock-out")}
+                    className={`group flex w-full flex-col gap-4 rounded-[26px] border p-5 text-left shadow-[0_16px_34px_rgba(0,0,0,0.18)] transition sm:flex-row sm:items-center sm:justify-between ${
+                        selectedIngredient
+                            ? isLight
+                                ? "border-sky-400/55 bg-sky-400/12 text-sky-700 hover:bg-sky-400/18"
+                                : "border-sky-400/45 bg-[linear-gradient(145deg,rgba(56,189,248,0.20),rgba(56,189,248,0.08))] text-sky-200 hover:bg-sky-400/20"
+                            : isLight
+                                ? "cursor-not-allowed border-[#E7DCD6] bg-[#FFF9F2] text-[#8A7972]"
+                                : "cursor-not-allowed border-white/10 bg-white/[0.045] text-white/35"
+                    }`}
+                >
+                    <div className="flex min-w-0 items-start gap-4">
+                        <div
+                            className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border ${
                                 selectedIngredient
-                                    ? card.activeClass
+                                    ? "border-current/30 bg-black/14"
                                     : isLight
-                                        ? "cursor-not-allowed border-[#E7DCD6] bg-[#FFF9F2] text-[#8A7972]"
-                                        : "cursor-not-allowed border-white/10 bg-white/[0.045] text-white/35"
+                                        ? "border-[#E7DCD6] bg-white"
+                                        : "border-white/10 bg-white/[0.04]"
                             }`}
                         >
-                            <div className="flex items-start justify-between gap-4">
-                                <div
-                                    className={`grid h-14 w-14 place-items-center rounded-2xl border ${
-                                        selectedIngredient
-                                            ? "border-current/30 bg-black/14"
-                                            : isLight
-                                                ? "border-[#E7DCD6] bg-white"
-                                                : "border-white/10 bg-white/[0.04]"
-                                    }`}
-                                >
-                                    <Icon size={28} className={selectedIngredient ? card.iconClass : ""} />
-                                </div>
-                                {!selectedIngredient && (
-                                    <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${
-                                        isLight ? "border-[#E7DCD6] text-[#7A6A64]" : "border-white/10 text-white/35"
-                                    }`}>
-                                        Locked
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className={`mt-4 text-xl font-black ${
-                                isLight && selectedIngredient
-                                    ? isWaste
-                                        ? "!text-[#7F1D1D]"
-                                        : isRefill
-                                            ? "!text-emerald-700"
-                                            : "!text-[#8f5f00]"
-                                    : ""
-                            }`}>{card.title}</h3>
-                            <p className={`mt-2 text-sm font-semibold leading-5 opacity-70 ${
-                                isLight && selectedIngredient
-                                    ? isWaste
-                                        ? "!text-[#7F1D1D]"
-                                        : isRefill
-                                            ? "!text-emerald-700"
-                                            : "!text-[#8f5f00]"
-                                    : ""
+                            <PackageMinus size={28} />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className={`text-xl font-black ${
+                                isLight && selectedIngredient ? "!text-sky-700" : ""
+                            }`}>
+                                Stock Out
+                            </h3>
+                            <p className={`mt-2 max-w-2xl text-sm font-semibold leading-5 opacity-75 ${
+                                isLight && selectedIngredient ? "!text-sky-700" : ""
                             }`}>
                                 {selectedIngredient
-                                    ? card.description
+                                    ? "Remove sold or transferred stock from the selected ingredient."
                                     : "Select an ingredient first."}
                             </p>
-                        </button>
-                    );
-                })}
+                        </div>
+                    </div>
+                    {!selectedIngredient && (
+                        <span className={`w-fit rounded-full border px-2.5 py-1 text-xs font-black ${
+                            isLight ? "border-[#E7DCD6] text-[#7A6A64]" : "border-white/10 text-white/35"
+                        }`}>
+                            Locked
+                        </span>
+                    )}
+                </button>
+
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                    {actionCards.map((card) => {
+                        const Icon = card.icon;
+                        const isWaste = card.id === "waste";
+                        const isRefill = card.id === "refill";
+
+                        return (
+                            <button
+                                key={card.id}
+                                disabled={!selectedIngredient}
+                                onClick={() => openAction(card.id)}
+                                className={`group rounded-[26px] border p-5 text-left shadow-[0_16px_34px_rgba(0,0,0,0.18)] transition ${
+                                    selectedIngredient
+                                        ? card.activeClass
+                                        : isLight
+                                            ? "cursor-not-allowed border-[#E7DCD6] bg-[#FFF9F2] text-[#8A7972]"
+                                            : "cursor-not-allowed border-white/10 bg-white/[0.045] text-white/35"
+                                }`}
+                            >
+                                <div className="flex items-start justify-between gap-4">
+                                    <div
+                                        className={`grid h-14 w-14 place-items-center rounded-2xl border ${
+                                            selectedIngredient
+                                                ? "border-current/30 bg-black/14"
+                                                : isLight
+                                                    ? "border-[#E7DCD6] bg-white"
+                                                    : "border-white/10 bg-white/[0.04]"
+                                        }`}
+                                    >
+                                        <Icon size={28} className={selectedIngredient ? card.iconClass : ""} />
+                                    </div>
+                                    {!selectedIngredient && (
+                                        <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${
+                                            isLight ? "border-[#E7DCD6] text-[#7A6A64]" : "border-white/10 text-white/35"
+                                        }`}>
+                                            Locked
+                                        </span>
+                                    )}
+                                </div>
+                                <h3 className={`mt-4 text-xl font-black ${
+                                    isLight && selectedIngredient
+                                        ? isWaste
+                                            ? "!text-[#7F1D1D]"
+                                            : isRefill
+                                                ? "!text-emerald-700"
+                                                : "!text-[#8f5f00]"
+                                        : ""
+                                }`}>{card.title}</h3>
+                                <p className={`mt-2 text-sm font-semibold leading-5 opacity-70 ${
+                                    isLight && selectedIngredient
+                                        ? isWaste
+                                            ? "!text-[#7F1D1D]"
+                                            : isRefill
+                                                ? "!text-emerald-700"
+                                                : "!text-[#8f5f00]"
+                                        : ""
+                                }`}>
+                                    {selectedIngredient
+                                        ? card.description
+                                        : "Select an ingredient first."}
+                                </p>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* MODALS */}
@@ -604,6 +669,15 @@ function StockActions() {
 
             {action === "adjust" && (
                 <AdjustModal
+                    ingredient={selectedIngredient}
+                    restaurantId={selectedRestaurantId}
+                    onSuccess={refreshAfterAction}
+                    onClose={() => setAction(null)}
+                />
+            )}
+
+            {action === "stock-out" && (
+                <StockOutModal
                     ingredient={selectedIngredient}
                     restaurantId={selectedRestaurantId}
                     onSuccess={refreshAfterAction}
