@@ -87,6 +87,7 @@ function SideBar({
         getRestaurantLabel(getStoredUser())
     );
     const isAdmin = Number(sessionUser?.role_id ?? sessionUser?.role?.id) === ROLE_IDS.ADMIN;
+    const isManager = Number(sessionUser?.role_id ?? sessionUser?.role?.id) === ROLE_IDS.MANAGER;
     const roleName = sessionUser?.role?.name || "Workspace";
     const restaurantLabel = restaurantName || getRestaurantLabel(sessionUser);
     const workspaceLabel = restaurantLabel
@@ -212,6 +213,31 @@ function SideBar({
             permissions: ["view_reports", "view_global_reports"],
         },
         {
+            icon: ReceiptText,
+            title: isAdmin ? "Global Invoices" : "View Global Invoice",
+            path: isAdmin ? "/global-invoices" : "/manager/global-invoices",
+            permissions: [
+                "view_global_invoices",
+                "view_global_invoice",
+                "global_invoice",
+                "global_invoices",
+                "View Global Invoices",
+                "View Global Invoice",
+            ],
+        },
+        {
+            icon: ReceiptText,
+            title: "View Invoices",
+            path: isAdmin ? "/invoices" : "/manager/invoices",
+            permissions: [
+                "view_invoices",
+                "view_invoice",
+                "View Invoices",
+                "View Invoice",
+            ],
+            managerOnly: !isAdmin,
+        },
+        {
             icon: MessageSquareText,
             title: "Delivery Reviews",
             path: "/delivery-reviews",
@@ -319,6 +345,7 @@ function SideBar({
         );
     const canShowMenuItem = (item) =>
         (!item.adminOnly || isAdmin) &&
+        (!item.managerOnly || isManager) &&
         (canShow(item.permissions) || isAssigned(item.permissions));
     const isBlockedByAdmin = (item) =>
         item.permissions?.length &&

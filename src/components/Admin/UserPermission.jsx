@@ -628,35 +628,35 @@ export default function UserPermission() {
     ? getUserName(selectedUser)
     : "Select a user";
   const cardSurface = isLight
-    ? "border-[#E4CFC3] bg-[#FFF9F2] shadow-[0_18px_44px_rgba(70,45,30,0.10)]"
+    ? "border-[#8F1D1D]/28 bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF2EC_100%)] shadow-[0_18px_44px_rgba(127,29,29,0.14)]"
     : "border-white/10 bg-[linear-gradient(135deg,rgba(28,39,42,0.96)_0%,rgba(24,34,37,0.94)_60%,rgba(37,27,30,0.92)_100%)] shadow-[0_20px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04]";
   const pageSurface = isLight
-    ? "bg-[#FBF6EF] text-[#241815]"
+    ? "bg-[linear-gradient(145deg,#FFF7F2_0%,#F6E0D9_48%,#EDC6BD_100%)] text-[#241815]"
     : "bg-[linear-gradient(145deg,#0A1012_0%,#111A1D_58%,#181316_100%)] text-white";
   const titleText = isLight ? "text-[#241815]" : "text-white";
   const mutedText = isLight ? "text-[#6B5A52]" : "text-white/58";
   const panelSurface = isLight
-    ? "border-[#E4CFC3] bg-[#FFF9F2] shadow-[0_18px_44px_rgba(70,45,30,0.10)]"
+    ? "border-[#8F1D1D]/24 bg-[#FFFDF8] shadow-[0_18px_44px_rgba(127,29,29,0.12)]"
     : "border-white/10 bg-[#1B282C] shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.03]";
   const panelHeader = isLight
-    ? "border-[#E4CFC3] bg-[#FFF4EA]"
+    ? "border-[#8F1D1D]/20 bg-[#FFF2EC]"
     : "border-white/[0.08] bg-white/[0.025]";
   const fieldSurface = isLight
-    ? "border-[#E4CFC3] bg-white text-[#241815] placeholder:text-[#8A7972]"
+    ? "border-[#8F1D1D]/20 bg-white text-[#241815] placeholder:text-[#8A7972] focus-within:border-[#8F1D1D]"
     : "border-white/10 bg-[#0D1214] text-white placeholder:text-white/35";
   const emptySurface = isLight
-    ? "border-[#E4CFC3] bg-[#FFF4EA] text-[#7A6A64]"
+    ? "border-[#8F1D1D]/20 bg-[#FFF2EC] text-[#7A6A64]"
     : "border-white/15 bg-[#111A1D] text-white/45";
-  const goldText = isLight ? "text-[#9A6400]" : "text-[#FFD166]";
-  const goldTextSoft = isLight ? "text-[#9A6400]" : "text-[#FFD166]/80";
-  const goldBorder = isLight ? "border-[#D8A22D]/38" : "border-[#FFD166]/30";
-  const goldBackground = isLight ? "bg-[#FFF4DA]" : "bg-[#FFD166]/10";
-  const goldBackgroundSoft = isLight ? "bg-[#FFF8E8]" : "bg-[#FFD166]/10";
+  const goldText = isLight ? "text-[#8F1D1D]" : "text-[#FFD166]";
+  const goldTextSoft = isLight ? "text-[#8F1D1D]" : "text-[#FFD166]/80";
+  const goldBorder = isLight ? "border-[#8F1D1D]/35" : "border-[#FFD166]/30";
+  const goldBackground = isLight ? "bg-[#F3DCDC]" : "bg-[#FFD166]/10";
+  const goldBackgroundSoft = isLight ? "bg-[#FFF2EC]" : "bg-[#FFD166]/10";
   const selectedUserSurface = isLight
-    ? "border-[#D8A22D]/45 bg-[#FFF4DA] text-[#241815] shadow-[0_12px_26px_rgba(154,100,0,0.10)] ring-1 ring-[#D8A22D]/16"
+    ? "border-[#8F1D1D]/45 bg-[#F3DCDC] text-[#241815] shadow-[0_12px_26px_rgba(127,29,29,0.12)] ring-1 ring-[#8F1D1D]/18"
     : "border-[#FFD166]/35 bg-[#FFD166]/10 text-white shadow-[0_12px_26px_rgba(255,209,102,0.08)] ring-1 ring-[#FFD166]/10";
   const selectedPermissionSurface = isLight
-    ? "border-[#D8A22D]/38 bg-[#FFF4DA] shadow-[0_10px_24px_rgba(154,100,0,0.08)]"
+    ? "border-[#8F1D1D]/38 bg-[#F3DCDC] shadow-[0_10px_24px_rgba(127,29,29,0.10)]"
     : "border-[#FFD166]/28 bg-[#FFD166]/10 shadow-[0_10px_24px_rgba(255,209,102,0.06)]";
 
   return (
@@ -690,11 +690,11 @@ export default function UserPermission() {
           <div className="grid gap-3 sm:grid-cols-3 lg:w-[460px]">
             <div className={`rounded-2xl border p-4 shadow-[0_16px_34px_rgba(127,29,29,0.10)] ${
               isLight
-                ? "border-[#166534]/25 bg-[#ECFDF3]"
+                ? "border-[#8F1D1D]/24 bg-[#FFF2EC]"
                 : "border-[#166534]/35 bg-[#166534]/12"
             }`}>
               <p className={`text-xs font-black uppercase tracking-[0.12em] ${
-                isLight ? "text-[#14532D]" : "text-[#86EFAC]"
+                isLight ? "text-[#8F1D1D]" : "text-[#86EFAC]"
               }`}>
                 Users
               </p>
@@ -706,10 +706,12 @@ export default function UserPermission() {
             </div>
             <div className={`rounded-2xl border p-4 shadow-[0_16px_34px_rgba(154,100,0,0.12)] ${
               isLight
-                ? "border-[#C98910]/30 bg-[#FFF1C2]"
+                ? "border-[#E4CFC3] bg-[#FFF9F2]"
                 : "border-[#FFD166]/38 bg-[#FFD166]/14"
             }`}>
-              <p className={`text-xs font-black uppercase tracking-[0.12em] ${goldText}`}>
+              <p className={`text-xs font-black uppercase tracking-[0.12em] ${
+                isLight ? "text-[#6B5A52]" : "text-[#FFD166]"
+              }`}>
                 Assignable
               </p>
               <strong
@@ -720,11 +722,11 @@ export default function UserPermission() {
             </div>
             <div className={`rounded-2xl border p-4 shadow-[0_16px_34px_rgba(30,64,175,0.14)] ${
               isLight
-                ? "border-[#1D4ED8]/25 bg-[#DBEAFE]"
+                ? "border-[#8F1D1D]/24 bg-[#FFF8F4]"
                 : "border-[#60A5FA]/35 bg-[#1D4ED8]/16"
             }`}>
               <p className={`text-xs font-black uppercase tracking-[0.12em] ${
-                isLight ? "text-[#1E3A8A]" : "text-[#93C5FD]"
+                isLight ? "text-[#8F1D1D]" : "text-[#93C5FD]"
               }`}>
                 Active
               </p>

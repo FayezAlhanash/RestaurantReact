@@ -149,6 +149,7 @@ function ThemeSwitch({ isLight, onToggle }) {
 
 export default function EmployeeProfileButton({ compact = false, floatingPanel = false }) {
     const fileInputRef = useRef(null);
+    const profileRootRef = useRef(null);
     const { isLight, toggleTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const [isShown, setIsShown] = useState(false);
@@ -258,6 +259,29 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
 
         return () => {
             window.removeEventListener("big4:close-profile", handleCloseProfile);
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const handlePointerDown = (event) => {
+            if (profileRootRef.current?.contains(event.target)) return;
+            closeProfile();
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                closeProfile();
+            }
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown, true);
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener("pointerdown", handlePointerDown, true);
+            document.removeEventListener("keydown", handleKeyDown);
         };
     }, [isOpen]);
 
@@ -405,7 +429,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     };
 
     return (
-        <div className="relative z-[120]">
+        <div ref={profileRootRef} className="relative z-[120]">
             <button
                 type="button"
                 onClick={isOpen ? closeProfile : openProfile}

@@ -219,13 +219,16 @@ function RevenueDonut({ items = [], total = 0 }) {
         : "#b30d0d 0% 33%, #078a12 33% 66%, #dfbd34 66% 100%";
 
     const legendItems = positiveItems.length
-        ? positiveItems.slice(0, 3)
+        ? positiveItems
         : [
               { restaurant: "Burger Station", revenueValue: 1 },
               { restaurant: "Italian Corner", revenueValue: 1 },
               { restaurant: "Levant Grill", revenueValue: 1 },
           ];
-    const legendTotal = legendItems.reduce((sum, item) => sum + Math.max(Number(item.revenueValue || 0), 0), 0) || legendItems.length;
+    const legendTotal = positiveItems.length
+        ? positiveItems.reduce((sum, item) => sum + Math.max(Number(item.revenueValue || 0), 0), 0)
+        : legendItems.length;
+    const displayTotal = legendTotal || legendItems.length;
 
     return (
         <div className="flex h-full flex-col justify-between">
@@ -246,7 +249,7 @@ function RevenueDonut({ items = [], total = 0 }) {
                     </div>
                 </div>
             </div>
-            <div className="space-y-4">
+            <div className="admin-dashboard-scroll max-h-[150px] space-y-4 overflow-y-auto pr-1">
                 {legendItems.map((item, index) => (
                     <div key={`${item.restaurant}-${index}`} className="flex items-center justify-between gap-4 text-sm font-black">
                         <span className="flex min-w-0 items-center gap-3 text-[#ddd5c6]">
@@ -257,7 +260,7 @@ function RevenueDonut({ items = [], total = 0 }) {
                             <span className="truncate">{item.restaurant}</span>
                         </span>
                         <span className="text-white">
-                            {Math.round((Math.max(Number(item.revenueValue || 0), 0) / legendTotal) * 1000) / 10}%
+                            {Math.round((Math.max(Number(item.revenueValue || 0), 0) / displayTotal) * 1000) / 10}%
                         </span>
                     </div>
                 ))}
@@ -793,9 +796,9 @@ function MainContent() {
                                 ) : (
                                     <div className="mt-10 flex items-end justify-between gap-4">
                                         <p className="text-sm font-semibold text-[#d9d1c5]">
-                                            <span className={card.title === "Total Orders" ? "text-[#b9c6ff]" : "text-[#59e3a8]"}>
-                                                {card.helper}
-                                            </span>{" "}
+                                                <span className={card.title === "Total Orders" ? "text-[#b9c6ff]" : "text-[#59e3a8]"}>
+                                                    {card.helper}
+                                                </span>{" "}
                                             {card.suffix}
                                         </p>
                                         {card.graph}

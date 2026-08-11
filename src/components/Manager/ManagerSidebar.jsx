@@ -73,6 +73,30 @@ const navItems = [
     permissions: ["manage_takeaway_orders"],
   },
   {
+    to: "/manager/invoices",
+    label: "View Invoices",
+    description: "Restaurant invoice ledger",
+    icon: ReceiptText,
+    permissions: [
+      "view_invoices",
+      "view_invoice",
+      "View Invoices",
+      "View Invoice",
+    ],
+  },
+  {
+    to: "/manager/global-invoices",
+    label: "View Global Invoice",
+    description: "Global invoice task",
+    icon: ReceiptText,
+    permissions: [
+      "view_global_invoices",
+      "view_global_invoice",
+      "View Global Invoices",
+      "View Global Invoice",
+    ],
+  },
+  {
     to: "/manager/kitchen-orders",
     label: "Kitchen Orders",
     description: "Queue and preparation",

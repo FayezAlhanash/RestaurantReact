@@ -389,10 +389,10 @@ const statusLabels = {
 const statusBadgeClasses = {
     pending: "border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166]",
     confirmed: "border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166]",
-    preparing: "border-sky-300/35 bg-sky-400/16 text-sky-200",
-    in_progress: "border-sky-300/35 bg-sky-400/16 text-sky-200",
-    in_preparation: "border-sky-300/35 bg-sky-400/16 text-sky-200",
-    started: "border-sky-300/35 bg-sky-400/16 text-sky-200",
+    preparing: "catalog-status-badge--preparing",
+    in_progress: "catalog-status-badge--preparing",
+    in_preparation: "catalog-status-badge--preparing",
+    started: "catalog-status-badge--preparing",
     ready: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
     prepared: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
     ready_for_pickup: "border-emerald-300/35 bg-emerald-400/16 text-emerald-200",
@@ -685,7 +685,7 @@ function CatalogOrders() {
             )}
 
             {errorMessage && (
-                <div className="mb-4 flex items-start gap-3 rounded-[22px] border border-[#7F1D1D]/18 bg-[linear-gradient(135deg,#FFF4EE_0%,#FBE5E5_100%)] px-4 py-3.5 text-[#7F1D1D] shadow-[0_14px_30px_rgba(127,29,29,0.08)] ring-1 ring-white/70">
+                <div className="catalog-order-alert mb-4 flex items-start gap-3 rounded-[22px] border border-[#7F1D1D]/18 bg-[linear-gradient(135deg,#FFF4EE_0%,#FBE5E5_100%)] px-4 py-3.5 text-[#7F1D1D] shadow-[0_14px_30px_rgba(127,29,29,0.08)] ring-1 ring-white/70">
                     <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.18)]">
                         <AlertTriangle size={18} />
                     </span>

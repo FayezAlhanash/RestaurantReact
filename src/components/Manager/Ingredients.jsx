@@ -40,6 +40,8 @@ export default function Ingredients() {
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [isFoodPickerOpen, setIsFoodPickerOpen] = useState(false);
   const [isIngredientPickerOpen, setIsIngredientPickerOpen] = useState(false);
+  const [pendingQuantityEdits, setPendingQuantityEdits] = useState({});
+  const [pendingDeleteIngredientId, setPendingDeleteIngredientId] = useState("");
 
   const fetchIngredients = async () => {
     try {
@@ -98,6 +100,8 @@ export default function Ingredients() {
     fetchFoodIngredients(selectedFoodId);
     setSelectedIngredientId("");
     setRecipeQuantity("");
+    setPendingQuantityEdits({});
+    setPendingDeleteIngredientId("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFoodId]);
 
@@ -135,6 +139,8 @@ export default function Ingredients() {
       await fetchFoodIngredients();
       setSelectedIngredientId("");
       setRecipeQuantity("");
+      setPendingQuantityEdits({});
+      setPendingDeleteIngredientId("");
     } catch (error) {
       console.error(error.response?.data || error);
     } finally {
@@ -153,6 +159,11 @@ export default function Ingredients() {
         { quantity: Number(quantity || 0) }
       );
       await fetchFoodIngredients();
+      setPendingQuantityEdits((current) => {
+        const next = { ...current };
+        delete next[ingredientId];
+        return next;
+      });
     } catch (error) {
       console.error(error.response?.data || error);
     }
@@ -168,6 +179,12 @@ export default function Ingredients() {
         `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${ingredientId}`
       );
       await fetchFoodIngredients();
+      setPendingDeleteIngredientId("");
+      setPendingQuantityEdits((current) => {
+        const next = { ...current };
+        delete next[ingredientId];
+        return next;
+      });
     } catch (error) {
       console.error(error.response?.data || error);
     }
@@ -479,7 +496,7 @@ export default function Ingredients() {
               ) : (
                 <Save size={17} />
               )}
-              {canManageRecipes ? "Save Link" : "View only"}
+              {canManageRecipes ? "Confirm Add" : "View only"}
             </button>
           </div>
         </div>
@@ -554,6 +571,15 @@ export default function Ingredients() {
                 ) : (
                   foodIngredients.map((ingredient) => {
                     const ingredientId = getFoodIngredientId(ingredient);
+                    const currentQuantity = getFoodIngredientQuantity(ingredient);
+                    const pendingQuantity = pendingQuantityEdits[ingredientId];
+                    const shownQuantity =
+                      pendingQuantity === undefined ? currentQuantity : pendingQuantity;
+                    const hasPendingQuantityEdit =
+                      pendingQuantity !== undefined &&
+                      String(pendingQuantity) !== String(currentQuantity);
+                    const isDeletePending =
+                      String(pendingDeleteIngredientId) === String(ingredientId);
                     const unit =
                       ingredient.unit ??
                       ingredients.find((item) => String(item.id) === String(ingredientId))
@@ -578,9 +604,12 @@ export default function Ingredients() {
                             type="number"
                             min="0"
                             step="0.01"
-                            defaultValue={getFoodIngredientQuantity(ingredient)}
-                            onBlur={(event) =>
-                              handleEditRecipeQuantity(ingredientId, event.target.value)
+                            value={shownQuantity}
+                            onChange={(event) =>
+                              setPendingQuantityEdits((current) => ({
+                                ...current,
+                                [ingredientId]: event.target.value,
+                              }))
                             }
                             readOnly={!canManageRecipes}
                             className={`w-28 rounded-xl border px-3 py-2 text-sm font-black outline-none transition focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10 ${
@@ -594,16 +623,50 @@ export default function Ingredients() {
                           {unit}
                         </td>
                         <td className="px-5 py-5">
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              title="Remove from food"
-                              onClick={() => handleDeleteRecipeIngredient(ingredientId)}
-                              disabled={!canManageRecipes}
-                              className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] transition duration-200 hover:scale-110 hover:border-[#7F1D1D]/65 hover:bg-[#7F1D1D]/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:scale-100"
-                            >
-                              <Unlink size={16} />
-                            </button>
+                          <div className="flex justify-end gap-2">
+                            {hasPendingQuantityEdit && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleEditRecipeQuantity(ingredientId, pendingQuantity)
+                                }
+                                disabled={!canManageRecipes}
+                                className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-400/12 px-3 text-xs font-black text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-35"
+                              >
+                                <Check size={15} />
+                                Confirm
+                              </button>
+                            )}
+                            {isDeletePending ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRecipeIngredient(ingredientId)}
+                                  disabled={!canManageRecipes}
+                                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#FF6B6B]/45 bg-[#7F1D1D]/24 px-3 text-xs font-black text-[#FFB3B3] transition hover:bg-[#7F1D1D]/38 disabled:cursor-not-allowed disabled:opacity-35"
+                                >
+                                  <Check size={15} />
+                                  Confirm delete
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPendingDeleteIngredientId("")}
+                                  className="h-10 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-xs font-black text-white/65 transition hover:bg-white/10 hover:text-white"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                title="Remove from food"
+                                onClick={() => setPendingDeleteIngredientId(String(ingredientId))}
+                                disabled={!canManageRecipes}
+                                className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] transition duration-200 hover:scale-110 hover:border-[#7F1D1D]/65 hover:bg-[#7F1D1D]/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:scale-100"
+                              >
+                                <Unlink size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

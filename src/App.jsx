@@ -15,6 +15,7 @@ import RolesPermission from "./components/Admin/Roles&Permission";
 import UserPermission from "./components/Admin/UserPermission";
 import DeliveryReviews from "./components/Admin/DeliveryReviews";
 import LoyaltySettings from "./components/Admin/LoyaltySettings";
+import GlobalInvoices from "./components/Admin/GlobalInvoices";
 import TablesManagements from "./components/Admin/TablesManagements";
 import Cashier from "./components/Cashier/Cashier";
 import CashierDashboard from "./components/Cashier/CashierDashboard";
@@ -68,6 +69,22 @@ const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "view_reports",
   "view_delivery_review",
   "manage_loyalty_settings",
+  "view_invoices",
+  "view_global_invoices",
+];
+
+const GLOBAL_INVOICE_PERMISSIONS = [
+  "view_global_invoices",
+  "view_global_invoice",
+  "global_invoice",
+  "global_invoices",
+];
+
+const RESTAURANT_INVOICE_PERMISSIONS = [
+  "view_invoices",
+  "view_invoice",
+  "View Invoices",
+  "View Invoice",
 ];
 
 const SESSION_CHECK_INTERVAL_MS = 15000;
@@ -249,6 +266,12 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={["view_reports", "view_global_reports"]} />}>
               <Route path="/reports" element={<ManagerDashboard />} />
             </Route>
+            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} allowedPermissions={GLOBAL_INVOICE_PERMISSIONS} />}>
+              <Route path="/global-invoices" element={<GlobalInvoices />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={[ROLE_IDS.ADMIN]} allowedPermissions={RESTAURANT_INVOICE_PERMISSIONS} />}>
+              <Route path="/invoices" element={<GlobalInvoices scope="adminRestaurant" />} />
+            </Route>
             <Route element={<ProtectedRoute allowedPermissions={["view_delivery_review", "view_delivery_reviews", "view_deivery_review"]} />}>
               <Route path="/delivery-reviews" element={<DeliveryReviews />} />
             </Route>
@@ -429,6 +452,20 @@ function App() {
               <Route
                 path="/manager/loyalty-settings"
                 element={<LoyaltySettings scope="restaurant" />}
+              />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedPermissions={RESTAURANT_INVOICE_PERMISSIONS} />}>
+              <Route
+                path="/manager/invoices"
+                element={<GlobalInvoices scope="restaurant" />}
+              />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedPermissions={GLOBAL_INVOICE_PERMISSIONS} />}>
+              <Route
+                path="/manager/global-invoices"
+                element={<GlobalInvoices />}
               />
             </Route>
 

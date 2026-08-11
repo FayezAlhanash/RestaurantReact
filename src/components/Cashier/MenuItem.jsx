@@ -1,4 +1,5 @@
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, X } from "lucide-react";
+import { isFoodOrderable } from "../../utils/foodAvailability";
 
 const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
 
@@ -224,16 +225,25 @@ function MenuItemCard({ item, onOpen }) {
     const sizePrices = getSizeModifierOptions(item);
     const hasSizePrices = sizePrices.length > 0;
     const displayPrice = Number(item.price ?? 0);
+    const canOrder = isFoodOrderable(item);
 
     return (
-        <article className="group flex min-h-[350px] flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1B2225]/92 shadow-[0_16px_34px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.025] transition duration-300 hover:-translate-y-1 hover:border-[#FFD166]/22 hover:bg-[#20282B] hover:shadow-[0_24px_48px_rgba(0,0,0,0.26)] sm:min-h-[372px]">
+        <article className={`group flex min-h-[350px] flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1B2225]/92 shadow-[0_16px_34px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.025] transition duration-300 hover:border-[#FFD166]/22 hover:bg-[#20282B] hover:shadow-[0_24px_48px_rgba(0,0,0,0.26)] sm:min-h-[372px] ${
+            canOrder ? "hover:-translate-y-1" : "border-[#7F1D1D]/45"
+        }`}>
             <div className="relative m-2 overflow-hidden rounded-[18px] bg-[#101517]">
                 <img
                     src={imageUrl}
                     alt={item.title}
-                    className="h-40 w-full object-cover transition duration-500 group-hover:scale-105 sm:h-48"
+                    className={`h-40 w-full object-cover transition duration-500 sm:h-48 ${
+                        canOrder ? "group-hover:scale-105" : "grayscale contrast-110 opacity-55"
+                    }`}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#101517]/45 via-transparent to-black/10" />
+                <div className={`absolute inset-0 ${
+                    canOrder
+                        ? "bg-gradient-to-t from-[#101517]/45 via-transparent to-black/10"
+                        : "bg-black/48"
+                }`} />
                 <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-[#101517]/78 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur">
                     <Star size={13} className="fill-[#F7C948] text-[#F7C948]" /> 4.8
                 </span>
@@ -244,8 +254,18 @@ function MenuItemCard({ item, onOpen }) {
                             : "bg-[#334155] text-white"
                     }`}
                 >
-                    {isDietItem(item) ? "Diet" : "Regular"}
+                    {isDietItem(item) ? "دايت" : "عادي"}
                 </span>
+                {!canOrder && (
+                    <div className="absolute inset-0 z-10 grid place-items-center px-4 text-center">
+                        <div className="grid h-16 w-16 place-items-center rounded-full border-4 border-white bg-[#B91C1C] text-white shadow-[0_18px_38px_rgba(185,28,28,0.42)]">
+                            <X size={38} strokeWidth={4} />
+                        </div>
+                        <span className="mt-3 rounded-full border-2 border-white bg-[#B91C1C] px-5 py-2 text-lg font-black text-white shadow-[0_16px_34px_rgba(0,0,0,0.38)]">
+                            غير متوفر
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="flex flex-1 flex-col px-4 pb-4 pt-2">
@@ -266,11 +286,12 @@ function MenuItemCard({ item, onOpen }) {
                 </div>
 
                 <button
-                    onClick={onOpen}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-[15px] font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.98]"
+                    disabled={!canOrder}
+                    onClick={() => canOrder && onOpen()}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-[15px] font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/45 disabled:shadow-none"
                 >
                     <Plus size={18} />
-                    Add to order
+                    {canOrder ? "إضافة للطلب" : "غير متوفر"}
                 </button>
             </div>
         </article>

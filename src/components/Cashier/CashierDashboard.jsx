@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import CatalogOrders from "./CatalogOrders";
 import MenuItemCard from "./MenuItem";
@@ -24,6 +24,15 @@ import { BookOpen, House, ReceiptText, ShieldAlert, Store } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import PermissionToast from "../Shared/PermissionToast";
 import { getRestaurantTaxRate } from "../../utils/tax";
+import useFoodAvailabilityRealtime from "../../hooks/useFoodAvailabilityRealtime";
+import {
+    FOOD_NOT_ORDERABLE_MESSAGE,
+    FOOD_UNAVAILABLE_MESSAGE,
+    applyFoodAvailabilityUpdates,
+    getFoodKey,
+    isFoodOrderable,
+    normalizeFoodAvailability,
+} from "../../utils/foodAvailability";
 
 const REPORTS_BACKGROUND =
     "bg-[radial-gradient(circle_at_86%_12%,rgba(127,29,29,0.14),transparent_30%),radial-gradient(circle_at_16%_22%,rgba(255,209,102,0.10),transparent_26%),linear-gradient(145deg,#0D1214_0%,#12191C_54%,#211619_100%)]";
@@ -101,6 +110,7 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     category: String(food.category_id ?? food.category?.id ?? "uncategorized"),
     categoryName: food.category?.name ?? "Uncategorized",
     modifierGroups: food.modifier_groups ?? food.modifierGroups ?? [],
+    ...normalizeFoodAvailability(food),
 });
 
 const foodDetailsCache = new Map();
@@ -183,8 +193,10 @@ function CashierDashboard({ embedded = false }) {
     const [menuItems, setMenuItems] = useState([]);
     const [isLoadingMenu, setIsLoadingMenu] = useState(true);
     const [menuError, setMenuError] = useState("");
+    const [availabilityMessage, setAvailabilityMessage] = useState("");
     const restaurantFilterTrackRef = useRef(null);
     const restaurantFilterButtonRefs = useRef({});
+    const cartItemsRef = useRef(cartItems);
     const [restaurantIndicatorStyle, setRestaurantIndicatorStyle] = useState({
         opacity: 0,
         transform: "translateX(0px)",
@@ -238,6 +250,10 @@ function CashierDashboard({ embedded = false }) {
         { id: "catalog", label: "Catalog", icon: BookOpen },
         { id: "orders", label: "Orders", icon: ReceiptText },
     ];
+
+    useEffect(() => {
+        cartItemsRef.current = cartItems;
+    }, [cartItems]);
 
     useEffect(() => {
         const fetchMenu = async () => {
@@ -345,6 +361,49 @@ function CashierDashboard({ embedded = false }) {
         });
     }, [activeRestaurant, menuItems, search]);
 
+    const availabilityRestaurantIds = useMemo(() => {
+        if (activeRestaurant !== "all") return [activeRestaurant];
+
+        const restaurantIds = restaurants.length
+            ? restaurants.map((restaurant) => restaurant.id)
+            : menuItems.map((item) => item.restaurant_id);
+
+        return Array.from(new Set(restaurantIds.map(String).filter(Boolean)));
+    }, [activeRestaurant, menuItems, restaurants]);
+
+    const handleFoodAvailabilityUpdate = useCallback((event) => {
+        const updatedFoods = Array.isArray(event?.foods) ? event.foods : [];
+
+        if (!updatedFoods.length) return;
+
+        const unavailableFoodIds = new Set(
+            updatedFoods
+                .filter((food) => food?.can_order === false)
+                .map((food) => String(food.food_id ?? food.foodId ?? food.id))
+        );
+
+        setMenuItems((currentItems) =>
+            applyFoodAvailabilityUpdates(currentItems, updatedFoods)
+        );
+        setSelectedItem((currentItem) =>
+            currentItem
+                ? applyFoodAvailabilityUpdates([currentItem], updatedFoods)[0]
+                : currentItem
+        );
+        if (cartItemsRef.current.some((item) => unavailableFoodIds.has(getFoodKey(item)))) {
+            setAvailabilityMessage(FOOD_UNAVAILABLE_MESSAGE);
+        }
+
+        setCartItems((currentItems) =>
+            applyFoodAvailabilityUpdates(currentItems, updatedFoods)
+        );
+    }, []);
+
+    useFoodAvailabilityRealtime(
+        availabilityRestaurantIds,
+        handleFoodAvailabilityUpdate
+    );
+
     useLayoutEffect(() => {
         const track = restaurantFilterTrackRef.current;
         const activeButton = restaurantFilterButtonRefs.current[activeRestaurant];
@@ -377,6 +436,11 @@ function CashierDashboard({ embedded = false }) {
     }, [activeRestaurant, restaurantFilters]);
 
     const addToCart = (product) => {
+        if (!isFoodOrderable(product)) {
+            setAvailabilityMessage(FOOD_NOT_ORDERABLE_MESSAGE);
+            return false;
+        }
+
         setCartItems((current) => {
             const existingIndex = current.findIndex(
                 (item) => item.id === product.id && item.size === product.size && item.notes === product.notes
@@ -390,6 +454,7 @@ function CashierDashboard({ embedded = false }) {
                     : item
             );
         });
+        return true;
     };
 
     const openMenuItem = (item) => {
@@ -436,6 +501,10 @@ function CashierDashboard({ embedded = false }) {
             <PermissionToast
                 message={permissionMessage}
                 onClose={() => setPermissionMessage("")}
+            />
+            <PermissionToast
+                message={availabilityMessage}
+                onClose={() => setAvailabilityMessage("")}
             />
 
             <main

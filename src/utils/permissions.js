@@ -7,6 +7,7 @@ const ADMIN_DEFAULT_PERMISSIONS = [
     "manage_permissions",
     "manage_global_loyalty_settings",
     "manage_loyalty_settings",
+    "view_global_invoices",
 ];
 
 export function getRevokedPermissions(data = {}) {

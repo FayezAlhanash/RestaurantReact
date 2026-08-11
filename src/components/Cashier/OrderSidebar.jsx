@@ -4,12 +4,16 @@ import {
     createCashierOrder,
     fetchCashierOrderDetail,
     fetchKitchenQueue,
-    getCashierOrderTotal,
     getCreatedOrderId,
     payCashierOrderInvoices,
 } from "../../utils/kitchenOrders";
 import { createStripeCardElement } from "../../utils/stripePayments";
 import { getCartTotals } from "../../utils/tax";
+import {
+    FOOD_UNAVAILABLE_MESSAGE,
+    hasUnavailableCartItems,
+    isFoodOrderable,
+} from "../../utils/foodAvailability";
 
 function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
     const [successMessage, setSuccessMessage] = useState("");
@@ -93,9 +97,15 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
 
     const { subtotal, tax, total: estimatedTotal } = getCartTotals(cartItems);
     const itemCount = cartItems.reduce((totalCount, item) => totalCount + item.quantity, 0);
+    const hasUnavailableOrderItems = hasUnavailableCartItems(cartItems);
 
     const placeOrder = async () => {
         if (!cartItems.length) return;
+        if (hasUnavailableOrderItems) {
+            setSuccessMessage("");
+            setErrorMessage(FOOD_UNAVAILABLE_MESSAGE);
+            return;
+        }
 
         setIsSubmitting(true);
         setSuccessMessage("");
@@ -127,8 +137,6 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                 }
             }
 
-            const backendTotal =
-                getCashierOrderTotal(orderDetails) ?? getCashierOrderTotal(response);
             const responseOrders = Array.isArray(response?.orders)
                 ? response.orders
                 : Array.isArray(response?.data)
@@ -160,13 +168,11 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             const orderLabel = orderIds.length
                 ? `${orderIds.length > 1 ? "Orders" : "Order"} #${orderIds.join(", ")}`
                 : "Order";
-            const backendTotalLabel =
-                backendTotal !== null ? ` · backend total $${backendTotal.toFixed(2)}` : "";
 
             setSuccessMessage(
                 isInKitchenQueue
-                    ? `${orderLabel} paid${backendTotalLabel} and sent to kitchen`
-                    : `${orderLabel} paid${backendTotalLabel}, but not in kitchen queue`
+                    ? `${orderLabel} paid and sent to kitchen`
+                    : `${orderLabel} paid, but not in kitchen queue`
             );
             window.dispatchEvent(new CustomEvent("big4:orders-updated"));
             window.dispatchEvent(new CustomEvent("big4:poll-notifications-now"));
@@ -233,11 +239,14 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                 ) : (
                     cartItems.map((item, index) => {
                         const isDeletePending = pendingDeleteIndex === index;
+                        const canOrder = isFoodOrderable(item);
 
                         return (
                         <div key={`${item.id}-${item.size}-${index}`} className={`rounded-[22px] border p-3 shadow-[0_12px_26px_rgba(0,0,0,0.16)] ${
                             isDeletePending
                                 ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
+                                : !canOrder
+                                    ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
                                 : "border-white/[0.08] bg-[#1B2225]/95"
                         }`}>
                             <div className="flex gap-3">
@@ -247,6 +256,11 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                         <div className="min-w-0">
                                             <h3 className="truncate text-base font-extrabold">{item.title}</h3>
                                             <p className="mt-0.5 text-sm capitalize text-white/50">{item.size}</p>
+                                            {!canOrder && (
+                                                <p className="mt-1 text-xs font-black text-[#FFB3B3]">
+                                                    غير متوفر
+                                                </p>
+                                            )}
                                         </div>
                                         {isDeletePending ? (
                                             <div className="flex shrink-0 gap-1.5">
@@ -346,12 +360,17 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                         {errorMessage}
                     </p>
                 )}
+                {hasUnavailableOrderItems && !errorMessage && (
+                    <p className="mb-2 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
+                        {FOOD_UNAVAILABLE_MESSAGE}
+                    </p>
+                )}
                 {!canProcessPayments && (
                     <p className="mb-2 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
                         You need Process Payments permission to pay takeaway orders.
                     </p>
                 )}
-                <button onClick={placeOrder} disabled={!cartItems.length || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 disabled:shadow-none">
+                <button onClick={placeOrder} disabled={!cartItems.length || hasUnavailableOrderItems || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 disabled:shadow-none">
                     {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · est. $${estimatedTotal.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (

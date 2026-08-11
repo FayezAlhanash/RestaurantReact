@@ -54,6 +54,7 @@ export default function RealtimeManager() {
         if (!echo) return undefined;
 
         echoRef.current = echo;
+        window.Echo = echo;
 
         const emitRealtimeUpdate = (event) => {
             latestEventRef.current = event;
@@ -113,9 +114,11 @@ export default function RealtimeManager() {
             if (echoRef.current === echo) {
                 echoRef.current = null;
             }
+            if (window.Echo === echo) {
+                delete window.Echo;
+            }
         };
     }, [token]);
 
     return null;
 }
-

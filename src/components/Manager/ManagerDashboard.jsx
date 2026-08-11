@@ -463,7 +463,7 @@ export default function ManagerDashboard() {
                 type="button"
                 onClick={loadReports}
                 disabled={isLoading}
-                className={`inline-flex h-14 min-w-[128px] items-center justify-center gap-2 rounded-2xl border px-5 text-base font-black text-white [color:#fff] shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:[color:#fff] sm:col-span-2 ${
+                className={`brand-red-action-button inline-flex h-14 min-w-[128px] items-center justify-center gap-2 rounded-2xl border px-5 text-base font-black text-white [color:#fff] shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:[color:#fff] sm:col-span-2 ${
                   isLight
                     ? "border-[#8F1D1D] bg-[#8F1D1D] shadow-[#8F1D1D]/20 hover:bg-[#6F1717] disabled:border-[#8F1D1D]/70 disabled:bg-[#8F1D1D]/80 disabled:opacity-90"
                     : "border-[#7F1D1D] bg-[#7F1D1D] shadow-[#7F1D1D]/20 hover:bg-[#681718] disabled:border-[#7F1D1D]/50 disabled:bg-[#7F1D1D]/55"

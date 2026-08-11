@@ -16,8 +16,8 @@ export function hasRealtimeConfig() {
     return Boolean(appKey && appKey !== PLACEHOLDER_APP_KEY);
 }
 
-export function createEcho(token) {
-    if (!token || !hasRealtimeConfig()) return null;
+export function createEcho(token = "") {
+    if (!hasRealtimeConfig()) return null;
 
     const port = Number(import.meta.env.VITE_REVERB_PORT || DEFAULT_REVERB_PORT);
     const scheme = import.meta.env.VITE_REVERB_SCHEME || "https";
@@ -39,9 +39,8 @@ export function createEcho(token) {
         auth: {
             headers: {
                 Accept: "application/json",
-                Authorization: `Bearer ${token}`,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
         },
     });
 }
-

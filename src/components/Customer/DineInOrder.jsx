@@ -16,7 +16,7 @@ import {
     Utensils,
     X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import api from "../../API/axios";
 import onboardingChefsTasting from "../../assets/onboarding-chefs-tasting.jpg";
@@ -32,6 +32,16 @@ import { useTheme } from "../../context/ThemeContext";
 import { getStoredToken } from "../../utils/auth";
 import CategoryTabs from "../Cashier/CategoryTabs";
 import ProductModal from "../Cashier/ProductModal";
+import useFoodAvailabilityRealtime from "../../hooks/useFoodAvailabilityRealtime";
+import {
+    FOOD_NOT_ORDERABLE_MESSAGE,
+    FOOD_UNAVAILABLE_MESSAGE,
+    applyFoodAvailabilityUpdates,
+    getFoodKey,
+    hasUnavailableCartItems,
+    isFoodOrderable,
+    normalizeFoodAvailability,
+} from "../../utils/foodAvailability";
 
 const getList = (data) => {
     if (Array.isArray(data?.food)) return data.food;
@@ -102,6 +112,7 @@ const normalizeFoodItem = (food, restaurant = null) => ({
     category: String(food.category_id ?? food.category?.id ?? "uncategorized"),
     categoryName: food.category?.name ?? "Menu",
     modifierGroups: food.modifier_groups ?? food.modifierGroups ?? [],
+    ...normalizeFoodAvailability(food),
 });
 
 const appendIfPresent = (formData, key, value) => {
@@ -703,16 +714,21 @@ function CustomerFoodCard({ item, onOpen }) {
         item?.diet_food ??
         item?.dietFood ??
         item?.is_diet_food;
+    const canOrder = isFoodOrderable(item);
 
     return (
         <article
-            className="customer-food-card group grid cursor-pointer grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] focus:outline-none focus:ring-4 focus:ring-[#FFD166]/25 sm:block sm:rounded-[26px] sm:hover:-translate-y-1"
+            className={`customer-food-card group grid grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] focus:outline-none focus:ring-4 focus:ring-[#FFD166]/25 sm:block sm:rounded-[26px] ${
+                canOrder ? "cursor-pointer sm:hover:-translate-y-1" : "cursor-not-allowed border-[#7F1D1D]/45"
+            }`}
             role="button"
             tabIndex={0}
-            onClick={onOpen}
+            aria-disabled={!canOrder}
+            onClick={() => canOrder && onOpen()}
             onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
+                    if (!canOrder) return;
                     onOpen();
                 }
             }}
@@ -721,9 +737,15 @@ function CustomerFoodCard({ item, onOpen }) {
                 <img
                     src={imageUrl}
                     alt={item.title}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    className={`h-full w-full object-cover transition duration-700 ${
+                        canOrder ? "group-hover:scale-105" : "grayscale contrast-110 opacity-55"
+                    }`}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent" />
+                <div className={`absolute inset-0 ${
+                    canOrder
+                        ? "bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent"
+                        : "bg-black/52"
+                }`} />
                 <span
                     className={`menu-type-badge absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px] ${
                         isDiet
@@ -731,11 +753,21 @@ function CustomerFoodCard({ item, onOpen }) {
                             : "bg-[#334155] text-white"
                     }`}
                 >
-                    {isDiet ? "Diet" : "Regular"}
+                    {isDiet ? "دايت" : "عادي"}
                 </span>
                 <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-[#FFD166] backdrop-blur sm:bottom-3 sm:right-3 sm:px-3 sm:text-sm">
                     ${Number(item.price ?? 0).toFixed(2)}
                 </span>
+                {!canOrder && (
+                    <div className="absolute inset-0 z-10 grid place-items-center px-3 text-center">
+                        <div className="grid h-14 w-14 place-items-center rounded-full border-4 border-white bg-[#B91C1C] text-white shadow-[0_18px_38px_rgba(185,28,28,0.42)] sm:h-16 sm:w-16">
+                            <X size={34} strokeWidth={4} />
+                        </div>
+                        <span className="mt-2 rounded-full border-2 border-white bg-[#B91C1C] px-4 py-1.5 text-base font-black text-white shadow-[0_16px_34px_rgba(0,0,0,0.38)] sm:px-5 sm:py-2 sm:text-lg">
+                            غير متوفر
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="flex min-h-[150px] min-w-0 flex-col p-3 sm:min-h-44 sm:p-4">
@@ -750,15 +782,19 @@ function CustomerFoodCard({ item, onOpen }) {
                 </p>
 
                 <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:gap-3 sm:pt-5">
-                    <span className="truncate text-xs font-bold text-white/45 sm:text-sm">Tap to customize</span>
+                    <span className={`truncate text-xs font-bold sm:text-sm ${canOrder ? "text-white/45" : "text-[#FFB3B3]"}`}>
+                        {canOrder ? "اضغط للتخصيص" : "غير متوفر"}
+                    </span>
                     <button
                         type="button"
+                        disabled={!canOrder}
                         onClick={(event) => {
                             event.stopPropagation();
+                            if (!canOrder) return;
                             onOpen();
                         }}
-                        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 sm:h-11 sm:w-11"
-                        aria-label={`Add ${item.title}`}
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35 disabled:shadow-none sm:h-11 sm:w-11"
+                        aria-label={canOrder ? `إضافة ${item.title}` : `${item.title} غير متوفر`}
                     >
                         <Plus size={18} />
                     </button>
@@ -1061,6 +1097,7 @@ function OrderPanel({
     total,
     onChangeQuantity,
     onRemoveItem,
+    onClearOrder,
     onSubmit,
     isSubmitting,
     paymentMethod,
@@ -1073,10 +1110,24 @@ function OrderPanel({
 }) {
     const isMobile = layout === "mobile";
     const [pendingDeleteIndex, setPendingDeleteIndex] = useState(null);
-    const requestRemoveItem = (index) => setPendingDeleteIndex(index);
+    const [isClearPending, setIsClearPending] = useState(false);
+    const hasUnavailableOrderItems = hasUnavailableCartItems(cartItems);
+    const requestRemoveItem = (index) => {
+        setIsClearPending(false);
+        setPendingDeleteIndex(index);
+    };
     const confirmRemoveItem = (index) => {
         onRemoveItem(index);
         setPendingDeleteIndex(null);
+    };
+    const requestClearOrder = () => {
+        setPendingDeleteIndex(null);
+        setIsClearPending(true);
+    };
+    const confirmClearOrder = () => {
+        onClearOrder();
+        setPendingDeleteIndex(null);
+        setIsClearPending(false);
     };
     const handleQuantityChange = (index, amount) => {
         const item = cartItems[index];
@@ -1109,6 +1160,22 @@ function OrderPanel({
                             {itemCount ? `${itemCount} items in your order` : "No items yet"}
                         </p>
                     </div>
+                    {itemCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={isClearPending ? confirmClearOrder : requestClearOrder}
+                            className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black transition active:scale-95 ${
+                                isClearPending
+                                    ? "border-[#FF6B6B]/60 bg-[#7F1D1D] text-white hover:bg-[#9B1C1C]"
+                                    : "border-[#7F1D1D]/40 bg-[#7F1D1D]/12 text-[#FFB3B3] hover:bg-[#7F1D1D]/20"
+                            }`}
+                            aria-label={isClearPending ? "Confirm delete all items" : "Delete all items from order"}
+                            title={isClearPending ? "Confirm delete all" : "Delete all"}
+                        >
+                            <Trash2 size={16} className={isClearPending ? "text-white [stroke:white]" : ""} />
+                            <span>{isClearPending ? "Confirm" : "Delete all"}</span>
+                        </button>
+                    )}
                     {onClose && (
                         <button
                             type="button"
@@ -1120,12 +1187,27 @@ function OrderPanel({
                         </button>
                     )}
                 </div>
+                {isClearPending && (
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#7F1D1D]/45 bg-[#7F1D1D]/12 px-3 py-2">
+                        <p className="min-w-0 text-xs font-black leading-5 text-[#FFB3B3]">
+                            Delete every item in this order?
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setIsClearPending(false)}
+                            className="shrink-0 text-xs font-black text-white/70 transition hover:text-white"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className={`customer-order-scroll min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}>
                 {cartItems.length ? (
                     cartItems.map((item, index) => {
                         const isDeletePending = pendingDeleteIndex === index;
+                        const canOrder = isFoodOrderable(item);
 
                         return (
                         <div
@@ -1133,6 +1215,8 @@ function OrderPanel({
                             className={`rounded-2xl border ${isMobile ? "p-3" : "p-4"} ${
                                 isDeletePending
                                     ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
+                                    : !canOrder
+                                        ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
                                     : "border-white/10 bg-white/[0.07]"
                             }`}
                         >
@@ -1144,6 +1228,11 @@ function OrderPanel({
                                     <p className="mt-1 truncate text-sm font-extrabold text-white/55">
                                         {item.restaurantName}
                                     </p>
+                                    {!canOrder && (
+                                        <p className="mt-1 text-xs font-black text-[#FFB3B3]">
+                                            غير متوفر
+                                        </p>
+                                    )}
                                     {item.notes && (
                                         <p className="mt-3 break-words text-sm font-semibold leading-5 text-white/72">
                                             {item.notes}
@@ -1227,6 +1316,11 @@ function OrderPanel({
             </div>
 
             <div className={`shrink-0 border-t border-white/10 ${isMobile ? "p-3" : "p-5"}`}>
+            {hasUnavailableOrderItems && (
+                <p className="mb-3 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
+                    {FOOD_UNAVAILABLE_MESSAGE}
+                </p>
+            )}
             <div className="mb-4">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
                     Payment method
@@ -1302,7 +1396,7 @@ function OrderPanel({
                 <button
                     type="button"
                     onClick={onSubmit}
-                    disabled={!itemCount || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
+                    disabled={!itemCount || hasUnavailableOrderItems || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                     className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
                 >
                     {isSubmitting ? "Sending..." : "Confirm order"}
@@ -1321,6 +1415,7 @@ function MobileOrderBar({
     total,
     onChangeQuantity,
     onRemoveItem,
+    onClearOrder,
     onSubmit,
     isSubmitting,
     paymentMethod,
@@ -1333,6 +1428,7 @@ function MobileOrderBar({
     onClose,
 }) {
     const [isClosing, setIsClosing] = useState(false);
+    const hasUnavailableOrderItems = hasUnavailableCartItems(cartItems);
 
     useEffect(() => {
         if (isOpen) setIsClosing(false);
@@ -1366,6 +1462,7 @@ function MobileOrderBar({
                             total={total}
                             onChangeQuantity={onChangeQuantity}
                             onRemoveItem={onRemoveItem}
+                            onClearOrder={onClearOrder}
                             onSubmit={onSubmit}
                             isSubmitting={isSubmitting}
                             paymentMethod={paymentMethod}
@@ -1409,7 +1506,7 @@ function MobileOrderBar({
                     <button
                         type="button"
                         onClick={onSubmit}
-                        disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
+                        disabled={hasUnavailableOrderItems || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                         className="h-12 shrink-0 rounded-2xl bg-[#7F1D1D] px-5 text-xs font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] active:scale-95 disabled:opacity-60 sm:h-14 sm:px-6 sm:text-sm"
                     >
                         {isSubmitting ? "Sending..." : "Confirm"}
@@ -1438,6 +1535,7 @@ function ConfirmOrderModal({
         (total, item) => total + Number(item.quantity ?? 1),
         0
     );
+    const hasUnavailableOrderItems = hasUnavailableCartItems(cartItems);
 
     return (
         <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
@@ -1468,10 +1566,17 @@ function ConfirmOrderModal({
                 </div>
 
                 <div className="customer-order-scroll max-h-[45dvh] space-y-3 overflow-y-auto p-4">
-                    {cartItems.map((item, index) => (
+                    {cartItems.map((item, index) => {
+                        const canOrder = isFoodOrderable(item);
+
+                        return (
                         <div
                             key={`${item.id}-${item.notes}-${index}`}
-                            className="rounded-2xl border border-white/10 bg-white/[0.07] p-3"
+                            className={`rounded-2xl border p-3 ${
+                                canOrder
+                                    ? "border-white/10 bg-white/[0.07]"
+                                    : "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
+                            }`}
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -1481,13 +1586,19 @@ function ConfirmOrderModal({
                                     <p className="mt-1 text-xs font-bold text-[#FFD166]">
                                         {item.restaurantName} · Qty {item.quantity}
                                     </p>
+                                    {!canOrder && (
+                                        <p className="mt-1 text-xs font-black text-[#FFB3B3]">
+                                            غير متوفر
+                                        </p>
+                                    )}
                                 </div>
                                 <span className="shrink-0 text-sm font-black text-white">
                                     ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
                                 </span>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <div className="border-t border-white/10 p-5">
@@ -1564,6 +1675,11 @@ function ConfirmOrderModal({
                     </div>
 
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {hasUnavailableOrderItems && (
+                            <p className="rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3] sm:col-span-2">
+                                {FOOD_UNAVAILABLE_MESSAGE}
+                            </p>
+                        )}
                         <button
                             type="button"
                             onClick={onCancel}
@@ -1575,7 +1691,7 @@ function ConfirmOrderModal({
                         <button
                             type="button"
                             onClick={onConfirm}
-                            disabled={isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
+                            disabled={hasUnavailableOrderItems || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
                             className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
                         >
                             {isSubmitting ? "Sending..." : "Place order"}
@@ -1800,6 +1916,7 @@ function DineInOrder() {
     const menuSectionRef = useRef(null);
     const stripeCardContainerRef = useRef(null);
     const stripeCardRef = useRef(null);
+    const cartItemsRef = useRef(cartItems);
     const orderTimingsRef = useRef(orderTimings);
 
     const saveOrderTimings = (getNextTimings) => {
@@ -1814,6 +1931,10 @@ function DineInOrder() {
             return nextTimings;
         });
     };
+
+    useEffect(() => {
+        cartItemsRef.current = cartItems;
+    }, [cartItems]);
 
     useEffect(() => {
         orderTimingsRef.current = orderTimings;
@@ -2061,6 +2182,50 @@ function DineInOrder() {
         return Array.from(categoryMap.values());
     }, [activeRestaurant, menuItems]);
 
+    const availabilityRestaurantIds = useMemo(() => {
+        if (activeRestaurant !== "all" && activeRestaurant) return [activeRestaurant];
+
+        const restaurantIds = restaurants.length
+            ? restaurants.map((restaurant) => restaurant.id)
+            : menuItems.map((item) => item.restaurant_id);
+
+        return Array.from(new Set(restaurantIds.map(String).filter(Boolean)));
+    }, [activeRestaurant, menuItems, restaurants]);
+
+    const handleFoodAvailabilityUpdate = useCallback((event) => {
+        const updatedFoods = Array.isArray(event?.foods) ? event.foods : [];
+
+        if (!updatedFoods.length) return;
+
+        const unavailableFoodIds = new Set(
+            updatedFoods
+                .filter((food) => food?.can_order === false)
+                .map((food) => String(food.food_id ?? food.foodId ?? food.id))
+        );
+
+        setMenuItems((currentItems) =>
+            applyFoodAvailabilityUpdates(currentItems, updatedFoods)
+        );
+        setSelectedItem((currentItem) =>
+            currentItem
+                ? applyFoodAvailabilityUpdates([currentItem], updatedFoods)[0]
+                : currentItem
+        );
+        if (cartItemsRef.current.some((item) => unavailableFoodIds.has(getFoodKey(item)))) {
+            setSuccessMessage("");
+            setErrorMessage(FOOD_UNAVAILABLE_MESSAGE);
+        }
+
+        setCartItems((currentItems) =>
+            applyFoodAvailabilityUpdates(currentItems, updatedFoods)
+        );
+    }, []);
+
+    useFoodAvailabilityRealtime(
+        availabilityRestaurantIds,
+        handleFoodAvailabilityUpdate
+    );
+
     useEffect(() => {
         if (activeRestaurant || !restaurants.length) return;
 
@@ -2077,6 +2242,12 @@ function DineInOrder() {
     );
 
     const addToCart = (product) => {
+        if (!isFoodOrderable(product)) {
+            setSuccessMessage("");
+            setErrorMessage(FOOD_NOT_ORDERABLE_MESSAGE);
+            return false;
+        }
+
         setCartItems((current) => {
             const existingIndex = current.findIndex(
                 (item) =>
@@ -2093,6 +2264,7 @@ function DineInOrder() {
                     : item
             );
         });
+        return true;
     };
 
     const changeQuantity = (indexToChange, amount) => {
@@ -2107,8 +2279,28 @@ function DineInOrder() {
         );
     };
 
+    const removeCartItem = (indexToRemove) => {
+        setCartItems((items) =>
+            items.filter((_, currentIndex) => currentIndex !== indexToRemove)
+        );
+    };
+
+    const clearOrder = () => {
+        setCartItems([]);
+        setIsConfirmOrderOpen(false);
+        setIsMobileCartOpen(false);
+        setErrorMessage("");
+        setSuccessMessage("");
+    };
+
     const submitOrder = async () => {
         if (!cartItems.length) return;
+        if (hasUnavailableCartItems(cartItems)) {
+            setIsConfirmOrderOpen(false);
+            setSuccessMessage("");
+            setErrorMessage(FOOD_UNAVAILABLE_MESSAGE);
+            return;
+        }
 
         setIsSubmitting(true);
         setErrorMessage("");
@@ -2239,6 +2431,11 @@ function DineInOrder() {
 
     const openConfirmOrder = () => {
         if (!cartItems.length) return;
+        if (hasUnavailableCartItems(cartItems)) {
+            setSuccessMessage("");
+            setErrorMessage(FOOD_UNAVAILABLE_MESSAGE);
+            return;
+        }
         if (!sessionToken) {
             setSuccessMessage("");
             setErrorMessage("Please scan the table QR again or ask the waiter for help.");
@@ -2486,11 +2683,8 @@ function DineInOrder() {
                             tax={tax}
                             total={total}
                             onChangeQuantity={changeQuantity}
-                            onRemoveItem={(indexToRemove) =>
-                                setCartItems((items) =>
-                                    items.filter((_, currentIndex) => currentIndex !== indexToRemove)
-                                )
-                            }
+                            onRemoveItem={removeCartItem}
+                            onClearOrder={clearOrder}
                             onSubmit={openConfirmOrder}
                             isSubmitting={isSubmitting}
                             paymentMethod={paymentMethod}
@@ -2511,11 +2705,8 @@ function DineInOrder() {
                 tax={tax}
                 total={total}
                 onChangeQuantity={changeQuantity}
-                onRemoveItem={(indexToRemove) =>
-                    setCartItems((items) =>
-                        items.filter((_, currentIndex) => currentIndex !== indexToRemove)
-                    )
-                }
+                onRemoveItem={removeCartItem}
+                onClearOrder={clearOrder}
                 onSubmit={openConfirmOrder}
                 isSubmitting={isSubmitting}
                 paymentMethod={paymentMethod}

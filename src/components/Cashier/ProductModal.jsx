@@ -13,6 +13,7 @@ import {
     X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { isFoodOrderable } from "../../utils/foodAvailability";
 
 const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
 
@@ -322,6 +323,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         .filter((group) => group.options.length);
     const hasModifiers = modifierGroups.length > 0;
     const isLoadingDetails = Boolean(item?.isLoadingDetails);
+    const canOrder = isFoodOrderable(item);
     const selectedModifierOptions = getSelectedModifierOptions();
     const modifierPrice = selectedModifierOptions.reduce(
         (total, option) => total + option.price,
@@ -366,9 +368,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         .filter(Boolean)
         .join(" · ");
     const addCurrentItemToCart = () => {
-        if (!allRequiredModifiersSelected || isAdded || isClosing) return;
+        if (!canOrder || !allRequiredModifiersSelected || isAdded || isClosing) return;
 
-        addToCart({
+        const wasAdded = addToCart({
             ...item,
             price: unitPrice,
             quantity,
@@ -377,6 +379,8 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             selectedModifiers,
             selectedModifierOptions,
         });
+        if (wasAdded === false) return;
+
         setIsAdded(true);
         addTimerRef.current = window.setTimeout(closeModal, 420);
     };
@@ -413,12 +417,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center overscroll-contain p-3 backdrop-blur-md sm:p-6 ${
                 isDineInDark ? "bg-black/72" : "bg-[#211715]/55"
             } ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
-                <div className={`product-modal-shell grid h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] overflow-hidden rounded-[30px] border shadow-[0_34px_90px_rgba(0,0,0,0.48)] ${
+                <div className={`product-modal-shell flex h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] flex-col overflow-hidden rounded-[30px] border shadow-[0_34px_90px_rgba(0,0,0,0.48)] ${
                     isDineInDark
                         ? "border-white/10 bg-[#12181B] text-white"
                         : "border-[#E4CFC3] bg-[#FFF9F2] text-[#241815]"
                 } ${isClosing ? "dine-in-product-panel-exit" : "dine-in-product-panel-enter"}`}>
-                    <div className={`relative min-h-0 overflow-hidden ${
+                    <div className={`relative shrink-0 overflow-hidden ${
                         isDineInDark ? "bg-[#101517]" : "bg-[#F3E5D9]"
                     }`}>
                         <div className={`absolute inset-0 ${
@@ -441,36 +445,35 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             </button>
                         </div>
 
-                        <div className="relative z-10 px-5 pb-16 pt-4 text-center sm:px-7 sm:pb-20">
+                        <div className="relative z-10 px-5 pb-6 pt-4 text-center sm:px-7">
                             <p className={`text-xs font-black uppercase tracking-[0.18em] ${
                                 isDineInDark ? "text-[#FFD166]" : "text-[#9A6400]"
                             }`}>
                                 {item?.restaurantName || "Big-4 Menu"}
                             </p>
-                            <h2 className={`mx-auto mt-2 max-w-[360px] text-3xl font-black leading-[1.08] sm:text-[34px] ${
+                            <h2 className={`mx-auto mt-2 line-clamp-2 max-w-[360px] text-2xl font-black leading-[1.1] sm:text-[34px] ${
                                 isDineInDark ? "text-white" : "text-[#241815]"
                             }`}>
                                 {item?.title}
                             </h2>
+                            <div className={`mx-auto mt-4 h-32 w-32 overflow-hidden rounded-full border-[7px] shadow-[0_22px_42px_rgba(127,29,29,0.24)] sm:h-40 sm:w-40 ${
+                                isDineInDark
+                                    ? "border-[#12181B] bg-[#0D1113]"
+                                    : "border-[#FFF9F2] bg-[#241815]"
+                            }`}>
+                                <img
+                                    src={imageUrl}
+                                    alt={item?.title}
+                                    className="h-full w-full object-cover"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     <div className={`relative flex min-h-0 flex-1 flex-col ${
                         isDineInDark ? "bg-[#12181B]" : "bg-[#FFF9F2]"
                     }`}>
-                        <div className={`pointer-events-none absolute left-1/2 top-0 z-20 h-36 w-36 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[7px] shadow-[0_22px_42px_rgba(127,29,29,0.24)] sm:h-40 sm:w-40 ${
-                            isDineInDark
-                                ? "border-[#12181B] bg-[#0D1113]"
-                                : "border-[#FFF9F2] bg-[#241815]"
-                        }`}>
-                            <img
-                                src={imageUrl}
-                                alt={item?.title}
-                                className="h-full w-full object-cover"
-                            />
-                        </div>
-
-                        <div className="product-modal-scroll min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-4 pb-4 pt-20 sm:px-5 sm:pt-24">
+                        <div className="product-modal-scroll min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-4 pb-4 pt-4 sm:px-5">
                             <div className="mb-4 flex items-center justify-between gap-3">
                                 <div className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black shadow-[0_8px_22px_rgba(127,29,29,0.08)] ${
                                     isDineInDark
@@ -575,6 +578,16 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         ))}
                                     </div>
                                 </div>
+                            )}
+
+                            {!canOrder && (
+                                <p className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-black ${
+                                    isDineInDark
+                                        ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/24 text-[#FFD6D6]"
+                                        : "border-[#F3B0B0] bg-[#FFF0F0] text-[#7F1D1D]"
+                                }`}>
+                                    غير متوفر
+                                </p>
                             )}
 
                             {isLoadingDetails ? (
@@ -812,7 +825,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             >
                                                 <span className="block text-sm font-black capitalize">{size}</span>
                                                 <span className="mt-0.5 block text-xs font-bold opacity-70">
-                                                    {size === "small" ? "Regular serving" : "+ $2.00"}
+                                                    {size === "small" ? "حصة عادية" : "+ $2.00"}
                                                 </span>
                                             </button>
                                         ))}
@@ -882,7 +895,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </button>
                             </div>
                             <button
-                                disabled={!allRequiredModifiersSelected || isAdded || isClosing}
+                                disabled={!canOrder || !allRequiredModifiersSelected || isAdded || isClosing}
                                 onClick={addCurrentItemToCart}
                                 className={`flex min-w-0 items-center justify-between gap-2 rounded-full bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_28px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] active:scale-[0.99] disabled:cursor-not-allowed disabled:shadow-none ${
                                     isAdded
@@ -898,10 +911,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                     ) : (
                                         <ShoppingBag className="shrink-0" size={18} />
                                     )}
-                                    <span className="truncate">{isAdded ? "Added" : "Add to order"}</span>
+                                    <span className="truncate">
+                                        {isAdded ? "تمت الإضافة" : canOrder ? "إضافة للطلب" : "غير متوفر"}
+                                    </span>
                                 </span>
                                 <span className="shrink-0">
-                                    {isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}
+                                    {isLoadingDetails ? "جار التحميل..." : `$${(unitPrice * quantity).toFixed(2)}`}
                                 </span>
                             </button>
                         </div>
@@ -937,6 +952,15 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     <p className={`text-xs font-bold uppercase tracking-[0.18em] ${isDark ? "text-[#FFD166]" : "text-[#A28F87]"}`}>Customize item</p>
                     <h2 className={`mt-2 pr-12 text-2xl font-black ${isDark ? "text-white" : "text-[#2D2421]"}`}>{item?.title}</h2>
                     <p className={`mt-2 text-base font-semibold leading-7 ${isDark ? "text-white/68" : "text-[#6F5C54]"}`}>{item?.description}</p>
+                    {!canOrder && (
+                        <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-black ${
+                            isDark
+                                ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/24 text-[#FFD6D6]"
+                                : "border-[#F3B0B0] bg-[#FFF0F0] text-[#7F1D1D]"
+                        }`}>
+                            غير متوفر
+                        </p>
+                    )}
 
                     {isLoadingDetails ? (
                         <div className={`mt-5 rounded-2xl border p-4 text-sm font-extrabold ${
@@ -1176,7 +1200,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         }`}
                                     >
                                         <span className="block text-sm font-extrabold capitalize">{size}</span>
-                                        <span className="mt-0.5 block text-xs opacity-70">{size === "small" ? "Regular serving" : "+ $2.00"}</span>
+                                        <span className="mt-0.5 block text-xs opacity-70">{size === "small" ? "حصة عادية" : "+ $2.00"}</span>
                                     </button>
                                 ))}
                             </div>
@@ -1231,7 +1255,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     </div>
 
                     <button
-                        disabled={!allRequiredModifiersSelected || isAdded || isClosing}
+                        disabled={!canOrder || !allRequiredModifiersSelected || isAdded || isClosing}
                         onClick={addCurrentItemToCart}
                         className={`product-modal-submit mx-4 mb-4 mt-3 flex shrink-0 items-center justify-between rounded-2xl px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.99] disabled:cursor-not-allowed disabled:shadow-none sm:mx-5 ${
                             isAdded
@@ -1243,9 +1267,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     >
                         <span className="flex items-center gap-2">
                             {isAdded ? <Check size={19} /> : <ShoppingBag size={19} />}
-                            {isAdded ? "Added" : "Add to order"}
+                            {isAdded ? "تمت الإضافة" : canOrder ? "إضافة للطلب" : "غير متوفر"}
                         </span>
-                        <span>{isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}</span>
+                        <span>{isLoadingDetails ? "جار التحميل..." : `$${(unitPrice * quantity).toFixed(2)}`}</span>
                     </button>
                 </div>
             </div>

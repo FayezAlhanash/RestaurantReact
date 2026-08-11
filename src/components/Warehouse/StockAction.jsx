@@ -309,16 +309,24 @@ function StockActions() {
             />
 
             {isAdmin && (
-                <div className="mb-6 rounded-[24px] border border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] p-4 shadow-[0_18px_38px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04]">
+                <div className={`mb-6 rounded-[24px] border p-4 ring-1 ring-white/[0.04] ${
+                    isLight
+                        ? "border-[#8F1D1D]/35 bg-[linear-gradient(135deg,#FFF2EC_0%,#FFFDF8_48%,#F3DCDC_100%)] shadow-[0_18px_38px_rgba(127,29,29,0.14)]"
+                        : "border-[#FFD166]/30 bg-[linear-gradient(135deg,rgba(255,209,102,0.10),rgba(32,41,45,0.88))] shadow-[0_18px_38px_rgba(0,0,0,0.20)]"
+                }`}>
                     <div className="flex items-center gap-3">
-                        <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
+                        <div className={`grid h-11 w-11 place-items-center rounded-2xl border ${
+                            isLight
+                                ? "border-[#8F1D1D]/35 bg-[#F3DCDC] text-[#8F1D1D]"
+                                : "border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]"
+                        }`}>
                             <Building2 size={21} />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
+                            <p className={`text-xs font-black uppercase tracking-[0.18em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
                                 Admin warehouse view
                             </p>
-                            <h3 className="text-lg font-black text-white">
+                            <h3 className={`text-lg font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
                                 Choose restaurant warehouse
                             </h3>
                         </div>
@@ -346,8 +354,12 @@ function StockActions() {
                                         }}
                                         className={`shrink-0 rounded-2xl border px-4 py-2 text-sm font-black transition ${
                                             active
-                                                ? "border-[#FFD166]/70 bg-[#FFD166]/16 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
-                                                : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/35 hover:bg-[#FFD166]/10 hover:text-white"
+                                                ? isLight
+                                                    ? "brand-red-action-button border-[#8F1D1D]/70 bg-[#8F1D1D] text-white shadow-[0_12px_26px_rgba(127,29,29,0.18)]"
+                                                    : "border-[#FFD166]/70 bg-[#FFD166]/16 text-[#FFD166] shadow-[0_12px_26px_rgba(255,209,102,0.12)]"
+                                                : isLight
+                                                    ? "border-[#8F1D1D]/22 bg-white/78 text-[#6B5A52] hover:border-[#8F1D1D]/45 hover:bg-[#F3DCDC] hover:text-[#8F1D1D]"
+                                                    : "border-white/12 bg-[#0D1214]/70 text-white/68 hover:border-[#FFD166]/35 hover:bg-[#FFD166]/10 hover:text-white"
                                         }`}
                                     >
                                         #{restaurant.id} {restaurant.name}

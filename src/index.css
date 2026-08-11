@@ -413,6 +413,84 @@ img, svg {
     animation: topbar-welcome-name 10s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
 }
 
+@keyframes catalog-order-alert-shake {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.985);
+    }
+    18% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    32% {
+        transform: translateX(-8px);
+    }
+    46% {
+        transform: translateX(7px);
+    }
+    60% {
+        transform: translateX(-5px);
+    }
+    74% {
+        transform: translateX(3px);
+    }
+    88%,
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.catalog-order-alert {
+    animation: catalog-order-alert-shake 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(127, 29, 29, 0.42) !important;
+    background:
+        linear-gradient(135deg, #ffe5e5 0%, #ffd6d6 52%, #fff0e7 100%) !important;
+    color: #7f1d1d !important;
+    box-shadow:
+        0 16px 34px rgba(127, 29, 29, 0.18),
+        0 0 0 1px rgba(127, 29, 29, 0.08) !important;
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+.catalog-order-alert::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 7px;
+    background: #b91c1c;
+}
+
+.catalog-order-alert > * {
+    position: relative;
+    z-index: 1;
+}
+
+.catalog-status-badge--preparing {
+    border-color: rgba(2, 132, 199, 0.64) !important;
+    background-color: #e0f2fe !important;
+    color: #075985 !important;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.72),
+        0 8px 16px rgba(2, 132, 199, 0.14) !important;
+}
+
+[data-theme="dark"] .catalog-status-badge--preparing {
+    border-color: rgba(125, 211, 252, 0.58) !important;
+    background-color: rgba(14, 116, 144, 0.32) !important;
+    color: #e0f2fe !important;
+    box-shadow: 0 8px 18px rgba(14, 165, 233, 0.16) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .catalog-order-alert {
+        animation: none;
+    }
+}
+
 @keyframes notification-bell-ring {
     0%,
     88%,
@@ -548,14 +626,32 @@ img, svg {
         radial-gradient(circle at 18% 22%, rgba(255, 209, 102, 0.12), transparent 26%),
         radial-gradient(circle at 60% 82%, rgba(52, 211, 153, 0.08), transparent 30%),
         linear-gradient(145deg, #0D1214 0%, #12191C 52%, #24171A 100%) !important;
+    background-size: 140% 140%, 135% 135%, 150% 150%, 100% 100% !important;
+    animation: admin-background-drift 18s ease-in-out infinite alternate;
 }
 
 [data-theme="light"] .admin-rich-page {
     background:
-        radial-gradient(circle at 86% 10%, rgba(127, 29, 29, 0.12), transparent 30%),
-        radial-gradient(circle at 18% 22%, rgba(255, 209, 102, 0.24), transparent 26%),
-        radial-gradient(circle at 64% 82%, rgba(22, 163, 74, 0.08), transparent 30%),
-        linear-gradient(145deg, #f8f5ef 0%, #fffaf3 52%, #f1dfd2 100%) !important;
+        radial-gradient(circle at 86% 10%, rgba(127, 29, 29, 0.30), transparent 34%),
+        radial-gradient(circle at 18% 22%, rgba(185, 28, 28, 0.22), transparent 30%),
+        radial-gradient(circle at 64% 82%, rgba(127, 29, 29, 0.20), transparent 34%),
+        linear-gradient(145deg, #fff7f2 0%, #ffede7 52%, #eac8bf 100%) !important;
+    background-size: 155% 155%, 145% 145%, 165% 165%, 100% 100% !important;
+    animation: admin-background-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes admin-background-drift {
+    0% {
+        background-position: 0% 0%, 100% 18%, 50% 100%, 0% 0%;
+    }
+
+    50% {
+        background-position: 24% 10%, 78% 34%, 62% 82%, 0% 0%;
+    }
+
+    100% {
+        background-position: 42% 24%, 58% 50%, 36% 70%, 0% 0%;
+    }
 }
 
 [data-theme="light"] [class*="bg-[radial-gradient"],
@@ -1405,6 +1501,8 @@ img, svg {
 [data-theme="dark"] .login-screen {
     background-color: #160f0d !important;
     color-scheme: dark;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
 }
 
 .login-screen.is-arriving-from-help {
@@ -1519,6 +1617,75 @@ img, svg {
     height: 640px;
     max-height: calc(100dvh - 4rem);
     transform: translateY(-8px);
+}
+
+@media (max-height: 760px) {
+    .login-screen,
+    [data-theme="light"] .login-screen,
+    [data-theme="dark"] .login-screen {
+        align-items: center !important;
+        padding-block: 12px !important;
+    }
+
+    .login-screen .login-shell.is-intro,
+    [data-theme="light"] .login-screen .login-shell.is-intro,
+    [data-theme="dark"] .login-screen .login-shell.is-intro {
+        height: min(640px, calc(100dvh - 24px));
+        max-height: none;
+        transform: translateY(-8px);
+    }
+
+    .login-screen .login-shell.is-intro .login-visual-panel,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-visual-panel,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-visual-panel {
+        padding: clamp(20px, 4.2vh, 32px) !important;
+        justify-content: center !important;
+    }
+
+    .login-screen .login-shell.is-intro .login-visual-panel > .relative,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-visual-panel > .relative,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-visual-panel > .relative {
+        transform: translateY(clamp(-58px, -7vh, -28px)) !important;
+    }
+
+    .login-screen .login-shell.is-intro .login-glass-pill,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-glass-pill,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-glass-pill {
+        padding: 0.45rem 1rem !important;
+        font-size: clamp(0.66rem, 1.7vh, 0.75rem) !important;
+    }
+
+    .login-screen .login-shell.is-intro .login-visual-panel h2,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-visual-panel h2,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-visual-panel h2 {
+        margin-top: clamp(1rem, 3vh, 1.75rem) !important;
+        font-size: clamp(2.15rem, 7.7vh, 3.35rem) !important;
+        line-height: 0.96 !important;
+    }
+
+    .login-screen .login-shell.is-intro .login-visual-panel p,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-visual-panel p,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-visual-panel p {
+        margin-top: clamp(0.7rem, 2vh, 1rem) !important;
+        font-size: clamp(0.82rem, 2.1vh, 0.95rem) !important;
+        line-height: 1.5 !important;
+    }
+
+    .login-screen .login-shell.is-intro .login-intro-button,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-intro-button,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-intro-button {
+        height: clamp(48px, 7.2vh, 58px) !important;
+        margin-top: clamp(0.9rem, 2.6vh, 1.35rem) !important;
+        padding-inline: 22px 9px !important;
+        font-size: clamp(0.78rem, 2vh, 0.9rem) !important;
+    }
+
+    .login-screen .login-shell.is-intro .login-intro-button-icon,
+    [data-theme="light"] .login-screen .login-shell.is-intro .login-intro-button-icon,
+    [data-theme="dark"] .login-screen .login-shell.is-intro .login-intro-button-icon {
+        width: clamp(32px, 5.6vh, 38px) !important;
+        height: clamp(32px, 5.6vh, 38px) !important;
+    }
 }
 
 .login-screen .login-shell.is-open,
@@ -2003,4 +2170,104 @@ img, svg {
 [data-theme="light"] .loyalty-settings-input:focus {
     border-color: rgba(216, 162, 45, 0.72) !important;
     box-shadow: 0 0 0 4px rgba(216, 162, 45, 0.14) !important;
+}
+
+.invoice-refresh-button,
+.invoice-refresh-button *,
+.brand-red-action-button,
+.brand-red-action-button *,
+.invoice-brand-icon,
+.invoice-brand-icon *,
+[data-theme="light"] .invoice-refresh-button,
+[data-theme="light"] .invoice-refresh-button *,
+[data-theme="light"] .brand-red-action-button,
+[data-theme="light"] .brand-red-action-button *,
+[data-theme="light"] .invoice-brand-icon,
+[data-theme="light"] .invoice-brand-icon *,
+[data-theme="dark"] .invoice-refresh-button,
+[data-theme="dark"] .invoice-refresh-button *,
+[data-theme="dark"] .brand-red-action-button,
+[data-theme="dark"] .brand-red-action-button *,
+[data-theme="dark"] .invoice-brand-icon,
+[data-theme="dark"] .invoice-brand-icon * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-theme="light"] .restaurant-invoice-filter-select,
+[data-theme="dark"] .restaurant-invoice-filter-select {
+    background: transparent !important;
+}
+
+[data-theme="light"] .restaurant-invoice-filter-select {
+    color: #241815 !important;
+    -webkit-text-fill-color: #241815 !important;
+}
+
+.restaurant-invoice-menu [aria-selected="true"],
+.restaurant-invoice-menu [aria-selected="true"] *,
+[data-theme="light"] .restaurant-invoice-menu [aria-selected="true"],
+[data-theme="light"] .restaurant-invoice-menu [aria-selected="true"] * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-theme="light"] .invoice-red-page {
+    background:
+        radial-gradient(circle at 18% 8%, rgba(143, 29, 29, 0.18), transparent 30%),
+        radial-gradient(circle at 94% 18%, rgba(127, 29, 29, 0.16), transparent 26%),
+        linear-gradient(145deg, #fff4ee 0%, #f4d7cf 48%, #e9b9ad 100%) !important;
+}
+
+[data-theme="light"] .invoice-red-page > section:first-of-type {
+    background: linear-gradient(135deg, #fffaf7 0%, #fde8e1 52%, #f6d2c9 100%) !important;
+    border-color: rgba(143, 29, 29, 0.36) !important;
+    box-shadow: 0 22px 52px rgba(127, 29, 29, 0.18) !important;
+}
+
+[data-theme="light"] .invoice-red-page > section:first-of-type h1 {
+    color: #7f1d1d !important;
+    -webkit-text-fill-color: #7f1d1d !important;
+}
+
+[data-theme="light"] .invoice-red-page aside,
+[data-theme="light"] .invoice-red-page article {
+    background: linear-gradient(180deg, #fffaf7 0%, #fff1eb 100%) !important;
+    border-color: rgba(143, 29, 29, 0.30) !important;
+    box-shadow: 0 18px 44px rgba(127, 29, 29, 0.13) !important;
+}
+
+[data-theme="light"] .invoice-red-page aside > div:first-child,
+[data-theme="light"] .invoice-red-page article > div:first-child {
+    background: linear-gradient(135deg, #fbe5de 0%, #fff7f3 100%) !important;
+    border-color: rgba(143, 29, 29, 0.28) !important;
+}
+
+[data-theme="light"] .invoice-red-page .restaurant-invoice-filter {
+    background: linear-gradient(135deg, #fff8f4 0%, #f6d6cd 100%) !important;
+    border-color: rgba(143, 29, 29, 0.46) !important;
+}
+
+[data-theme="light"] .invoice-red-page aside button.group {
+    background: linear-gradient(135deg, #fffdfb 0%, #fff1eb 100%) !important;
+    border-color: rgba(143, 29, 29, 0.24) !important;
+    box-shadow: inset 4px 0 0 rgba(143, 29, 29, 0.18) !important;
+}
+
+[data-theme="light"] .invoice-red-page aside button.group:hover {
+    background: linear-gradient(135deg, #fff5ef 0%, #f6d6cd 100%) !important;
+    border-color: rgba(143, 29, 29, 0.48) !important;
+}
+
+[data-theme="light"] .invoice-red-page aside button.group:focus,
+[data-theme="light"] .invoice-red-page aside button.group:focus-visible {
+    outline: 3px solid rgba(143, 29, 29, 0.18) !important;
+    outline-offset: 2px !important;
+}
+
+[data-theme="light"] .invoice-red-page .restaurant-invoice-menu {
+    background: linear-gradient(180deg, #fffaf7 0%, #fbe5de 100%) !important;
+    border-color: rgba(143, 29, 29, 0.34) !important;
 }
