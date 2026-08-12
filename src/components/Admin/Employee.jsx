@@ -1,6 +1,8 @@
 import {
     BadgeCheck,
     Building2,
+    Check,
+    ChevronDown,
     Info,
     ListFilter,
     Mail,
@@ -26,6 +28,106 @@ const getList = (data, key) => {
     if (Array.isArray(data?.data)) return data.data;
     return [];
 };
+
+const EXCLUDED_ROLE_NAMES = ["admin", "customer"];
+
+const normalizeRoleName = (name) =>
+    String(name ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+const formatRoleLabel = (role) =>
+    String(role?.name ?? "")
+        .replace(/[_-]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+function StyledSelect({
+    value,
+    options,
+    placeholder,
+    onChange,
+    getOptionLabel,
+    getOptionValue = (option) => option.id,
+    disabled = false,
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(
+        (option) => String(getOptionValue(option)) === String(value)
+    );
+    const selectedLabel = selectedOption ? getOptionLabel(selectedOption) : placeholder;
+
+    const handleSelect = (option) => {
+        onChange(String(getOptionValue(option)));
+        setIsOpen(false);
+    };
+
+    const handleBlur = (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            setIsOpen(false);
+        }
+    };
+
+    return (
+        <div className="relative" onBlur={handleBlur}>
+            <button
+                type="button"
+                disabled={disabled}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                onClick={() => setIsOpen((current) => !current)}
+                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-black text-white outline-none shadow-inner transition-all focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10 ${
+                    disabled
+                        ? "cursor-not-allowed border-white/5 bg-white/[0.03] text-white/30"
+                        : "border-white/10 bg-[#0D1214] hover:border-[#FFD166]/40 hover:bg-[#11181B]"
+                }`}
+            >
+                <span className={selectedOption ? "truncate" : "truncate text-white/35"}>
+                    {selectedLabel}
+                </span>
+                <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-[#FFD166] transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                    }`}
+                />
+            </button>
+
+            {isOpen && !disabled && (
+                <div
+                    role="listbox"
+                    tabIndex={-1}
+                    className="absolute left-0 right-0 z-[340] mt-2 max-h-60 overflow-y-auto rounded-2xl border border-[#FFD166]/20 bg-[#11181B] p-1.5 shadow-2xl shadow-black/45"
+                >
+                    {options.map((option) => {
+                        const optionValue = String(getOptionValue(option));
+                        const isSelected = optionValue === String(value);
+
+                        return (
+                            <button
+                                key={optionValue}
+                                type="button"
+                                role="option"
+                                aria-selected={isSelected}
+                                onClick={() => handleSelect(option)}
+                                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-black transition ${
+                                    isSelected
+                                        ? "bg-[#FFD166] text-[#151A1D]"
+                                        : "text-white/78 hover:bg-white/[0.07] hover:text-white"
+                                }`}
+                            >
+                                <span className="truncate">{getOptionLabel(option)}</span>
+                                {isSelected && <Check size={16} className="shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 function getEmployeeName(employee) {
     return [employee?.first_name, employee?.last_name].filter(Boolean).join(" ");
@@ -95,9 +197,7 @@ function Employee() {
 
     const roleOptions = useMemo(
         () =>
-            roles.filter(
-                (role) => String(role.name ?? "").toLowerCase() !== "customer"
-            ),
+            roles.filter((role) => !EXCLUDED_ROLE_NAMES.includes(normalizeRoleName(role.name))),
         [roles]
     );
 
@@ -777,39 +877,32 @@ function Employee() {
 
                             <label className="block">
                                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Role</span>
-                                <select
+                                <StyledSelect
                                     value={selectedEmployee.role_id || ""}
-                                    onChange={(event) =>
+                                    options={roleOptions}
+                                    placeholder="Select role"
+                                    getOptionLabel={formatRoleLabel}
+                                    onChange={(nextRole) =>
                                         setSelectedEmployee({
                                             ...selectedEmployee,
-                                            role_id: event.target.value,
+                                            role_id: nextRole,
                                         })
                                     }
-                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                                >
-                                    {roleOptions.map((role) => (
-                                        <option key={role.id} value={role.id}>
-                                            {role.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    disabled={!roleOptions.length}
+                                />
                             </label>
 
                             {needsRestaurant && (
                                 <label className="block">
                                     <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Restaurant</span>
-                                    <select
+                                    <StyledSelect
                                         value={editRestaurantId}
-                                        onChange={(event) => setEditRestaurantId(event.target.value)}
-                                        className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                                    >
-                                        <option value="">Select Restaurant</option>
-                                        {restaurants.map((restaurant) => (
-                                            <option key={restaurant.id} value={restaurant.id}>
-                                                {restaurant.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        options={restaurants}
+                                        placeholder="Select Restaurant"
+                                        getOptionLabel={(restaurant) => restaurant.name}
+                                        onChange={setEditRestaurantId}
+                                        disabled={!restaurants.length}
+                                    />
                                 </label>
                             )}
                         </div>

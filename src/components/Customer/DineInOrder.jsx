@@ -498,6 +498,147 @@ const getCreatedOrderId = (data) => {
     );
 };
 
+const getOrderId = (order = {}) =>
+    order?.id ??
+    order?.order_id ??
+    order?.orderId ??
+    order?.restaurant_order_id ??
+    order?.restaurantOrderId ??
+    order?.order?.id ??
+    order?.data?.id ??
+    null;
+
+const TERMINAL_ORDER_STATUSES = [
+    "cancelled",
+    "canceled",
+    "closed",
+    "completed",
+    "delivered",
+    "served",
+];
+
+const isActiveDineInOrder = (order = {}) => {
+    const status = String(
+        order?.status ??
+            order?.state ??
+            order?.order_status ??
+            order?.orderStatus ??
+            order?.kitchen_status ??
+            order?.kitchenStatus ??
+            order?.order?.status ??
+            ""
+    ).toLowerCase();
+
+    return !TERMINAL_ORDER_STATUSES.includes(status);
+};
+
+const collectDineInOrders = (value, orders = [], seen = new Set()) => {
+    if (!value || typeof value !== "object" || seen.has(value)) return orders;
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        value.forEach((item) => collectDineInOrders(item, orders, seen));
+        return orders;
+    }
+
+    const directLists = [
+        value.orders,
+        value.order,
+        value.active_orders,
+        value.activeOrders,
+        value.current_orders,
+        value.currentOrders,
+        value.dine_in_orders,
+        value.dineInOrders,
+        value.data?.orders,
+        value.data?.order,
+        value.data?.active_orders,
+        value.data?.activeOrders,
+        value.data?.current_orders,
+        value.data?.currentOrders,
+        value.data?.dine_in_orders,
+        value.data?.dineInOrders,
+        value.session?.orders,
+        value.session?.active_orders,
+        value.session?.activeOrders,
+    ];
+
+    directLists.forEach((list) => {
+        if (Array.isArray(list)) {
+            list.forEach((item) => collectDineInOrders(item, orders, seen));
+        } else if (list && typeof list === "object" && getOrderId(list)) {
+            orders.push(list);
+        }
+    });
+
+    if (getOrderId(value)) {
+        orders.push(value);
+    }
+
+    return orders;
+};
+
+const getUniqueActiveDineInOrders = (data) => {
+    const uniqueOrders = new Map();
+
+    collectDineInOrders(data).forEach((order) => {
+        const orderId = getOrderId(order);
+
+        if (!orderId || !isActiveDineInOrder(order)) return;
+
+        uniqueOrders.set(String(orderId), order);
+    });
+
+    return Array.from(uniqueOrders.values());
+};
+
+const getCurrentDineInOrderEndpoints = (sessionToken) => [
+    "/customer-dine-in/orders",
+    "/customer-dine-in/orders/current",
+    "/customer-dine-in/current-order",
+    `/customer-dine-in/session/${encodeURIComponent(sessionToken)}/orders`,
+];
+
+async function fetchCurrentDineInOrders(sessionToken, tableId, sessionData = null) {
+    const sessionOrders = getUniqueActiveDineInOrders(sessionData);
+
+    if (sessionOrders.length) return sessionOrders;
+
+    let lastError;
+
+    for (const endpoint of getCurrentDineInOrderEndpoints(sessionToken)) {
+        try {
+            const response = await api.get(endpoint, {
+                headers: getSessionTokenHeaders(sessionToken),
+                params: {
+                    session_token: sessionToken,
+                    table_session_token: sessionToken,
+                    table_token: sessionToken,
+                    token: sessionToken,
+                    table_id: getTableIdForRequest(tableId),
+                },
+            });
+            const orders = getUniqueActiveDineInOrders(response.data);
+
+            if (orders.length) return orders;
+        } catch (error) {
+            lastError = error;
+            if (isMissingEndpointError(error) || error.response?.status === 404) {
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (lastError && !isMissingEndpointError(lastError) && lastError.response?.status !== 404) {
+        throw lastError;
+    }
+
+    return [];
+}
+
 const collectInvoiceIds = (value, ids = []) => {
     if (!value || typeof value !== "object") return ids;
 
@@ -734,6 +875,26 @@ async function fetchDineInOrderTiming(orderId, sessionToken) {
     } catch {
         return null;
     }
+}
+
+async function buildOrderTimingItems(orders, sessionToken) {
+    const timingItems = await Promise.all(
+        orders.map(async (order) => {
+            const orderId = getOrderId(order);
+            const timing =
+                getBestPreparationTiming(order) ||
+                (await fetchDineInOrderTiming(orderId, sessionToken));
+
+            return orderId
+                ? {
+                      orderId: String(orderId),
+                      timing,
+                  }
+                : null;
+        })
+    );
+
+    return timingItems.filter(Boolean);
 }
 
 async function selectDineInPayment(invoiceId, orderId, sessionToken, paymentMethod) {
@@ -2097,11 +2258,42 @@ function DineInOrder() {
                     throw createSessionUnavailableError("This table session is not available.");
                 }
 
-                await validateDineInSession(
+                const sessionData = await validateDineInSession(
                     resolvedSessionToken,
                     tableId
                 );
                 setIsSessionAvailable(true);
+
+                const activeOrders = await fetchCurrentDineInOrders(
+                    resolvedSessionToken,
+                    tableId,
+                    sessionData
+                );
+                const activeOrderTimings = await buildOrderTimingItems(
+                    activeOrders,
+                    resolvedSessionToken
+                );
+
+                if (activeOrderTimings.length) {
+                    setOrderTimings(activeOrderTimings);
+                    sessionStorage.setItem(
+                        orderTimingsStorageKey,
+                        JSON.stringify(activeOrderTimings)
+                    );
+                    setShowOrderTimings(true);
+                    setSuccessMessage(
+                        activeOrderTimings.length === 1
+                            ? "You have an active order for this table."
+                            : `You have ${activeOrderTimings.length} active orders for this table.`
+                    );
+                } else {
+                    setSuccessMessage("");
+                    setOrderTimings([]);
+                    sessionStorage.removeItem(orderStorageKey);
+                    sessionStorage.removeItem(invoiceStorageKey);
+                    sessionStorage.removeItem(orderTimingsStorageKey);
+                    setShowOrderTimings(false);
+                }
 
                 const restaurantsResponse = await api.get("/restaurants");
                 const restaurantList = getList(restaurantsResponse.data);
@@ -2171,7 +2363,7 @@ function DineInOrder() {
     ]);
 
     useEffect(() => {
-        if (!orderTimings.length || !sessionToken || !successMessage) {
+        if (!orderTimings.length || !sessionToken) {
             return undefined;
         }
 
@@ -2209,7 +2401,7 @@ function DineInOrder() {
             isMounted = false;
             window.clearInterval(intervalId);
         };
-    }, [orderTimings.length, orderTimingsStorageKey, sessionToken, successMessage]);
+    }, [orderTimings.length, orderTimingsStorageKey, sessionToken]);
 
     useEffect(() => {
         let isMounted = true;
