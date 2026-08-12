@@ -594,7 +594,6 @@ const getUniqueActiveDineInOrders = (data) => {
 };
 
 const getCurrentDineInOrderEndpoints = (sessionToken) => [
-    "/customer-dine-in/orders",
     "/customer-dine-in/orders/current",
     "/customer-dine-in/current-order",
     `/customer-dine-in/session/${encodeURIComponent(sessionToken)}/orders`,
@@ -604,8 +603,6 @@ async function fetchCurrentDineInOrders(sessionToken, tableId, sessionData = nul
     const sessionOrders = getUniqueActiveDineInOrders(sessionData);
 
     if (sessionOrders.length) return sessionOrders;
-
-    let lastError;
 
     for (const endpoint of getCurrentDineInOrderEndpoints(sessionToken)) {
         try {
@@ -623,17 +620,15 @@ async function fetchCurrentDineInOrders(sessionToken, tableId, sessionData = nul
 
             if (orders.length) return orders;
         } catch (error) {
-            lastError = error;
-            if (isMissingEndpointError(error) || error.response?.status === 404) {
+            if (
+                isMissingEndpointError(error) ||
+                error.response?.status === 404 ||
+                error.response?.status === 405 ||
+                error.response?.status === 422
+            ) {
                 continue;
             }
-
-            break;
         }
-    }
-
-    if (lastError && !isMissingEndpointError(lastError) && lastError.response?.status !== 404) {
-        throw lastError;
     }
 
     return [];
