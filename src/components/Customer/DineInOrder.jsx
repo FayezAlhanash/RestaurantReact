@@ -533,6 +533,35 @@ const getCreatedInvoiceId = (data) => collectInvoiceIds(data)[0] ?? null;
 const getFirstPresent = (values) =>
     values.find((value) => value !== undefined && value !== null && value !== "");
 
+const isTruthyFlag = (value) =>
+    value === true ||
+    value === 1 ||
+    String(value).toLowerCase() === "true";
+
+const normalizeTimingStatus = (status) => String(status || "").toLowerCase();
+
+const PREPARATION_STARTED_STATUSES = [
+    "preparing",
+    "in_progress",
+    "in_preparation",
+    "started",
+    "ready",
+    "completed",
+    "served",
+];
+
+const READY_STATUSES = ["ready", "completed", "served"];
+
+const getPreparationTrackingScope = (value = {}) =>
+    String(
+        getFirstPresent([
+            value?.preparation_tracking_scope,
+            value?.preparationTrackingScope,
+            value?.order?.preparation_tracking_scope,
+            value?.order?.preparationTrackingScope,
+        ]) || "whole_order"
+    ).toLowerCase();
+
 const getPreparationTimingFromObject = (value = {}) => {
     const source = value?.restaurant_order ?? value?.restaurantOrder ?? value;
     const remainingMinutes = getFirstPresent([
@@ -540,6 +569,10 @@ const getPreparationTimingFromObject = (value = {}) => {
         value?.remainingMinutes,
         source?.remaining_minutes,
         source?.remainingMinutes,
+        value?.estimated_time,
+        value?.estimatedTime,
+        source?.estimated_time,
+        source?.estimatedTime,
     ]);
     const waitingForPreparation = getFirstPresent([
         value?.waiting_for_preparation,
@@ -550,10 +583,7 @@ const getPreparationTimingFromObject = (value = {}) => {
 
     return {
         remainingMinutes,
-        waitingForPreparation:
-            waitingForPreparation === true ||
-            waitingForPreparation === 1 ||
-            String(waitingForPreparation).toLowerCase() === "true",
+        waitingForPreparation: isTruthyFlag(waitingForPreparation),
     };
 };
 
@@ -562,6 +592,88 @@ const hasPreparationTiming = (timing) =>
     (timing?.remainingMinutes !== undefined &&
         timing?.remainingMinutes !== null &&
         timing?.remainingMinutes !== "");
+
+const getRestaurantOrdersForTiming = (order = {}) => [
+    ...getList(order?.restaurant_orders),
+    ...getList(order?.restaurantOrders),
+    ...getList(order?.order?.restaurant_orders),
+    ...getList(order?.order?.restaurantOrders),
+    ...getList(order?.data?.restaurant_orders),
+    ...getList(order?.data?.restaurantOrders),
+    ...getList(order?.data?.order?.restaurant_orders),
+    ...getList(order?.data?.order?.restaurantOrders),
+];
+
+const getRestaurantOrderItems = (restaurantOrder = {}) => [
+    ...getList(restaurantOrder?.order_items),
+    ...getList(restaurantOrder?.orderItems),
+    ...getList(restaurantOrder?.items),
+];
+
+const getRestaurantOrderName = (restaurantOrder = {}, index = 0) =>
+    restaurantOrder?.restaurant?.name ??
+    restaurantOrder?.restaurant_name ??
+    restaurantOrder?.restaurantName ??
+    `Restaurant ${index + 1}`;
+
+const getRestaurantOrderItemName = (item = {}, index = 0) =>
+    item?.food?.name ??
+    item?.food?.title ??
+    item?.name ??
+    item?.title ??
+    item?.food_name ??
+    item?.foodName ??
+    `Item ${index + 1}`;
+
+const getPerRestaurantPreparationTiming = (order = {}) => {
+    if (getPreparationTrackingScope(order) !== "per_restaurant") return null;
+
+    const restaurantOrders = getRestaurantOrdersForTiming(order);
+
+    if (!restaurantOrders.length) return null;
+
+    const restaurants = restaurantOrders.map((restaurantOrder, index) => {
+        const status = normalizeTimingStatus(restaurantOrder.status);
+        const timing = getPreparationTimingFromObject(restaurantOrder);
+        const hasStarted = PREPARATION_STARTED_STATUSES.includes(status);
+        const waitingForPreparation = timing.waitingForPreparation || !hasStarted;
+        const remainingMinutes = Number(timing.remainingMinutes);
+
+        return {
+            id: restaurantOrder.id ?? restaurantOrder.restaurant_order_id ?? index,
+            restaurantId: restaurantOrder.restaurant_id ?? restaurantOrder.restaurantId,
+            restaurantName: getRestaurantOrderName(restaurantOrder, index),
+            status,
+            remainingMinutes: Number.isFinite(remainingMinutes)
+                ? Math.max(0, remainingMinutes)
+                : timing.remainingMinutes,
+            waitingForPreparation,
+            items: getRestaurantOrderItems(restaurantOrder).map((item, itemIndex) => ({
+                id: item.id ?? `${index}-${itemIndex}`,
+                name: getRestaurantOrderItemName(item, itemIndex),
+                quantity: Number(item.quantity ?? 1),
+                notes: item.notes ?? "",
+            })),
+        };
+    });
+    const readyRestaurants = restaurants.filter(
+        (restaurant) => !restaurant.waitingForPreparation
+    );
+    const remainingMinutes = readyRestaurants
+        .map((restaurant) => Number(restaurant.remainingMinutes))
+        .filter(Number.isFinite);
+
+    return {
+        scope: "per_restaurant",
+        waitingForPreparation: restaurants.some(
+            (restaurant) => restaurant.waitingForPreparation
+        ),
+        remainingMinutes: remainingMinutes.length
+            ? Math.max(...remainingMinutes)
+            : null,
+        restaurants,
+    };
+};
 
 const readStoredOrderTimings = (key) => {
     try {
@@ -578,7 +690,14 @@ const findPreparationTiming = (value, seen = new Set()) => {
 
     seen.add(value);
 
-    const timing = getPreparationTimingFromObject(value);
+    const perRestaurantTiming = getPerRestaurantPreparationTiming(value);
+
+    if (perRestaurantTiming) return perRestaurantTiming;
+
+    const timing = {
+        scope: getPreparationTrackingScope(value),
+        ...getPreparationTimingFromObject(value),
+    };
 
     if (hasPreparationTiming(timing)) return timing;
 
@@ -591,6 +710,16 @@ const findPreparationTiming = (value, seen = new Set()) => {
     }
 
     return null;
+};
+
+const getBestPreparationTiming = (...values) => {
+    const timings = values.map((value) => findPreparationTiming(value)).filter(Boolean);
+
+    return (
+        timings.find((timing) => timing.scope === "per_restaurant") ??
+        timings[0] ??
+        null
+    );
 };
 
 async function fetchDineInOrderTiming(orderId, sessionToken) {
@@ -2344,8 +2473,7 @@ function DineInOrder() {
             }
 
             const nextOrderTiming =
-                findPreparationTiming(paymentResponse) ||
-                findPreparationTiming(response) ||
+                getBestPreparationTiming(paymentResponse, response) ||
                 (await fetchDineInOrderTiming(createdOrderId, sessionToken));
 
             saveOrderTimings((currentTimings) => {
@@ -2565,23 +2693,80 @@ function DineInOrder() {
                                             <div className="space-y-2 rounded-2xl border border-white/10 bg-[#12181B] p-3 text-white">
                                                 {orderTimings.map((orderTiming, index) => {
                                                     const timing = orderTiming.timing;
-                                                    const label = timing?.waitingForPreparation
-                                                        ? "Waiting"
-                                                        : hasPreparationTiming(timing)
-                                                            ? `${timing.remainingMinutes} min left`
-                                                            : "-";
+                                                    const isPerRestaurant =
+                                                        timing?.scope === "per_restaurant" &&
+                                                        Array.isArray(timing.restaurants);
+                                                    const label = isPerRestaurant
+                                                        ? timing.waitingForPreparation
+                                                            ? "Waiting for restaurants"
+                                                            : `${timing.remainingMinutes} min left`
+                                                        : timing?.waitingForPreparation
+                                                            ? "Waiting"
+                                                            : hasPreparationTiming(timing)
+                                                                ? `${timing.remainingMinutes} min left`
+                                                                : "-";
 
                                                     return (
                                                         <div
                                                             key={orderTiming.orderId}
-                                                            className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.07] px-3 py-3"
+                                                            className="rounded-xl bg-white/[0.07] px-3 py-3"
                                                         >
-                                                            <span className="text-sm font-black text-white/70">
-                                                                Order {index + 1}
-                                                            </span>
-                                                            <span className="text-xl font-black text-white">
-                                                                {label}
-                                                            </span>
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <span className="text-sm font-black text-white/70">
+                                                                    Order {index + 1}
+                                                                </span>
+                                                                <span className="text-xl font-black text-white">
+                                                                    {label}
+                                                                </span>
+                                                            </div>
+                                                            {isPerRestaurant && (
+                                                                <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                                                                    {timing.restaurants.map((restaurant) => {
+                                                                        const restaurantLabel = restaurant.waitingForPreparation
+                                                                            ? "Waiting for preparation"
+                                                                            : READY_STATUSES.includes(restaurant.status)
+                                                                                ? "Ready"
+                                                                                : `${restaurant.remainingMinutes} min left`;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={`${orderTiming.orderId}-${restaurant.id}`}
+                                                                                className="rounded-xl border border-white/10 bg-black/15 p-3"
+                                                                            >
+                                                                                <div className="flex items-start justify-between gap-3">
+                                                                                    <div className="min-w-0">
+                                                                                        <p className="truncate text-sm font-black text-white">
+                                                                                            {restaurant.restaurantName}
+                                                                                        </p>
+                                                                                        <p className="mt-1 text-xs font-bold text-white/55">
+                                                                                            {restaurant.items.length} item{restaurant.items.length === 1 ? "" : "s"}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-black ${
+                                                                                        restaurant.waitingForPreparation
+                                                                                            ? "bg-[#FFD166]/16 text-[#FFD166]"
+                                                                                            : "bg-emerald-400/16 text-emerald-200"
+                                                                                    }`}>
+                                                                                        {restaurantLabel}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {restaurant.items.length > 0 && (
+                                                                                    <div className="mt-3 space-y-1">
+                                                                                        {restaurant.items.map((item) => (
+                                                                                            <p
+                                                                                                key={item.id}
+                                                                                                className="text-xs font-semibold leading-5 text-white/70"
+                                                                                            >
+                                                                                                {item.quantity}x {item.name}
+                                                                                            </p>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     );
                                                 })}
