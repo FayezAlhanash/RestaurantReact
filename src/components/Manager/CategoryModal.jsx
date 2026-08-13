@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
-import { Save, Tags, X } from "lucide-react";
+import { AlertTriangle, Save, Tags, X } from "lucide-react";
 
-function CategoryModal({ isOpen, onClose, onSave, isSaving = false }) {
+function CategoryModal({
+  isOpen,
+  onClose,
+  onSave,
+  category,
+  errorMessage = "",
+  onClearError,
+  isSaving = false,
+}) {
   const [name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -10,10 +18,10 @@ function CategoryModal({ isOpen, onClose, onSave, isSaving = false }) {
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName("");
-      setIsActive(true);
+      setName(category?.name ?? "");
+      setIsActive(Boolean(Number(category?.is_active ?? category?.isActive ?? 1)));
     }
-  }, [isOpen]);
+  }, [isOpen, category]);
 
   if (!isOpen) return null;
 
@@ -47,7 +55,7 @@ function CategoryModal({ isOpen, onClose, onSave, isSaving = false }) {
                 Menu category
               </p>
               <h2 className="text-xl font-black text-white">
-                Add Category
+                {category ? "Edit Category" : "Add Category"}
               </h2>
             </div>
           </div>
@@ -69,13 +77,25 @@ function CategoryModal({ isOpen, onClose, onSave, isSaving = false }) {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                onClearError?.();
+              }}
               placeholder="Pizza, Burgers, Drinks..."
-              className="w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+              className={`w-full rounded-2xl border bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10 ${
+                errorMessage ? "border-[#EF4444]/70" : "border-white/10"
+              }`}
               required
               disabled={saving}
             />
           </div>
+
+          {errorMessage && (
+            <div className="flex items-start gap-2 rounded-2xl border border-[#EF4444]/35 bg-[#7F1D1D]/18 px-3 py-2.5 text-sm font-bold leading-5 text-[#FCA5A5]">
+              <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#166534]/30 bg-[#166534]/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/55">
             <span>
@@ -110,7 +130,7 @@ function CategoryModal({ isOpen, onClose, onSave, isSaving = false }) {
               className="group inline-flex items-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0 disabled:cursor-wait disabled:bg-[#7F1D1D]/45 disabled:shadow-none disabled:hover:translate-y-0"
             >
               <Save size={17} className="transition duration-200 group-hover:-rotate-6" />
-              {saving ? "Please wait..." : "Save"}
+              {saving ? "Please wait..." : category ? "Update" : "Save"}
             </button>
           </div>
         </form>

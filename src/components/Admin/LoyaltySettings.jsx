@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { BadgePercent, Globe2, Loader2, Save, Store } from "lucide-react";
+import {
+    ArrowDownUp,
+    BadgePercent,
+    Coins,
+    Gift,
+    Globe2,
+    Loader2,
+    Save,
+    ShieldCheck,
+    Store,
+} from "lucide-react";
 import api from "../../API/axios";
 import { ROLE_IDS, getStoredUser } from "../../utils/auth";
+import {
+    nonNegativeNumberInputProps,
+    toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 const DEFAULT_SETTINGS = {
     is_enabled: 1,
@@ -27,6 +41,75 @@ const FIELDS = [
     { key: "max_redeem_points", label: "Maximum redeem points", min: 0 },
 ];
 
+const TOGGLE_FIELDS = [
+    {
+        key: "is_enabled",
+        label: "Program status",
+        active: "Enabled",
+        inactive: "Disabled",
+        icon: ShieldCheck,
+    },
+    {
+        key: "earning_enabled",
+        label: "Points earning",
+        active: "Customers earn points",
+        inactive: "Earning is off",
+        icon: Coins,
+    },
+    {
+        key: "redemption_enabled",
+        label: "Points redemption",
+        active: "Customers redeem points",
+        inactive: "Redemption is off",
+        icon: Gift,
+    },
+];
+
+const NUMBER_FIELDS = [
+    {
+        key: "earn_points",
+        label: "Earn points",
+        helper: "Points awarded per spend rule.",
+        suffix: "pts",
+        icon: Coins,
+    },
+    {
+        key: "earn_amount",
+        label: "Earn amount",
+        helper: "Customer spend needed for earning.",
+        prefix: "$",
+        icon: ArrowDownUp,
+    },
+    {
+        key: "redeem_points",
+        label: "Redeem points",
+        helper: "Points customers exchange.",
+        suffix: "pts",
+        icon: Gift,
+    },
+    {
+        key: "redeem_amount",
+        label: "Redeem amount",
+        helper: "Discount value for redemption.",
+        prefix: "$",
+        icon: BadgePercent,
+    },
+    {
+        key: "min_redeem_points",
+        label: "Minimum redeem",
+        helper: "Smallest redemption allowed.",
+        suffix: "pts",
+        icon: ShieldCheck,
+    },
+    {
+        key: "max_redeem_points",
+        label: "Maximum redeem",
+        helper: "Largest redemption allowed.",
+        suffix: "pts",
+        icon: ShieldCheck,
+    },
+];
+
 function getList(data) {
     if (Array.isArray(data?.restaurants)) return data.restaurants;
     if (Array.isArray(data?.data?.restaurants)) return data.data.restaurants;
@@ -40,9 +123,25 @@ function getSettings(data) {
         data?.settings ??
         data?.loyalty_settings ??
         data?.loyaltySettings ??
+        data?.global_settings ??
+        data?.globalSettings ??
+        data?.global_loyalty_settings ??
+        data?.globalLoyaltySettings ??
+        data?.global_loyalty_setting ??
+        data?.globalLoyaltySetting ??
+        data?.loyalty_setting ??
+        data?.loyaltySetting ??
         data?.data?.settings ??
         data?.data?.loyalty_settings ??
         data?.data?.loyaltySettings ??
+        data?.data?.global_settings ??
+        data?.data?.globalSettings ??
+        data?.data?.global_loyalty_settings ??
+        data?.data?.globalLoyaltySettings ??
+        data?.data?.global_loyalty_setting ??
+        data?.data?.globalLoyaltySetting ??
+        data?.data?.loyalty_setting ??
+        data?.data?.loyaltySetting ??
         data?.data ??
         data ??
         {}
@@ -111,6 +210,13 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
     }, [isGlobal, selectedRestaurantId]);
 
     useEffect(() => {
+        if (!isGlobal) return;
+
+        setRestaurants([]);
+        setSelectedRestaurantId("");
+    }, [isGlobal]);
+
+    useEffect(() => {
         if (!isAdmin || isGlobal) return undefined;
 
         const loadRestaurants = async () => {
@@ -165,7 +271,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
     const updateField = (key, value) => {
         setSettings((current) => ({
             ...current,
-            [key]: value,
+            [key]: toNonNegativeNumberValue(value),
         }));
     };
 
@@ -184,8 +290,13 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
         try {
             const formData = new FormData();
             appendSettings(formData, settings);
+            const response = await api.post(endpoint, formData);
+            const savedSettings = getSettings(response.data);
 
-            await api.post(endpoint, formData);
+            if (savedSettings && Object.keys(savedSettings).length) {
+                setSettings(normalizeSettings(savedSettings));
+            }
+
             setMessage("Loyalty settings saved.");
         } catch (error) {
             setErrorMessage(
@@ -201,77 +312,106 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
     const subtitle = isGlobal
         ? "Default loyalty earning and redemption rules for the platform."
         : "Restaurant-specific loyalty earning and redemption rules.";
+    const earningRule = `${settings.earn_points || 0} pts / $${settings.earn_amount || 0}`;
+    const redemptionRule = `${settings.redeem_points || 0} pts = $${settings.redeem_amount || 0}`;
+    const redeemRange = `${settings.min_redeem_points || 0} - ${settings.max_redeem_points || 0} pts`;
 
     return (
         <main className="loyalty-settings-page admin-rich-page min-h-full p-4 text-white sm:p-6 lg:p-8">
-            <div className="mx-auto max-w-[1100px]">
-                <section className="loyalty-settings-panel mb-6 rounded-[18px] border border-white/10 bg-[#15191b] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="grid h-12 w-12 place-items-center rounded-[10px] border border-[#FFD166]/35 bg-[#FFD166]/12 text-[#FFD166]">
-                                <HeaderIcon size={24} />
+            <div className="mx-auto max-w-[1180px]">
+                <section className="mb-5 overflow-hidden rounded-[18px] border border-white/10 bg-[#171D20] shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+                    <div className="flex flex-col gap-5 border-b border-white/10 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex min-w-0 items-center gap-4">
+                            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[12px] border border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166] shadow-[0_12px_28px_rgba(255,209,102,0.08)]">
+                                <HeaderIcon size={26} />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                    Loyalty
+                                    Loyalty rules
                                 </p>
-                                <h1 className="mt-1 text-2xl font-black text-white">
+                                <h1 className="mt-1 text-3xl font-black leading-9 text-white">
                                     {title}
                                 </h1>
-                                <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
+                                <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/58">
                                     {subtitle}
                                 </p>
                             </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 sm:min-w-[430px]">
+                            {[
+                                ["Earn", earningRule],
+                                ["Redeem", redemptionRule],
+                                ["Range", redeemRange],
+                            ].map(([label, value]) => (
+                                <div
+                                    key={label}
+                                    className="rounded-[12px] border border-white/10 bg-black/18 px-3 py-3"
+                                >
+                                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/40">
+                                        {label}
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-black text-[#FFD166]">
+                                        {value}
+                                    </p>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </section>
 
                 <form
                     onSubmit={saveSettings}
-                    className="loyalty-settings-panel rounded-[18px] border border-white/10 bg-[#20262a] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
+                    className="overflow-hidden rounded-[18px] border border-white/10 bg-[#20272A] shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
                 >
-                    {!isGlobal && isAdmin && (
-                        <label className="mb-5 block">
-                            <span className="loyalty-settings-muted mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/50">
-                                Restaurant
-                            </span>
-                            <select
-                                value={selectedRestaurantId}
-                                onChange={(event) =>
-                                    setSelectedRestaurantId(event.target.value)
-                                }
-                                className="loyalty-settings-input h-12 w-full rounded-[10px] border border-white/10 bg-[#111518] px-4 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
-                            >
-                                <option value="">Select restaurant</option>
-                                {restaurants.map((restaurant) => (
-                                    <option key={restaurant.id} value={restaurant.id}>
-                                        {restaurant.name || `Restaurant #${restaurant.id}`}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    )}
+                    <div className="border-b border-white/10 bg-white/[0.025] px-5 py-4 sm:px-6">
+                        {!isGlobal && isAdmin && (
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                <label className="block w-full max-w-md">
+                                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
+                                        Restaurant
+                                    </span>
+                                    <select
+                                        value={selectedRestaurantId}
+                                        onChange={(event) =>
+                                            setSelectedRestaurantId(event.target.value)
+                                        }
+                                        className="h-11 w-full rounded-[10px] border border-white/10 bg-[#111518] px-3 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
+                                    >
+                                        <option value="">Select restaurant</option>
+                                        {restaurants.map((restaurant) => (
+                                            <option key={restaurant.id} value={restaurant.id}>
+                                                {restaurant.name || `Restaurant #${restaurant.id}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
 
-                    {selectedRestaurant && (
-                        <p className="mb-5 rounded-[10px] border border-[#FFD166]/25 bg-[#FFD166]/10 px-4 py-3 text-sm font-black text-[#FFD166]">
-                            Editing {selectedRestaurant.name}
-                        </p>
-                    )}
+                                {selectedRestaurant && (
+                                    <div className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 text-sm font-black text-[#FFD166]">
+                                        <Store size={16} />
+                                        <span className="truncate">
+                                            Editing {selectedRestaurant.name}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                    {errorMessage && (
-                        <p className="mb-5 rounded-[10px] border border-[#B91C1C]/35 bg-[#B91C1C]/12 px-4 py-3 text-sm font-bold text-[#ff9b9b]">
-                            {errorMessage}
-                        </p>
-                    )}
+                        {errorMessage && (
+                            <p className="mt-4 rounded-[10px] border border-[#B91C1C]/35 bg-[#B91C1C]/12 px-4 py-3 text-sm font-bold text-[#ff9b9b]">
+                                {errorMessage}
+                            </p>
+                        )}
 
-                    {message && (
-                        <p className="mb-5 rounded-[10px] border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-300">
-                            {message}
-                        </p>
-                    )}
+                        {message && (
+                            <p className="mt-4 rounded-[10px] border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-300">
+                                {message}
+                            </p>
+                        )}
+                    </div>
 
                     {isLoading ? (
-                        <div className="loyalty-settings-card loyalty-settings-muted grid min-h-[280px] place-items-center rounded-[14px] border border-white/10 bg-[#15191b] text-sm font-black text-white/55">
+                        <div className="grid min-h-[360px] place-items-center p-6 text-sm font-black text-white/55">
                             <span className="inline-flex items-center gap-2">
                                 <Loader2 size={18} className="animate-spin" />
                                 Loading loyalty settings...
@@ -279,54 +419,123 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                         </div>
                     ) : (
                         <>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {FIELDS.map((field) => (
-                                    <label
-                                        key={field.key}
-                                        className="loyalty-settings-card rounded-[12px] border border-white/10 bg-[#15191b] p-4"
-                                    >
-                                        <span className="loyalty-settings-field-label mb-3 flex items-center gap-2 text-sm font-black text-white">
-                                            <BadgePercent
-                                                size={17}
-                                                className="text-[#FFD166]"
-                                            />
-                                            {field.label}
-                                        </span>
-                                        {field.type === "toggle" ? (
-                                            <input
-                                                type="checkbox"
-                                                checked={Boolean(Number(settings[field.key]))}
-                                                onChange={(event) =>
-                                                    updateField(
-                                                        field.key,
-                                                        event.target.checked ? 1 : 0
-                                                    )
+                            <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+                                <section className="space-y-3">
+                                    {TOGGLE_FIELDS.map((field) => {
+                                        const Icon = field.icon;
+                                        const checked = Boolean(Number(settings[field.key]));
+
+                                        return (
+                                            <button
+                                                key={field.key}
+                                                type="button"
+                                                onClick={() =>
+                                                    updateField(field.key, checked ? 0 : 1)
                                                 }
-                                                className="h-5 w-5 accent-[#FFD166]"
-                                            />
-                                        ) : (
-                                            <input
-                                                type="number"
-                                                min={field.min}
-                                                value={settings[field.key]}
-                                                onChange={(event) =>
-                                                    updateField(
-                                                        field.key,
-                                                        event.target.value
-                                                    )
-                                                }
-                                                className="loyalty-settings-input h-11 w-full rounded-[10px] border border-white/10 bg-[#0f1315] px-3 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
-                                            />
-                                        )}
-                                    </label>
-                                ))}
+                                                className={`flex w-full items-center justify-between gap-4 rounded-[14px] border p-4 text-left transition ${
+                                                    checked
+                                                        ? "border-[#FFD166]/35 bg-[#FFD166]/12"
+                                                        : "border-white/10 bg-[#121719]"
+                                                }`}
+                                            >
+                                                <span className="flex min-w-0 items-center gap-3">
+                                                    <span
+                                                        className={`grid h-11 w-11 shrink-0 place-items-center rounded-[10px] ${
+                                                            checked
+                                                                ? "bg-[#FFD166] text-[#221704]"
+                                                                : "bg-white/8 text-white/45"
+                                                        }`}
+                                                    >
+                                                        <Icon size={20} />
+                                                    </span>
+                                                    <span className="min-w-0">
+                                                        <span className="block text-sm font-black text-white">
+                                                            {field.label}
+                                                        </span>
+                                                        <span
+                                                            className={`mt-1 block text-xs font-bold ${
+                                                                checked
+                                                                    ? "text-[#FFD166]"
+                                                                    : "text-white/42"
+                                                            }`}
+                                                        >
+                                                            {checked ? field.active : field.inactive}
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                                <span
+                                                    className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+                                                        checked ? "bg-[#FFD166]" : "bg-white/12"
+                                                    }`}
+                                                >
+                                                    <span
+                                                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${
+                                                            checked ? "left-6" : "left-1"
+                                                        }`}
+                                                    />
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </section>
+
+                                <section className="grid gap-4 md:grid-cols-2">
+                                    {NUMBER_FIELDS.map((field) => {
+                                        const Icon = field.icon;
+
+                                        return (
+                                            <label
+                                                key={field.key}
+                                                className="rounded-[14px] border border-white/10 bg-[#121719] p-4 transition focus-within:border-[#FFD166]/55"
+                                            >
+                                                <span className="mb-3 flex items-start justify-between gap-3">
+                                                    <span className="min-w-0">
+                                                        <span className="block text-sm font-black text-white">
+                                                            {field.label}
+                                                        </span>
+                                                        <span className="mt-1 block text-xs font-semibold leading-5 text-white/42">
+                                                            {field.helper}
+                                                        </span>
+                                                    </span>
+                                                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[#FFD166]/12 text-[#FFD166]">
+                                                        <Icon size={18} />
+                                                    </span>
+                                                </span>
+                                                <span className="flex h-12 items-center rounded-[10px] border border-white/10 bg-[#0B0F10] px-3 focus-within:border-[#FFD166]/45">
+                                                    {field.prefix && (
+                                                        <span className="mr-1 text-sm font-black text-[#FFD166]">
+                                                            {field.prefix}
+                                                        </span>
+                                                    )}
+                                                    <input
+                                                        type="number"
+                                                        {...nonNegativeNumberInputProps}
+                                                        value={settings[field.key]}
+                                                        onChange={(event) =>
+                                                            updateField(field.key, event.target.value)
+                                                        }
+                                                        className="min-w-0 flex-1 bg-transparent text-base font-black text-white outline-none"
+                                                    />
+                                                    {field.suffix && (
+                                                        <span className="ml-2 text-xs font-black uppercase tracking-wide text-white/38">
+                                                            {field.suffix}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </label>
+                                        );
+                                    })}
+                                </section>
                             </div>
 
-                            <div className="mt-5 flex justify-end">
+                            <div className="flex items-center justify-between gap-4 border-t border-white/10 bg-[#171D20] px-5 py-4 sm:px-6">
+                                <p className="text-xs font-bold text-white/45">
+                                    Changes apply after saving.
+                                </p>
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="inline-flex h-12 items-center justify-center gap-2 rounded-[10px] bg-[#FFD166] px-5 text-sm font-black text-[#1f1804] shadow-[0_14px_30px_rgba(255,209,102,0.18)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
+                                    className="inline-flex h-12 min-w-32 items-center justify-center gap-2 rounded-[10px] bg-[#FFD166] px-5 text-sm font-black text-[#1f1804] shadow-[0_14px_30px_rgba(255,209,102,0.18)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
                                 >
                                     {isSaving ? (
                                         <Loader2 size={18} className="animate-spin" />

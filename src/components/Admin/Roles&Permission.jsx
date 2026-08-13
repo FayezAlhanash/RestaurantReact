@@ -72,6 +72,20 @@ const formatPermissionLabel = (permission = {}) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+const isAdminRole = (role = {}) => {
+  const roleId = Number(role?.id ?? role?.role_id);
+  const roleName = String(role?.name ?? role?.key ?? "")
+    .trim()
+    .toLowerCase();
+
+  return roleId === 1 || roleName === "admin";
+};
+
+const isAdminRoleName = (name) =>
+  String(name ?? "")
+    .trim()
+    .toLowerCase() === "admin";
+
 export default function RolesPermission() {
   const { isLight } = useTheme();
   const [roles, setRoles] = useState([]);
@@ -192,10 +206,17 @@ export default function RolesPermission() {
 
   const handleCreateRoleChange = (event) => {
     const { name, type, checked, value } = event.target;
+    const nextName = name === "name" ? value : createRoleForm.name;
 
     setCreateRoleForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+      requires_restaurant:
+        isAdminRoleName(nextName)
+          ? false
+          : name === "requires_restaurant"
+            ? checked
+            : prev.requires_restaurant,
     }));
     setCreateRoleError("");
   };
@@ -249,7 +270,9 @@ export default function RolesPermission() {
     setEditRoleForm({
       name: selectedRole.name ?? "",
       description: selectedRole.description ?? "",
-      requires_restaurant: roleRequiresRestaurantAssignment(selectedRole),
+      requires_restaurant: isAdminRole(selectedRole)
+        ? false
+        : roleRequiresRestaurantAssignment(selectedRole),
     });
     setEditRoleError("");
     setIsEditingRole(true);
@@ -257,10 +280,17 @@ export default function RolesPermission() {
 
   const handleEditRoleChange = (event) => {
     const { name, type, checked, value } = event.target;
+    const nextName = name === "name" ? value : editRoleForm.name;
 
     setEditRoleForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+      requires_restaurant:
+        isAdminRole(selectedRole) || isAdminRoleName(nextName)
+          ? false
+          : name === "requires_restaurant"
+            ? checked
+            : prev.requires_restaurant,
     }));
     setEditRoleError("");
   };
@@ -285,7 +315,11 @@ export default function RolesPermission() {
       formData.append("description", editRoleForm.description.trim());
       formData.append(
         "requires_restaurant",
-        editRoleForm.requires_restaurant ? "1" : "0"
+        isAdminRole(selectedRole) || isAdminRoleName(roleName)
+          ? "0"
+          : editRoleForm.requires_restaurant
+            ? "1"
+            : "0"
       );
 
       const res = await api.post(`/admin/roles/${selectedRole.id}`, formData);
@@ -419,7 +453,11 @@ export default function RolesPermission() {
       formData.append("description", createRoleForm.description.trim());
       formData.append(
         "requires_restaurant",
-        createRoleForm.requires_restaurant ? "1" : "0"
+        isAdminRoleName(roleName)
+          ? "0"
+          : createRoleForm.requires_restaurant
+            ? "1"
+            : "0"
       );
 
       const res = await api.post("/admin/roles", formData);
@@ -865,17 +903,19 @@ export default function RolesPermission() {
                         className={`w-full resize-none rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-[#D8A22D]/70 focus:ring-4 focus:ring-[#D8A22D]/10 ${fieldSurface}`}
                         disabled={isCreatingRole}
                       />
-                      <label className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
-                        <input
-                          type="checkbox"
-                          name="requires_restaurant"
-                          checked={createRoleForm.requires_restaurant}
-                          onChange={handleCreateRoleChange}
-                          className="h-4 w-4 accent-[#7F1D1D]"
-                          disabled={isCreatingRole}
-                        />
-                        Requires restaurant
-                      </label>
+                      {!isAdminRoleName(createRoleForm.name) && (
+                        <label className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
+                          <input
+                            type="checkbox"
+                            name="requires_restaurant"
+                            checked={createRoleForm.requires_restaurant}
+                            onChange={handleCreateRoleChange}
+                            className="h-4 w-4 accent-[#7F1D1D]"
+                            disabled={isCreatingRole}
+                          />
+                          Requires restaurant
+                        </label>
+                      )}
 
                       {createRoleError && (
                         <p className="flex items-start gap-2 rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-bold text-[#7F1D1D]">
@@ -1053,17 +1093,19 @@ export default function RolesPermission() {
                     Save
                   </button>
                 </div>
-                <label className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
-                  <input
-                    type="checkbox"
-                    name="requires_restaurant"
-                    checked={editRoleForm.requires_restaurant}
-                    onChange={handleEditRoleChange}
-                    className="h-4 w-4 accent-[#7F1D1D]"
-                    disabled={isUpdatingRole}
-                  />
-                  Requires restaurant
-                </label>
+                {!isAdminRole(selectedRole) && !isAdminRoleName(editRoleForm.name) && (
+                  <label className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black uppercase tracking-[0.08em] ${goldBorder} ${goldBackgroundSoft} ${goldText}`}>
+                    <input
+                      type="checkbox"
+                      name="requires_restaurant"
+                      checked={editRoleForm.requires_restaurant}
+                      onChange={handleEditRoleChange}
+                      className="h-4 w-4 accent-[#7F1D1D]"
+                      disabled={isUpdatingRole}
+                    />
+                    Requires restaurant
+                  </label>
+                )}
 
                 {editRoleError && (
                   <p className="mt-3 flex items-start gap-2 rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 px-3 py-2 text-xs font-bold text-[#7F1D1D]">

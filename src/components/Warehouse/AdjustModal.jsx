@@ -2,6 +2,10 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import api from "../../API/axios";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
+import {
+    nonNegativeNumberInputProps,
+    toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRestaurantId }) {
     const [newQuantity, setNewQuantity] = useState("");
@@ -69,10 +73,16 @@ function AdjustModal({ onClose, ingredient, onSuccess, restaurantId: selectedRes
                 </div>
 
                 <input
+                    type="number"
+                    {...nonNegativeNumberInputProps}
+                    step="0.01"
                     placeholder="New Quantity"
                     className="mb-3 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none placeholder:text-white/35 focus:border-[#FFD166]/45 focus:ring-4 focus:ring-[#FFD166]/10"
                     disabled={isSubmitting}
-                    onChange={(e) => setNewQuantity(e.target.value)}
+                    value={newQuantity}
+                    onChange={(e) =>
+                        setNewQuantity(toNonNegativeNumberValue(e.target.value))
+                    }
                 />
 
                 <input

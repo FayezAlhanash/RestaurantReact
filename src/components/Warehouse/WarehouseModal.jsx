@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { PackagePlus, X } from "lucide-react";
+import {
+    nonNegativeNumberInputProps,
+    toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 function WarehouseModal({ isOpen, onClose, onSave, ingredient }) {
     const [isVisible, setIsVisible] = useState(false);
@@ -110,8 +114,11 @@ function WarehouseModal({ isOpen, onClose, onSave, ingredient }) {
                         </span>
                         <input
                             type="number"
+                            {...nonNegativeNumberInputProps}
                             value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
+                            onChange={(e) =>
+                                setQuantity(toNonNegativeNumberValue(e.target.value))
+                            }
                             placeholder="0"
                             className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/45 focus:ring-4 focus:ring-[#FFD166]/10"
                         />
@@ -123,8 +130,11 @@ function WarehouseModal({ isOpen, onClose, onSave, ingredient }) {
                         </span>
                         <input
                             type="number"
+                            {...nonNegativeNumberInputProps}
                             value={minQuantity}
-                            onChange={(e) => setMinQuantity(e.target.value)}
+                            onChange={(e) =>
+                                setMinQuantity(toNonNegativeNumberValue(e.target.value))
+                            }
                             placeholder="0"
                             className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white outline-none transition placeholder:text-white/35 focus:border-[#FFD166]/45 focus:ring-4 focus:ring-[#FFD166]/10"
                         />

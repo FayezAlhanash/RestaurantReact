@@ -324,6 +324,21 @@ function dedupeNoteSegments(value) {
         .join(" · ");
 }
 
+function normalizeNoteToken(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[:：]+$/g, "")
+        .replace(/\s+/g, " ");
+}
+
+function splitNoteSegments(value) {
+    return String(value || "")
+        .split("·")
+        .map((segment) => segment.trim())
+        .filter(Boolean);
+}
+
 function getModifierTextValue(value) {
     if (value === undefined || value === null || value === "") return "";
     if (typeof value === "number") return "";
@@ -391,16 +406,30 @@ function getModifierOptions(value) {
     ];
 }
 
-function getModifierNoteSegments(item) {
+function getModifierNoteDetails(item) {
     const optionSegments = getModifierOptions(item)
         .map((option) => {
             const optionName = getModifierOptionName(option);
 
-            if (!optionName) return "";
+            if (!optionName) return null;
 
             const groupName = getModifierGroupName(option);
+            const normalizedGroupName = normalizeNoteToken(groupName);
+            const normalizedOptionName = normalizeNoteToken(optionName);
+            const segment =
+                normalizedOptionName === "size" && groupName
+                    ? `Size: ${groupName}`
+                    : normalizedGroupName === "size"
+                        ? `Size: ${optionName}`
+                        : groupName
+                            ? `${groupName}: ${optionName}`
+                            : optionName;
 
-            return groupName ? `${groupName}: ${optionName}` : optionName;
+            return {
+                groupName,
+                optionName,
+                segment,
+            };
         })
         .filter(Boolean);
 
@@ -419,24 +448,53 @@ function getModifierNoteSegments(item) {
 
             if (!optionText) return "";
 
-            return groupText ? `${groupText}: ${optionText}` : optionText;
+            return {
+                groupName: groupText,
+                optionName: optionText,
+                segment:
+                    normalizeNoteToken(optionText) === "size" && groupText
+                        ? `Size: ${groupText}`
+                        : normalizeNoteToken(groupText) === "size"
+                            ? `Size: ${optionText}`
+                            : groupText
+                                ? `${groupText}: ${optionText}`
+                                : optionText,
+            };
         })
         .filter(Boolean);
 
     return [...optionSegments, ...selectionSegments];
 }
 
+function isDuplicateModifierNoteSegment(segment, modifierDetails) {
+    const normalizedSegment = normalizeNoteToken(segment);
+
+    return modifierDetails.some((modifier) => {
+        const groupName = normalizeNoteToken(modifier.groupName);
+        const optionName = normalizeNoteToken(modifier.optionName);
+        const fullSegment = normalizeNoteToken(modifier.segment);
+
+        return (
+            normalizedSegment === groupName ||
+            normalizedSegment === optionName ||
+            normalizedSegment === fullSegment
+        );
+    });
+}
+
 function normalizeKitchenItem(item, index) {
     const food = item.food || item.menu_item || item.product || item.item || {};
+    const modifierDetails = getModifierNoteDetails(item);
+    const modifierSegments = modifierDetails.map((modifier) => modifier.segment);
+    const noteSegments = splitNoteSegments(
+        item.note ||
+            item.notes ||
+            item.special_instructions ||
+            item.pivot?.notes ||
+            ""
+    ).filter((segment) => !isDuplicateModifierNoteSegment(segment, modifierDetails));
     const note = dedupeNoteSegments(
-        [
-            item.note ||
-                item.notes ||
-                item.special_instructions ||
-                item.pivot?.notes ||
-                "",
-            ...getModifierNoteSegments(item),
-        ].join(" · ")
+        [...modifierSegments, ...noteSegments].join(" · ")
     );
 
     return {

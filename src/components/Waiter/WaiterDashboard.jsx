@@ -1105,7 +1105,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                                 </div>
                                                 <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black shadow-sm ${
                                                     isOpen
-                                                        ? "border-emerald-50/35 bg-emerald-50/18 text-emerald-50"
+                                                        ? "border-emerald-500/35 bg-emerald-100 text-emerald-800"
                                                         : "border-[#FFD1CB]/35 bg-white/12 text-[#FFD1CB]"
                                                 }`}>
                                                     {isOpen ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
@@ -1130,7 +1130,11 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                                                 <span className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs font-black text-white/78">
                                                     ID #{tableId}
                                                 </span>
-                                                <span className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs font-black text-white/78">
+                                                <span className={`rounded-full border px-3 py-1 text-xs font-black ${
+                                                    isOpen
+                                                        ? "border-emerald-500/24 bg-emerald-100 text-emerald-800"
+                                                        : "border-white/18 bg-white/10 text-white/78"
+                                                }`}>
                                                     {isOpen ? "Serving now" : "Ready to open"}
                                                 </span>
                                             </div>

@@ -790,6 +790,22 @@ const hasPreparationTiming = (timing) =>
         timing?.remainingMinutes !== null &&
         timing?.remainingMinutes !== "");
 
+const isPreparationOnTheWay = (timing) => {
+    if (!hasPreparationTiming(timing) || timing?.waitingForPreparation) return false;
+
+    const remainingMinutes = Number(timing.remainingMinutes);
+
+    return Number.isFinite(remainingMinutes) && remainingMinutes <= 0;
+};
+
+const getPreparationTimingLabel = (timing, onTheWayLabel = "Your order is on the way") => {
+    if (timing?.waitingForPreparation) return "Waiting";
+    if (!hasPreparationTiming(timing)) return "-";
+    if (isPreparationOnTheWay(timing)) return onTheWayLabel;
+
+    return `${timing.remainingMinutes} min left`;
+};
+
 const getRestaurantOrdersForTiming = (order = {}) => [
     ...getList(order?.restaurant_orders),
     ...getList(order?.restaurantOrders),
@@ -2299,7 +2315,8 @@ function CustomerOnboarding({ onFinish }) {
     );
 }
 
-function SessionUnavailableScreen({ title = "Menu unavailable", message }) {
+function SessionUnavailableScreen({ title = "Menu unavailable", message, variant = "error" }) {
+    const isLoadingVariant = variant === "loading";
     const messageText = String(message || "");
     const friendlyMessage =
         messageText.toLowerCase().includes("session")
@@ -2307,13 +2324,35 @@ function SessionUnavailableScreen({ title = "Menu unavailable", message }) {
             : messageText || "This table menu is not available right now.";
 
     return (
-        <main className="grid min-h-dvh place-items-center bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.22),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.15),transparent_24%),linear-gradient(145deg,#101517_0%,#171D20_48%,#26181B_100%)] px-4 py-6 text-white">
-            <article className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#20272A] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.30)]">
-                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166]">
+        <main className="grid min-h-dvh place-items-center bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.12),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.13),transparent_24%),linear-gradient(145deg,#fffaf3_0%,#f8efe4_48%,#f1dfd0_100%)] px-4 py-6">
+            <article
+                className={`w-full max-w-md rounded-[28px] border p-6 text-center shadow-[0_24px_70px_rgba(77,46,28,0.16)] ${
+                    isLoadingVariant
+                        ? "border-[#ead2bd] bg-[#fffaf3] text-[#241707]"
+                        : "border-white/10 bg-[#20272A] text-white"
+                }`}
+            >
+                <div
+                    className={`mx-auto grid h-16 w-16 place-items-center rounded-2xl border ${
+                        isLoadingVariant
+                            ? "border-[#9A6400]/25 bg-[#FFD166]/22 text-[#9A6400]"
+                            : "border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166]"
+                    }`}
+                >
                     <ReceiptText size={30} />
                 </div>
-                <h1 className="mt-5 text-3xl font-black text-white">{title}</h1>
-                <p className="mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 text-white/55">
+                <h1
+                    className={`mt-5 text-3xl font-black ${
+                        isLoadingVariant ? "text-[#241707]" : "text-white"
+                    }`}
+                >
+                    {title}
+                </h1>
+                <p
+                    className={`mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 ${
+                        isLoadingVariant ? "text-[#6f6255]" : "text-white/65"
+                    }`}
+                >
                     {friendlyMessage}
                 </p>
             </article>
@@ -2391,6 +2430,26 @@ function DineInOrder() {
     useEffect(() => {
         orderTimingsRef.current = orderTimings;
     }, [orderTimings]);
+
+    useEffect(() => {
+        if (!successMessage) return undefined;
+
+        const timeoutId = window.setTimeout(() => {
+            setSuccessMessage("");
+        }, 4000);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [successMessage]);
+
+    useEffect(() => {
+        if (!errorMessage || isSessionAvailable === false) return undefined;
+
+        const timeoutId = window.setTimeout(() => {
+            setErrorMessage("");
+        }, 5000);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [errorMessage, isSessionAvailable]);
 
     useEffect(() => {
         const loadMenu = async () => {
@@ -3047,6 +3106,7 @@ function DineInOrder() {
             <SessionUnavailableScreen
                 title="Welcome"
                 message="Preparing your table menu..."
+                variant="loading"
             />
         );
     }
@@ -3173,12 +3233,8 @@ function DineInOrder() {
                                                     const label = isPerRestaurant
                                                         ? timing.waitingForPreparation
                                                             ? "Waiting for restaurants"
-                                                            : `${timing.remainingMinutes} min left`
-                                                        : timing?.waitingForPreparation
-                                                            ? "Waiting"
-                                                            : hasPreparationTiming(timing)
-                                                                ? `${timing.remainingMinutes} min left`
-                                                                : "-";
+                                                            : getPreparationTimingLabel(timing)
+                                                        : getPreparationTimingLabel(timing);
 
                                                     return (
                                                         <div
@@ -3250,7 +3306,10 @@ function DineInOrder() {
                                                                             ? "Waiting for preparation"
                                                                             : READY_STATUSES.includes(restaurant.status)
                                                                                 ? "Ready"
-                                                                                : `${restaurant.remainingMinutes} min left`;
+                                                                                : getPreparationTimingLabel(
+                                                                                    restaurant,
+                                                                                    "On the way"
+                                                                                );
 
                                                                         return (
                                                                             <div

@@ -2,6 +2,10 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import api from "../../API/axios";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
+import {
+    nonNegativeNumberInputProps,
+    toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 function WasteModal({ onClose, ingredient, onSuccess, restaurantId: selectedRestaurantId }) {
     const [quantity, setQuantity] = useState("");
@@ -69,10 +73,14 @@ function WasteModal({ onClose, ingredient, onSuccess, restaurantId: selectedRest
                 </div>
 
                 <input
+                    type="number"
+                    {...nonNegativeNumberInputProps}
+                    step="0.01"
                     placeholder="Quantity"
                     className="mb-3 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none placeholder:text-white/35 focus:border-[#7F1D1D]/45 focus:ring-4 focus:ring-[#7F1D1D]/10"
                     disabled={isSubmitting}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    value={quantity}
+                    onChange={(e) => setQuantity(toNonNegativeNumberValue(e.target.value))}
                 />
 
                 <input

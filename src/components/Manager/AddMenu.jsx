@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
+  AlertTriangle,
   ChevronDown,
   CheckCircle2,
   Edit3,
@@ -17,7 +18,12 @@ import CategoryModal from "./CategoryModal";
 import ModifierGroupModal from "./ModifierGroupModal";
 import ModifierOptionModal from "./ModifierOptionModal";
 import api from "../../API/axios";
+import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
+import {
+  nonNegativeNumberInputProps,
+  toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 import {
   ensureManagerRestaurantId,
   filterCategoriesByRestaurant,
@@ -124,6 +130,15 @@ const getRelationPrice = (option) =>
   option?.option_price ??
   option?.price;
 
+const getApiErrorMessage = (error, fallback) => {
+  const data = error.response?.data;
+  const firstError = Object.values(data?.errors ?? {})
+    .flat()
+    .find(Boolean);
+
+  return firstError || data?.message || error.message || fallback;
+};
+
 const getItemRestaurantId = (item) =>
   item?.restaurant_id ??
   item?.restaurantId ??
@@ -145,6 +160,98 @@ const getAttachSettings = (settings, groupId, optionCount = 1) =>
     required: true,
     prices: {},
   };
+
+function DeleteConfirmModal({
+  isOpen,
+  itemName,
+  itemType,
+  isDeleting,
+  errorMessage,
+  isLight,
+  onClose,
+  onConfirm,
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
+      <div className={`modal-panel-enter w-full max-w-md overflow-hidden rounded-3xl border shadow-[0_28px_70px_rgba(0,0,0,0.42)] ring-1 ${
+        isLight
+          ? "border-[#D8B7A8] bg-[#FFF9F2] text-[#241815] ring-white/70"
+          : "border-white/10 bg-[#0D1214] text-white ring-white/5"
+      }`}>
+        <div className={`border-b px-6 py-5 ${
+          isLight
+            ? "border-[#DEC2B5] bg-[#F2DDD4]"
+            : "border-white/10 bg-[#172124]"
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl border ${
+              isLight
+                ? "border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
+                : "border-[#EF4444]/30 bg-[#7F1D1D]/20 text-[#FCA5A5]"
+            }`}>
+              <AlertTriangle size={23} strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0">
+              <h3 className={`text-xl font-black leading-6 ${isLight ? "text-[#241815]" : "text-white"}`}>
+                Delete {itemType}
+              </h3>
+              <p className={`mt-1 text-sm font-bold ${isLight ? "text-[#6D5147]" : "text-white/50"}`}>
+                This action cannot be undone.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={`px-6 py-5 ${isLight ? "bg-[#FFFDF8]" : "bg-[#0D1214]"}`}>
+          <p className={`text-base font-bold leading-7 ${isLight ? "text-[#4F403A]" : "text-white/78"}`}>
+            Are you sure you want to delete{" "}
+            <span className={`font-black ${isLight ? "text-[#8F1D1D]" : "text-[#FCA5A5]"}`}>"{itemName}"</span>?
+          </p>
+
+          {errorMessage && (
+            <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-bold leading-5 ${
+              isLight
+                ? "border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
+                : "border-[#EF4444]/35 bg-[#7F1D1D]/18 text-[#FCA5A5]"
+            }`}>
+              {errorMessage}
+            </div>
+          )}
+        </div>
+
+        <div className={`flex flex-col-reverse gap-3 border-t px-6 py-5 sm:flex-row sm:justify-end ${
+          isLight
+            ? "border-[#DEC2B5] bg-[#FFF1E8]"
+            : "border-white/10 bg-[#11191C]"
+        }`}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isDeleting}
+            className={`h-12 rounded-2xl border px-5 text-sm font-black transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
+              isLight
+                ? "border-[#D8B7A8] bg-white text-[#4F403A] hover:bg-[#F8EFE7]"
+                : "border-white/12 bg-[#172124] text-white/78 hover:border-white/20 hover:bg-[#1D2A2E]"
+            }`}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:bg-[#681718] disabled:cursor-wait disabled:opacity-75"
+          >
+            {isDeleting && <Loader2 size={17} className="animate-spin" />}
+            {isDeleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const buildAttachSettingsFromGroup = (group, fallbackSettings) => {
   const prices = { ...fallbackSettings.prices };
@@ -212,12 +319,14 @@ const saveModifierPriceDraft = (foodId, groupId, settings) => {
 
 export default function AddMenu() {
   const { search = "" } = useOutletContext() ?? {};
+  const { isLight } = useTheme();
   const user = getStoredUser();
   const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
   const [activeTab, setActiveTab] = useState("categories");
   const [openCategoryModal, setOpenCategoryModal] = useState(false);
   const [openGroupModal, setOpenGroupModal] = useState(false);
   const [openOptionModal, setOpenOptionModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
   const [editingOption, setEditingOption] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -227,10 +336,15 @@ export default function AddMenu() {
   const [foodSelections, setFoodSelections] = useState({});
   const [attachSettings, setAttachSettings] = useState(loadAttachSettingsDraft);
   const [savingCategory, setSavingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
   const [savingGroup, setSavingGroup] = useState(false);
   const [savingOption, setSavingOption] = useState(false);
   const [attachingGroupId, setAttachingGroupId] = useState(null);
+  const [attachErrors, setAttachErrors] = useState({});
   const [openFoodPickerGroupId, setOpenFoodPickerGroupId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchRestaurantsForAdmin = async () => {
     if (!isAdmin) return [];
@@ -327,23 +441,112 @@ export default function AddMenu() {
   const handleSaveCategory = async (data) => {
     if (savingCategory) return;
 
+    const normalizedName = data.name.trim().toLowerCase();
+    const duplicateCategory = categories.find(
+      (category) =>
+        String(category.id) !== String(editingCategory?.id ?? "") &&
+        String(category.name ?? "").trim().toLowerCase() === normalizedName
+    );
+
+    if (!normalizedName) {
+      setCategoryError("Category name is required.");
+      return;
+    }
+
+    if (duplicateCategory) {
+      setCategoryError("This category name already exists. Please use a unique name.");
+      return;
+    }
+
     try {
       setSavingCategory(true);
+      setCategoryError("");
       const restaurantId = await ensureManagerRestaurantId();
       const formData = new FormData();
 
       formData.append("restaurant_id", restaurantId);
-      formData.append("name", data.name);
+      formData.append("name", data.name.trim());
       formData.append("is_active", data.is_active);
 
-      await api.post("/categories", formData);
+      if (editingCategory) {
+        await api.post(`/categories/${editingCategory.id}`, formData);
+      } else {
+        await api.post("/categories", formData);
+      }
+
       await fetchCategories();
+      setEditingCategory(null);
       setOpenCategoryModal(false);
     } catch (err) {
       console.error(err.response?.data || err);
+      setCategoryError(
+        getApiErrorMessage(
+          err,
+          "Category could not be saved. Please check the name and try again."
+        )
+      );
     } finally {
       setSavingCategory(false);
     }
+  };
+
+  const openDeleteModal = (type, item) => {
+    setDeleteError("");
+    setDeleteTarget({ type, item });
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+
+    setDeleteTarget(null);
+    setDeleteError("");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+
+    const { type, item } = deleteTarget;
+
+    try {
+      setIsDeleting(true);
+      setDeleteError("");
+
+      if (type === "category") {
+        await api.delete(`/categories/${item.id}`);
+        await fetchCategories();
+      }
+
+      if (type === "modifier group") {
+        await api.delete(`/modifier-groups/${item.id}`);
+        await fetchModifierGroups();
+      }
+
+      if (type === "modifier option") {
+        await api.delete(`/modifier-options/${item.id}`);
+        await fetchModifierOptions();
+      }
+
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error(err.response?.data || err);
+      setDeleteError(
+        getApiErrorMessage(err, "This item could not be deleted. Please try again.")
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleOpenEditCategory = (category) => {
+    setCategoryError("");
+    setEditingCategory(category);
+    setOpenCategoryModal(true);
+  };
+
+  const handleCloseCategoryModal = () => {
+    setCategoryError("");
+    setEditingCategory(null);
+    setOpenCategoryModal(false);
   };
 
   const handleSaveGroup = async (data) => {
@@ -374,17 +577,6 @@ export default function AddMenu() {
     }
   };
 
-  const handleDeleteGroup = async (group) => {
-    if (!window.confirm(`Delete "${group.name}"?`)) return;
-
-    try {
-      await api.delete(`/modifier-groups/${group.id}`);
-      await fetchModifierGroups();
-    } catch (err) {
-      console.error(err.response?.data || err);
-    }
-  };
-
   const handleAttachGroupToFood = async (group) => {
     const foodId = foodSelections[group.id];
     const groupOptions = getOptionsForGroup(group.id, modifierOptions);
@@ -395,8 +587,17 @@ export default function AddMenu() {
 
     if (!foodId || !groupOptions.length || attachingGroupId) return;
 
+    if (isLinkedFood) {
+      setAttachErrors((prev) => ({
+        ...prev,
+        [group.id]: "This modifier group is already attached to this food.",
+      }));
+      return;
+    }
+
     try {
       setAttachingGroupId(group.id);
+      setAttachErrors((prev) => ({ ...prev, [group.id]: "" }));
       const formData = new FormData();
       formData.append("food_id", foodId);
       formData.append("max_select", isVariantGroup(group) ? 1 : settings.max_select || 1);
@@ -412,11 +613,7 @@ export default function AddMenu() {
         );
       });
 
-      if (isLinkedFood) {
-        await api.post(`/modifier-groups/${group.id}/foods/${foodId}`, formData);
-      } else {
-        await api.post(`/modifier-groups/${group.id}/foods`, formData);
-      }
+      await api.post(`/modifier-groups/${group.id}/foods`, formData);
 
       saveModifierPriceDraft(foodId, group.id, settings);
       setFoodSelections((prev) => ({ ...prev, [group.id]: "" }));
@@ -429,6 +626,13 @@ export default function AddMenu() {
       await fetchModifierGroups();
     } catch (err) {
       console.error(err.response?.data || err);
+      setAttachErrors((prev) => ({
+        ...prev,
+        [group.id]: getApiErrorMessage(
+          err,
+          "Modifier group could not be attached to this food."
+        ),
+      }));
     } finally {
       setAttachingGroupId(null);
     }
@@ -445,6 +649,16 @@ export default function AddMenu() {
 
   const handleFoodSelectionChange = async (group, foodId) => {
     const groupOptions = getOptionsForGroup(group.id, modifierOptions);
+    const linkedFood = getGroupFoods(group).find(
+      (food) => String(getFoodId(food)) === String(foodId)
+    );
+
+    setAttachErrors((prev) => ({
+      ...prev,
+      [group.id]: linkedFood
+        ? "This modifier group is already attached to this food."
+        : "",
+    }));
 
     setFoodSelections((prev) => ({
       ...prev,
@@ -458,10 +672,6 @@ export default function AddMenu() {
       group.id,
       groupOptions.length
     );
-    const linkedFood = getGroupFoods(group).find(
-      (food) => String(getFoodId(food)) === String(foodId)
-    );
-
     if (linkedFood) {
       setAttachSettings((prev) => ({
         ...prev,
@@ -534,17 +744,6 @@ export default function AddMenu() {
     }
   };
 
-  const handleDeleteOption = async (option) => {
-    if (!window.confirm(`Delete "${option.name}"?`)) return;
-
-    try {
-      await api.delete(`/modifier-options/${option.id}`);
-      await fetchModifierOptions();
-    } catch (err) {
-      console.error(err.response?.data || err);
-    }
-  };
-
   const handleOpenEditOption = (option) => {
     setEditingOption(option);
     setOpenOptionModal(true);
@@ -556,7 +755,6 @@ export default function AddMenu() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCategories();
     fetchModifierGroups();
     fetchModifierOptions();
@@ -719,7 +917,12 @@ export default function AddMenu() {
 
           {activeTab === "categories" && (
             <button
-              onClick={() => setOpenCategoryModal(true)}
+              type="button"
+              onClick={() => {
+                setCategoryError("");
+                setEditingCategory(null);
+                setOpenCategoryModal(true);
+              }}
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
@@ -798,8 +1001,12 @@ export default function AddMenu() {
                         <span
                           className={`inline-flex rounded-full px-4 py-1.5 text-sm font-black ${
                             category.is_active
-                              ? "border border-[#10B981]/65 bg-[#064E3B] text-[#D1FAE5] shadow-[0_10px_22px_rgba(6,78,59,0.28)]"
-                              : "border border-[#EF4444]/45 bg-[#DC2626]/14 text-[#FCA5A5]"
+                              ? isLight
+                                ? "border border-[#0F8B5F]/30 bg-[#D9F2E5] text-[#08764D] shadow-[0_10px_22px_rgba(15,139,95,0.12)]"
+                                : "border border-[#10B981]/65 bg-[#064E3B] text-[#D1FAE5] shadow-[0_10px_22px_rgba(6,78,59,0.28)]"
+                              : isLight
+                                ? "border border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
+                                : "border border-[#EF4444]/45 bg-[#DC2626]/14 text-[#FCA5A5]"
                           }`}
                         >
                           {category.is_active ? "Active" : "Inactive"}
@@ -808,15 +1015,39 @@ export default function AddMenu() {
 
                       <td className="px-5 py-5">
                         <div className="flex justify-end gap-2">
-                          <button className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#172124] text-[#FFD166] transition duration-200 hover:scale-110 hover:bg-[#FFD166]/12 active:scale-95">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditCategory(category)}
+                            className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition duration-200 hover:scale-110 active:scale-95 ${
+                              isLight
+                                ? "border-[#D8A22D]/30 bg-[#FFF4D6] text-[#9A6400] hover:bg-[#FFE8A3]"
+                                : "border-[#FFD166]/30 bg-[#172124] text-[#FFD166] hover:bg-[#FFD166]/12"
+                            }`}
+                          >
                             <Edit3 size={16} className="transition duration-200 group-hover:-rotate-6" />
-                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-stone-950 px-2 py-1 text-xs font-bold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100">
+                            <span className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md px-2 py-1 text-xs font-bold opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 ${
+                              isLight
+                                ? "border border-[#D8A22D]/25 bg-[#FFF4D6] text-[#9A6400]"
+                                : "bg-stone-950 text-white"
+                            }`}>
                               Edit
                             </span>
                           </button>
-                          <button className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#EF4444]/45 bg-[#2A1719] text-[#F87171] transition duration-200 hover:scale-110 hover:border-[#FCA5A5]/70 hover:bg-[#DC2626]/20 hover:text-[#FCA5A5] active:scale-95">
+                          <button
+                            type="button"
+                            onClick={() => openDeleteModal("category", category)}
+                            className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition duration-200 hover:scale-110 active:scale-95 ${
+                              isLight
+                                ? "border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D] hover:border-[#8F1D1D]/45 hover:bg-[#EBC8C8]"
+                                : "border-[#EF4444]/45 bg-[#2A1719] text-[#F87171] hover:border-[#FCA5A5]/70 hover:bg-[#DC2626]/20 hover:text-[#FCA5A5]"
+                            }`}
+                          >
                             <Trash2 size={16} className="transition duration-200 group-hover:rotate-6" />
-                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-stone-950 px-2 py-1 text-xs font-bold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100">
+                            <span className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md px-2 py-1 text-xs font-bold opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 ${
+                              isLight
+                                ? "border border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
+                                : "bg-stone-950 text-white"
+                            }`}>
                               Delete
                             </span>
                           </button>
@@ -871,6 +1102,9 @@ export default function AddMenu() {
                     const linkedFoodIds = new Set(
                       linkedFoods.map((food) => String(getFoodId(food)))
                     );
+                    const selectedFoodId = String(foodSelections[group.id] ?? "");
+                    const isSelectedFoodLinked =
+                      selectedFoodId && linkedFoodIds.has(selectedFoodId);
 
                     return (
                       <tr key={group.id} className="align-top transition duration-200 hover:bg-white/[0.035]">
@@ -1027,6 +1261,7 @@ export default function AddMenu() {
                                 disabled={
                                   !foodSelections[group.id] ||
                                   !groupOptions.length ||
+                                  isSelectedFoodLinked ||
                                   Boolean(attachingGroupId)
                                 }
                                 className="grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_16px_34px_rgba(127,29,29,0.24)] transition duration-200 hover:scale-105 hover:bg-[#681718] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
@@ -1039,6 +1274,12 @@ export default function AddMenu() {
                                 )}
                               </button>
                             </div>
+
+                            {attachErrors[group.id] && (
+                              <div className="rounded-2xl border border-[#EF4444]/35 bg-[#7F1D1D]/16 px-3 py-2 text-sm font-bold leading-5 text-[#FCA5A5]">
+                                {attachErrors[group.id]}
+                              </div>
+                            )}
 
                             {!isVariantGroup(group) && (
                             <div className="grid grid-cols-[1fr_120px] gap-2">
@@ -1061,6 +1302,7 @@ export default function AddMenu() {
                               </label>
                               <input
                                 type="number"
+                                {...nonNegativeNumberInputProps}
                                 min="1"
                                 max={Math.max(groupOptions.length, 1)}
                                 value={groupAttachSettings.max_select}
@@ -1069,7 +1311,7 @@ export default function AddMenu() {
                                     ...prev,
                                     [group.id]: {
                                       ...getAttachSettings(prev, group.id, groupOptions.length),
-                                      max_select: e.target.value,
+                                      max_select: toNonNegativeNumberValue(e.target.value),
                                     },
                                   }))
                                 }
@@ -1097,7 +1339,7 @@ export default function AddMenu() {
                                     </span>
                                     <input
                                       type="number"
-                                      min="0"
+                                      {...nonNegativeNumberInputProps}
                                       step="0.01"
                                       placeholder={isVariantGroup(group) ? "Extra" : "Price"}
                                       value={groupAttachSettings.prices?.[option.id] ?? ""}
@@ -1115,7 +1357,9 @@ export default function AddMenu() {
                                               ...current,
                                               prices: {
                                                 ...current.prices,
-                                                [option.id]: e.target.value,
+                                                [option.id]: toNonNegativeNumberValue(
+                                                  e.target.value
+                                                ),
                                               },
                                             },
                                           };
@@ -1147,7 +1391,7 @@ export default function AddMenu() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteGroup(group)}
+                              onClick={() => openDeleteModal("modifier group", group)}
                               className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
                               title="Delete group"
                             >
@@ -1231,7 +1475,7 @@ export default function AddMenu() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteOption(option)}
+                            onClick={() => openDeleteModal("modifier option", option)}
                             className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
                             title="Delete option"
                           >
@@ -1250,8 +1494,11 @@ export default function AddMenu() {
 
       <CategoryModal
         isOpen={openCategoryModal}
-        onClose={() => setOpenCategoryModal(false)}
+        onClose={handleCloseCategoryModal}
         onSave={handleSaveCategory}
+        category={editingCategory}
+        errorMessage={categoryError}
+        onClearError={() => setCategoryError("")}
         isSaving={savingCategory}
       />
       <ModifierGroupModal
@@ -1268,6 +1515,16 @@ export default function AddMenu() {
         option={editingOption}
         groups={modifierGroups}
         isSaving={savingOption}
+      />
+      <DeleteConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        itemName={deleteTarget?.item?.name ?? ""}
+        itemType={deleteTarget?.type ?? "item"}
+        isDeleting={isDeleting}
+        errorMessage={deleteError}
+        isLight={isLight}
+        onClose={closeDeleteModal}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

@@ -1,5 +1,19 @@
 import { useEffect, useState } from "react";
 import { ImagePlus, Save, UtensilsCrossed, X } from "lucide-react";
+import {
+  nonNegativeNumberInputProps,
+  toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
+
+const numericFields = new Set([
+  "price",
+  "preparation_time",
+  "preparation_batch_size",
+  "calories",
+  "protein",
+  "carbs",
+  "fats",
+]);
 
 function FoodModal({ isOpen, onClose, onSave, categories, food }) {
   const [form, setForm] = useState({
@@ -46,7 +60,14 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : type === "file" ? files[0] : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "file"
+            ? files[0]
+            : numericFields.has(name)
+              ? toNonNegativeNumberValue(value)
+              : value,
     }));
   };
 
@@ -126,6 +147,8 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
               </label>
               <input
                 type="number"
+                {...nonNegativeNumberInputProps}
+                step="0.01"
                 name="price"
                 value={form.price}
                 onChange={handleChange}
@@ -140,6 +163,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
               </label>
               <input
                 type="number"
+                {...nonNegativeNumberInputProps}
                 name="preparation_time"
                 value={form.preparation_time}
                 onChange={handleChange}
@@ -154,6 +178,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
               </label>
               <input
                 type="number"
+                {...nonNegativeNumberInputProps}
                 min="1"
                 name="preparation_batch_size"
                 value={form.preparation_batch_size}
@@ -183,6 +208,8 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
               <input
                 key={field}
                 type="number"
+                {...nonNegativeNumberInputProps}
+                step="0.01"
                 name={field}
                 placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                 value={form[field]}

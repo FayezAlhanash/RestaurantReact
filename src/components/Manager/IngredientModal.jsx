@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { PackagePlus, Save, X } from "lucide-react";
+import {
+  nonNegativeNumberInputProps,
+  toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 const units = ["kg", "g", "L", "ml", "pcs"];
 
@@ -32,9 +36,12 @@ export default function IngredientModal({
   if (!isOpen) return null;
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { name, type, value } = event.target;
 
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "number" ? toNonNegativeNumberValue(value) : value,
+    }));
   };
 
   const handleSubmit = (event) => {
@@ -101,7 +108,7 @@ export default function IngredientModal({
               </span>
               <input
                 type="number"
-                min="0"
+                {...nonNegativeNumberInputProps}
                 step="0.01"
                 name="current_quantity"
                 value={form.current_quantity}
@@ -117,7 +124,7 @@ export default function IngredientModal({
               </span>
               <input
                 type="number"
-                min="0"
+                {...nonNegativeNumberInputProps}
                 step="0.01"
                 name="min_quantity"
                 value={form.min_quantity}

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Loader2, Store, X } from "lucide-react";
 import api from "../../API/axios";
+import {
+    nonNegativeNumberInputProps,
+    toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 function getImageUrl(path) {
     if (!path) return "";
@@ -231,10 +235,12 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
                             </span>
                             <input
                                 type="number"
-                                min="0"
+                                {...nonNegativeNumberInputProps}
                                 step="0.01"
                                 value={tax}
-                                onChange={(event) => setTax(event.target.value)}
+                                onChange={(event) =>
+                                    setTax(toNonNegativeNumberValue(event.target.value))
+                                }
                                 placeholder="5"
                                 className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                             />

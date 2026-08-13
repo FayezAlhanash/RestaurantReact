@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { Plus, Save, Trash2, X } from "lucide-react";
+import {
+  nonNegativeNumberInputProps,
+  toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 export default function AttachIngredientModal({
   isOpen,
@@ -129,11 +133,15 @@ export default function AttachIngredientModal({
                     <td className="p-3">
                       <input
                         type="number"
-                        min="0"
+                        {...nonNegativeNumberInputProps}
                         step="0.01"
                         value={row.quantity}
                         onChange={(e) =>
-                          handleChange(index, "quantity", e.target.value)
+                          handleChange(
+                            index,
+                            "quantity",
+                            toNonNegativeNumberValue(e.target.value)
+                          )
                         }
                         className={fieldClass}
                         placeholder="2"

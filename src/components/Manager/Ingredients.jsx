@@ -15,6 +15,10 @@ import {
 import api from "../../API/axios";
 import { ensureManagerRestaurantId, getResponseList } from "./managerHelpers";
 import { getUserPermissions } from "../../utils/permissions";
+import {
+  nonNegativeNumberInputProps,
+  toNonNegativeNumberValue,
+} from "../../utils/nonNegativeNumberInput";
 
 const getFoodIngredientId = (item) =>
   item?.ingredient_id ?? item?.pivot?.ingredient_id ?? item?.id;
@@ -469,10 +473,12 @@ export default function Ingredients() {
               </span>
               <input
                 type="number"
-                min="0"
+                {...nonNegativeNumberInputProps}
                 step="0.01"
                 value={recipeQuantity}
-                onChange={(event) => setRecipeQuantity(event.target.value)}
+                onChange={(event) =>
+                  setRecipeQuantity(toNonNegativeNumberValue(event.target.value))
+                }
                 disabled={!selectedFoodId || !canManageRecipes}
                 className={`${fieldClass} disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-white/30`}
                 placeholder="2"
@@ -602,13 +608,15 @@ export default function Ingredients() {
                         <td className="px-5 py-5">
                           <input
                             type="number"
-                            min="0"
+                            {...nonNegativeNumberInputProps}
                             step="0.01"
                             value={shownQuantity}
                             onChange={(event) =>
                               setPendingQuantityEdits((current) => ({
                                 ...current,
-                                [ingredientId]: event.target.value,
+                                [ingredientId]: toNonNegativeNumberValue(
+                                  event.target.value
+                                ),
                               }))
                             }
                             readOnly={!canManageRecipes}
