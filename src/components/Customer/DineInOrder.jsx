@@ -3123,12 +3123,14 @@ function DineInOrder() {
                             onSelect={selectRestaurant}
                         />
 
-                        {successMessage && (
+                        {(successMessage || orderTimings.length > 0) && (
                             <div className="mb-4 space-y-3">
-                                <p className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
-                                    <CheckCircle2 size={18} />
-                                    {successMessage}
-                                </p>
+                                {successMessage && (
+                                    <p className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
+                                        <CheckCircle2 size={18} />
+                                        {successMessage}
+                                    </p>
+                                )}
                                 {orderTimings.length > 0 && (
                                     <div className="space-y-3">
                                         <button
