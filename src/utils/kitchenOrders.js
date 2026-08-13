@@ -335,6 +335,8 @@ function getModifierTextValue(value) {
 function getModifierOptionName(option = {}) {
     return getModifierTextValue(
         option.name ??
+            option.name_ar ??
+            option.name_en ??
             option.title ??
             option.label ??
             option.option_name ??
@@ -342,8 +344,14 @@ function getModifierOptionName(option = {}) {
             option.modifier_option_name ??
             option.modifierOptionName ??
             option.modifier_option?.name ??
+            option.modifier_option?.name_ar ??
+            option.modifier_option?.name_en ??
             option.modifierOption?.name ??
+            option.modifierOption?.name_ar ??
+            option.modifierOption?.name_en ??
             option.option?.name ??
+            option.option?.name_ar ??
+            option.option?.name_en ??
             option.pivot?.name
     );
 }
@@ -363,6 +371,9 @@ function getModifierGroupName(option = {}) {
 
 function getModifierOptions(value) {
     return [
+        ...getList(value?.modifiers),
+        ...getList(value?.selected_modifiers),
+        ...getList(value?.selectedModifiers),
         ...getList(value?.modifier_options),
         ...getList(value?.modifierOptions),
         ...getList(value?.selected_modifier_options),
@@ -370,6 +381,9 @@ function getModifierOptions(value) {
         ...getList(value?.selected_options),
         ...getList(value?.selectedOptions),
         ...getList(value?.options),
+        ...getList(value?.pivot?.modifiers),
+        ...getList(value?.pivot?.selected_modifiers),
+        ...getList(value?.pivot?.selectedModifiers),
         ...getList(value?.pivot?.modifier_options),
         ...getList(value?.pivot?.modifierOptions),
         ...getList(value?.pivot?.selected_modifier_options),
@@ -432,6 +446,7 @@ function normalizeKitchenItem(item, index) {
             item.food_id ??
             food.id ??
             `item-${index}`,
+        foodId: item.food_id ?? item.foodId ?? food.id ?? null,
         name:
             food.name ||
             food.title ||
@@ -442,6 +457,45 @@ function normalizeKitchenItem(item, index) {
         quantity: Number(item.quantity ?? item.qty ?? item.count ?? 1),
         note: hideTableNotes(note),
     };
+}
+
+function getKitchenItemMatchKeys(item = {}) {
+    return [
+        item.id ? `id:${item.id}` : "",
+        item.foodId ? `food:${item.foodId}` : "",
+        item.name ? `name:${String(item.name).trim().toLowerCase()}` : "",
+    ].filter(Boolean);
+}
+
+function mergeKitchenItemDetails(items, detailItems) {
+    if (!detailItems.length) return items;
+
+    const detailByKey = new Map();
+
+    detailItems.forEach((detailItem) => {
+        getKitchenItemMatchKeys(detailItem).forEach((key) => {
+            if (!detailByKey.has(key)) {
+                detailByKey.set(key, detailItem);
+            }
+        });
+    });
+
+    return items.map((item) => {
+        const detailItem = getKitchenItemMatchKeys(item)
+            .map((key) => detailByKey.get(key))
+            .find(Boolean);
+
+        if (!detailItem) return item;
+
+        return {
+            ...item,
+            note: item.note || detailItem.note || "",
+        };
+    });
+}
+
+function needsKitchenItemDetail(order = {}) {
+    return order.items?.some((item) => !item.note) ?? false;
 }
 
 function getKitchenParentOrderId(order) {
@@ -857,7 +911,9 @@ export async function fetchCashierOrderDetail(orderId) {
 async function enrichKitchenOrdersWithOrderDetails(orders) {
     const enrichedOrders = await Promise.all(
         orders.map(async (order) => {
-            if (!order.needsTypeDetail) return order;
+            if (!order.needsTypeDetail && !needsKitchenItemDetail(order)) {
+                return order;
+            }
 
             const detailIds = order.detailIds?.length ? order.detailIds : [order.id];
             let detail = null;
@@ -869,9 +925,14 @@ async function enrichKitchenOrdersWithOrderDetails(orders) {
 
             if (!detail) return order;
 
+            const detailItems = getKitchenItems(detail).map(normalizeKitchenItem);
+
             return {
                 ...order,
-                type: getResolvedOrderTypeFromRecord(detail),
+                type: order.needsTypeDetail
+                    ? getResolvedOrderTypeFromRecord(detail)
+                    : order.type,
+                items: mergeKitchenItemDetails(order.items, detailItems),
             };
         })
     );
