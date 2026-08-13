@@ -324,8 +324,106 @@ function dedupeNoteSegments(value) {
         .join(" · ");
 }
 
+function getModifierTextValue(value) {
+    if (value === undefined || value === null || value === "") return "";
+    if (typeof value === "number") return "";
+    if (typeof value === "string") return /^\d+$/.test(value.trim()) ? "" : value.trim();
+
+    return "";
+}
+
+function getModifierOptionName(option = {}) {
+    return getModifierTextValue(
+        option.name ??
+            option.title ??
+            option.label ??
+            option.option_name ??
+            option.optionName ??
+            option.modifier_option_name ??
+            option.modifierOptionName ??
+            option.modifier_option?.name ??
+            option.modifierOption?.name ??
+            option.option?.name ??
+            option.pivot?.name
+    );
+}
+
+function getModifierGroupName(option = {}) {
+    return getModifierTextValue(
+        option.group_name ??
+            option.groupName ??
+            option.modifier_group_name ??
+            option.modifierGroupName ??
+            option.modifier_group?.name ??
+            option.modifierGroup?.name ??
+            option.group?.name ??
+            option.pivot?.group_name
+    );
+}
+
+function getModifierOptions(value) {
+    return [
+        ...getList(value?.modifier_options),
+        ...getList(value?.modifierOptions),
+        ...getList(value?.selected_modifier_options),
+        ...getList(value?.selectedModifierOptions),
+        ...getList(value?.selected_options),
+        ...getList(value?.selectedOptions),
+        ...getList(value?.options),
+        ...getList(value?.pivot?.modifier_options),
+        ...getList(value?.pivot?.modifierOptions),
+        ...getList(value?.pivot?.selected_modifier_options),
+        ...getList(value?.pivot?.selectedModifierOptions),
+    ];
+}
+
+function getModifierNoteSegments(item) {
+    const optionSegments = getModifierOptions(item)
+        .map((option) => {
+            const optionName = getModifierOptionName(option);
+
+            if (!optionName) return "";
+
+            const groupName = getModifierGroupName(option);
+
+            return groupName ? `${groupName}: ${optionName}` : optionName;
+        })
+        .filter(Boolean);
+
+    const selectionSegments = Object.entries(
+        item?.selected_modifiers ??
+            item?.selectedModifiers ??
+            item?.modifier_selections ??
+            item?.modifierSelections ??
+            item?.pivot?.selected_modifiers ??
+            item?.pivot?.modifier_selections ??
+            {}
+    )
+        .map(([groupName, optionName]) => {
+            const groupText = getModifierTextValue(groupName);
+            const optionText = getModifierTextValue(optionName);
+
+            if (!optionText) return "";
+
+            return groupText ? `${groupText}: ${optionText}` : optionText;
+        })
+        .filter(Boolean);
+
+    return [...optionSegments, ...selectionSegments];
+}
+
 function normalizeKitchenItem(item, index) {
     const food = item.food || item.menu_item || item.product || item.item || {};
+    const note = dedupeNoteSegments(
+        [
+            item.note ||
+                item.notes ||
+                item.special_instructions ||
+                item.pivot?.notes ||
+                "",
+            ...getModifierNoteSegments(item),
+        ].join(" · ")
+    );
 
     return {
         id:
@@ -342,15 +440,7 @@ function normalizeKitchenItem(item, index) {
             item.food_name ||
             "Item",
         quantity: Number(item.quantity ?? item.qty ?? item.count ?? 1),
-        note: hideTableNotes(
-            dedupeNoteSegments(
-                item.note ||
-                    item.notes ||
-                    item.special_instructions ||
-                    item.pivot?.notes ||
-                    ""
-            )
-        ),
+        note: hideTableNotes(note),
     };
 }
 
