@@ -90,11 +90,43 @@ const getRestaurantImageUrl = (restaurant) => {
     return `https://big4.me/storage/${cleanPath}`;
 };
 
+const getRestaurantId = (restaurant) =>
+    restaurant?.id ??
+    restaurant?.restaurant_id ??
+    restaurant?.restaurantId ??
+    restaurant?.M_ID ??
+    restaurant?.m_id ??
+    restaurant?.merchant_id ??
+    restaurant?.merchantId ??
+    restaurant?.restaurant?.id ??
+    null;
+
+const normalizeRestaurant = (restaurant) => {
+    const restaurantId = getRestaurantId(restaurant);
+
+    return {
+        ...restaurant,
+        id: restaurantId,
+        name:
+            restaurant?.name ??
+            restaurant?.restaurant_name ??
+            restaurant?.restaurantName ??
+            restaurant?.title ??
+            "Restaurant",
+    };
+};
+
 const normalizeFoodItem = (food, restaurant = null) => ({
     ...food,
-    id: restaurant?.id ? `${restaurant.id}-${food.id}` : food.id,
+    id: getRestaurantId(restaurant) ? `${getRestaurantId(restaurant)}-${food.id}` : food.id,
     food_id: food.id,
-    restaurant_id: food.restaurant_id ?? food.restaurant?.id ?? restaurant?.id,
+    restaurant_id:
+        food.restaurant_id ??
+        food.restaurantId ??
+        food.M_ID ??
+        food.m_id ??
+        getRestaurantId(food.restaurant) ??
+        getRestaurantId(restaurant),
     restaurantName: food.restaurant?.name ?? restaurant?.name ?? "Restaurant",
     restaurantTaxPercentage:
         food.restaurant?.tax_percentage ??
@@ -189,6 +221,10 @@ const createSessionUnavailableError = (message) => {
 
 const isMissingEndpointError = (error) => {
     if (error.response?.status !== 404) return false;
+
+    const requestUrl = String(error.config?.url || "");
+
+    if (requestUrl.includes("/customer-dine-in/")) return true;
 
     const message = String(
         error.response?.data?.message ||
@@ -376,8 +412,12 @@ const fetchFoodDetails = async (food) => {
 };
 
 const fetchRestaurantMenu = async (restaurant) => {
+    const restaurantId = getRestaurantId(restaurant);
+
+    if (!restaurantId) return [];
+
     const foodsResponse = await api.get("/food", {
-        params: { restaurant_id: restaurant.id },
+        params: { restaurant_id: restaurantId },
     });
     const foods = getList(foodsResponse.data).map((food) =>
         normalizeFoodItem(food, restaurant)
@@ -2281,12 +2321,14 @@ function DineInOrder() {
                 setIsSessionAvailable(true);
 
                 const restaurantsResponse = await api.get("/restaurants");
-                const restaurantList = getList(restaurantsResponse.data);
+                const restaurantList = getList(restaurantsResponse.data)
+                    .map(normalizeRestaurant)
+                    .filter((restaurant) => restaurant.id);
                 const activeOrders = await fetchCurrentDineInOrders(
                     resolvedSessionToken,
                     tableId,
                     sessionData,
-                    restaurantList.map((restaurant) => restaurant.id).filter(Boolean)
+                    restaurantList.map(getRestaurantId).filter(Boolean)
                 );
                 const activeOrderTimings = await buildOrderTimingItems(
                     activeOrders,
