@@ -258,7 +258,7 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
                                             <p className="mt-0.5 text-sm capitalize text-white/50">{item.size}</p>
                                             {!canOrder && (
                                                 <p className="mt-1 text-xs font-black text-[#FFB3B3]">
-                                                    غير متوفر
+                                                    Unavailable
                                                 </p>
                                             )}
                                         </div>

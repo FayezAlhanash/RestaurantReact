@@ -264,6 +264,7 @@ const normalizeRestaurantGroup = (restaurantOrder) => {
             null,
         restaurantId: getRestaurantId(restaurantOrder) ?? firstItem?.restaurantId,
         restaurantName: getRestaurantName(restaurantOrder) || firstItem?.restaurantName,
+        status: normalizeStatus(getStatusValue(restaurantOrder)),
         items,
         timing: getPreparationTiming(restaurantOrder),
     };
@@ -413,17 +414,26 @@ const readyStatuses = new Set([
     "waiting_pickup",
 ]);
 
+const canCancelBeforePrepared = (record, parentOrder = record) => {
+    const status = normalizeStatus(record?.status || parentOrder?.status);
+    const isDineInOrder = normalizeType(parentOrder?.type) === "dine_in";
+
+    if (readyStatuses.has(status)) return false;
+
+    return isDineInOrder || !preparingStatuses.has(status);
+};
+
 const getLockedOrderMessage = (order, action = "changed") => {
     const status = normalizeStatus(order?.status);
     const orderNumber = order?.number ?? order?.id;
     const orderLabel = orderNumber ? `Order #${orderNumber}` : "This order";
 
-    if (preparingStatuses.has(status)) {
-        return `${orderLabel} is already being prepared and can no longer be ${action}.`;
+    if (readyStatuses.has(status)) {
+        return `${orderLabel} is already prepared and can no longer be ${action}.`;
     }
 
-    if (readyStatuses.has(status)) {
-        return `${orderLabel} is ready and can no longer be ${action}.`;
+    if (normalizeType(order?.type) !== "dine_in" && preparingStatuses.has(status)) {
+        return `${orderLabel} is already being prepared and can no longer be ${action}.`;
     }
 
     return "";
@@ -796,7 +806,7 @@ function CatalogOrders() {
                                                 </div>
                                             </div>
 
-                                            {group.id && (
+                                            {group.id && canCancelBeforePrepared(group, order) && (
                                                 <button
                                                     type="button"
                                                     onClick={() =>
@@ -861,12 +871,13 @@ function CatalogOrders() {
                                                                         deleteOrderItem(
                                                                             item.id,
                                                                             order
-                                                                        ),
+                                                                    ),
                                                                 })
                                                             }
                                                             disabled={
                                                                 submittingKey ===
-                                                                `item-delete:${item.id}`
+                                                                    `item-delete:${item.id}` ||
+                                                                !canCancelBeforePrepared(order)
                                                             }
                                                             className="grid h-9 w-9 place-items-center rounded-lg border border-[#FF6B6B]/35 bg-[#7F1D1D] text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80"
                                                             aria-label={`Delete ${item.name}`}
@@ -901,13 +912,18 @@ function CatalogOrders() {
                                             onConfirm: () => cancelOrder(order),
                                         })
                                     }
-                                    disabled={submittingKey === `order:${order.id}`}
+                                    disabled={
+                                        submittingKey === `order:${order.id}` ||
+                                        !canCancelBeforePrepared(order)
+                                    }
                                     className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#FF6B6B]/35 bg-[#7F1D1D] px-3 text-xs font-black text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)] transition hover:border-[#FF8A8A]/55 hover:bg-[#681718] active:scale-[0.98] disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-80"
                                 >
                                     <Trash2 size={15} />
-                                    {submittingKey === `order:${order.id}`
-                                        ? "Canceling..."
-                                        : "Cancel order"}
+                                    {!canCancelBeforePrepared(order)
+                                        ? "Prepared"
+                                        : submittingKey === `order:${order.id}`
+                                            ? "Canceling..."
+                                            : "Cancel order"}
                                 </button>
                             </footer>
                         </article>

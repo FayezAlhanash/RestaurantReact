@@ -586,7 +586,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/24 text-[#FFD6D6]"
                                         : "border-[#F3B0B0] bg-[#FFF0F0] text-[#7F1D1D]"
                                 }`}>
-                                    غير متوفر
+                                    Unavailable
                                 </p>
                             )}
 
@@ -825,7 +825,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                             >
                                                 <span className="block text-sm font-black capitalize">{size}</span>
                                                 <span className="mt-0.5 block text-xs font-bold opacity-70">
-                                                    {size === "small" ? "حصة عادية" : "+ $2.00"}
+                                                    {size === "small" ? "Regular portion" : "+ $2.00"}
                                                 </span>
                                             </button>
                                         ))}
@@ -912,11 +912,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         <ShoppingBag className="shrink-0" size={18} />
                                     )}
                                     <span className="truncate">
-                                        {isAdded ? "تمت الإضافة" : canOrder ? "إضافة للطلب" : "غير متوفر"}
+                                        {isAdded ? "Added" : canOrder ? "Add to order" : "Unavailable"}
                                     </span>
                                 </span>
                                 <span className="shrink-0">
-                                    {isLoadingDetails ? "جار التحميل..." : `$${(unitPrice * quantity).toFixed(2)}`}
+                                    {isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}
                                 </span>
                             </button>
                         </div>
@@ -958,7 +958,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/24 text-[#FFD6D6]"
                                 : "border-[#F3B0B0] bg-[#FFF0F0] text-[#7F1D1D]"
                         }`}>
-                            غير متوفر
+                            Unavailable
                         </p>
                     )}
 
@@ -1200,7 +1200,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         }`}
                                     >
                                         <span className="block text-sm font-extrabold capitalize">{size}</span>
-                                        <span className="mt-0.5 block text-xs opacity-70">{size === "small" ? "حصة عادية" : "+ $2.00"}</span>
+                                        <span className="mt-0.5 block text-xs opacity-70">{size === "small" ? "Regular portion" : "+ $2.00"}</span>
                                     </button>
                                 ))}
                             </div>
@@ -1267,9 +1267,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     >
                         <span className="flex items-center gap-2">
                             {isAdded ? <Check size={19} /> : <ShoppingBag size={19} />}
-                            {isAdded ? "تمت الإضافة" : canOrder ? "إضافة للطلب" : "غير متوفر"}
+                            {isAdded ? "Added" : canOrder ? "Add to order" : "Unavailable"}
                         </span>
-                        <span>{isLoadingDetails ? "جار التحميل..." : `$${(unitPrice * quantity).toFixed(2)}`}</span>
+                        <span>{isLoadingDetails ? "Loading..." : `$${(unitPrice * quantity).toFixed(2)}`}</span>
                     </button>
                 </div>
             </div>

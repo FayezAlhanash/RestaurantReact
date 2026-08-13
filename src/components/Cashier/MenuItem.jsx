@@ -254,7 +254,7 @@ function MenuItemCard({ item, onOpen }) {
                             : "bg-[#334155] text-white"
                     }`}
                 >
-                    {isDietItem(item) ? "دايت" : "عادي"}
+                    {isDietItem(item) ? "Diet" : "Regular"}
                 </span>
                 {!canOrder && (
                     <div className="absolute inset-0 z-10 grid place-items-center px-4 text-center">
@@ -262,7 +262,7 @@ function MenuItemCard({ item, onOpen }) {
                             <X size={38} strokeWidth={4} />
                         </div>
                         <span className="mt-3 rounded-full border-2 border-white bg-[#B91C1C] px-5 py-2 text-lg font-black text-white shadow-[0_16px_34px_rgba(0,0,0,0.38)]">
-                            غير متوفر
+                            Unavailable
                         </span>
                     </div>
                 )}
@@ -291,7 +291,7 @@ function MenuItemCard({ item, onOpen }) {
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-[15px] font-black text-white shadow-[0_14px_28px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/45 disabled:shadow-none"
                 >
                     <Plus size={18} />
-                    {canOrder ? "إضافة للطلب" : "غير متوفر"}
+                    {canOrder ? "Add to order" : "Unavailable"}
                 </button>
             </div>
         </article>

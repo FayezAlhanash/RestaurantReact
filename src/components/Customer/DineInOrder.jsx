@@ -1059,7 +1059,7 @@ function CustomerFoodCard({ item, onOpen }) {
                             : "bg-[#334155] text-white"
                     }`}
                 >
-                    {isDiet ? "دايت" : "عادي"}
+                    {isDiet ? "Diet" : "Regular"}
                 </span>
                 <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-[#FFD166] backdrop-blur sm:bottom-3 sm:right-3 sm:px-3 sm:text-sm">
                     ${Number(item.price ?? 0).toFixed(2)}
@@ -1070,7 +1070,7 @@ function CustomerFoodCard({ item, onOpen }) {
                             <X size={34} strokeWidth={4} />
                         </div>
                         <span className="mt-2 rounded-full border-2 border-white bg-[#B91C1C] px-4 py-1.5 text-base font-black text-white shadow-[0_16px_34px_rgba(0,0,0,0.38)] sm:px-5 sm:py-2 sm:text-lg">
-                            غير متوفر
+                            Unavailable
                         </span>
                     </div>
                 )}
@@ -1089,7 +1089,7 @@ function CustomerFoodCard({ item, onOpen }) {
 
                 <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:gap-3 sm:pt-5">
                     <span className={`truncate text-xs font-bold sm:text-sm ${canOrder ? "text-white/45" : "text-[#FFB3B3]"}`}>
-                        {canOrder ? "اضغط للتخصيص" : "غير متوفر"}
+                        {canOrder ? "Tap to customize" : "Unavailable"}
                     </span>
                     <button
                         type="button"
@@ -1099,8 +1099,8 @@ function CustomerFoodCard({ item, onOpen }) {
                             if (!canOrder) return;
                             onOpen();
                         }}
-                        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35 disabled:shadow-none sm:h-11 sm:w-11"
-                        aria-label={canOrder ? `إضافة ${item.title}` : `${item.title} غير متوفر`}
+                        className="customer-food-add-button grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35 disabled:shadow-none sm:h-11 sm:w-11"
+                        aria-label={canOrder ? `Add ${item.title}` : `${item.title} unavailable`}
                     >
                         <Plus size={18} />
                     </button>
@@ -1536,7 +1536,7 @@ function OrderPanel({
                                     </p>
                                     {!canOrder && (
                                         <p className="mt-1 text-xs font-black text-[#FFB3B3]">
-                                            غير متوفر
+                                            Unavailable
                                         </p>
                                     )}
                                     {item.notes && (
@@ -1894,7 +1894,7 @@ function ConfirmOrderModal({
                                     </p>
                                     {!canOrder && (
                                         <p className="mt-1 text-xs font-black text-[#FFB3B3]">
-                                            غير متوفر
+                                            Unavailable
                                         </p>
                                     )}
                                 </div>

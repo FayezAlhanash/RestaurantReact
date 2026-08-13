@@ -1073,6 +1073,23 @@ img, svg {
     color: #ffffff !important;
 }
 
+[data-theme="light"] .customer-experience .customer-food-add-button:not(:disabled) {
+    background-color: #7F1D1D !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 14px 28px rgba(127, 29, 29, 0.28) !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-add-button:not(:disabled):hover {
+    background-color: #681718 !important;
+}
+
+[data-theme="light"] .customer-experience .customer-food-add-button svg,
+[data-theme="light"] .customer-experience .customer-food-add-button svg * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
 [data-theme="dark"] .customer-experience {
     background: #101517 !important;
     color: #ffffff !important;
