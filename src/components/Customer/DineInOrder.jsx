@@ -599,16 +599,37 @@ const getCurrentDineInOrderEndpoints = (sessionToken) => [
     `/customer-dine-in/session/${encodeURIComponent(sessionToken)}/orders`,
 ];
 
-async function fetchCurrentDineInOrders(sessionToken, tableId, sessionData = null) {
+const getRestaurantScopedOrderRequests = (restaurantIds = []) =>
+    restaurantIds.map((restaurantId) => ({
+        endpoint: "/customer-dine-in/orders",
+        params: { restaurant_id: restaurantId },
+    }));
+
+async function fetchCurrentDineInOrders(
+    sessionToken,
+    tableId,
+    sessionData = null,
+    restaurantIds = []
+) {
     const sessionOrders = getUniqueActiveDineInOrders(sessionData);
 
     if (sessionOrders.length) return sessionOrders;
 
-    for (const endpoint of getCurrentDineInOrderEndpoints(sessionToken)) {
+    const requests = [
+        ...getRestaurantScopedOrderRequests(restaurantIds),
+        ...getCurrentDineInOrderEndpoints(sessionToken).map((endpoint) => ({
+            endpoint,
+            params: {},
+        })),
+    ];
+    const collectedOrders = [];
+
+    for (const { endpoint, params } of requests) {
         try {
             const response = await api.get(endpoint, {
                 headers: getSessionTokenHeaders(sessionToken),
                 params: {
+                    ...params,
                     session_token: sessionToken,
                     table_session_token: sessionToken,
                     table_token: sessionToken,
@@ -618,7 +639,7 @@ async function fetchCurrentDineInOrders(sessionToken, tableId, sessionData = nul
             });
             const orders = getUniqueActiveDineInOrders(response.data);
 
-            if (orders.length) return orders;
+            collectedOrders.push(...orders);
         } catch (error) {
             if (
                 isMissingEndpointError(error) ||
@@ -631,7 +652,7 @@ async function fetchCurrentDineInOrders(sessionToken, tableId, sessionData = nul
         }
     }
 
-    return [];
+    return getUniqueActiveDineInOrders(collectedOrders);
 }
 
 const collectInvoiceIds = (value, ids = []) => {
@@ -2259,10 +2280,13 @@ function DineInOrder() {
                 );
                 setIsSessionAvailable(true);
 
+                const restaurantsResponse = await api.get("/restaurants");
+                const restaurantList = getList(restaurantsResponse.data);
                 const activeOrders = await fetchCurrentDineInOrders(
                     resolvedSessionToken,
                     tableId,
-                    sessionData
+                    sessionData,
+                    restaurantList.map((restaurant) => restaurant.id).filter(Boolean)
                 );
                 const activeOrderTimings = await buildOrderTimingItems(
                     activeOrders,
@@ -2290,8 +2314,6 @@ function DineInOrder() {
                     setShowOrderTimings(false);
                 }
 
-                const restaurantsResponse = await api.get("/restaurants");
-                const restaurantList = getList(restaurantsResponse.data);
                 const menuResponses = await Promise.allSettled(
                     restaurantList.map(fetchRestaurantMenu)
                 );
