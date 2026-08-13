@@ -1031,6 +1031,108 @@ async function createDineInOrder(cartItems, tableId, sessionToken) {
     throw lastError;
 }
 
+async function cancelDineInOrder(orderId, sessionToken, tableId) {
+    const formData = new FormData();
+
+    appendIfPresent(formData, "session_token", sessionToken);
+    appendIfPresent(formData, "table_session_token", sessionToken);
+    appendIfPresent(formData, "table_token", sessionToken);
+    appendIfPresent(formData, "token", sessionToken);
+    appendIfPresent(formData, "table_id", getTableIdForRequest(tableId));
+    appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
+
+    const requests = [
+        () =>
+            api.post(`/customer-dine-in/orders/${orderId}/cancel`, formData, {
+                headers: getSessionTokenHeaders(sessionToken),
+            }),
+        () =>
+            api.delete(`/customer-dine-in/orders/${orderId}`, {
+                headers: getSessionTokenHeaders(sessionToken),
+                data: formData,
+            }),
+        () =>
+            api.post(`/cashier/orders/${orderId}/cancel`, formData, {
+                headers: getSessionTokenHeaders(sessionToken),
+            }),
+    ];
+    let lastError;
+
+    for (const request of requests) {
+        try {
+            const response = await request();
+
+            return response.data;
+        } catch (error) {
+            lastError = error;
+
+            if (
+                isMissingEndpointError(error) ||
+                error.response?.status === 404 ||
+                error.response?.status === 405
+            ) {
+                continue;
+            }
+
+            throw error;
+        }
+    }
+
+    throw lastError;
+}
+
+async function deleteDineInOrderItem(orderId, itemId, sessionToken, tableId) {
+    const formData = new FormData();
+
+    appendIfPresent(formData, "session_token", sessionToken);
+    appendIfPresent(formData, "table_session_token", sessionToken);
+    appendIfPresent(formData, "table_token", sessionToken);
+    appendIfPresent(formData, "token", sessionToken);
+    appendIfPresent(formData, "table_id", getTableIdForRequest(tableId));
+    appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
+
+    const requests = [
+        () =>
+            api.delete(`/customer-dine-in/order-items/${itemId}`, {
+                headers: getSessionTokenHeaders(sessionToken),
+                data: formData,
+            }),
+        () =>
+            api.delete(`/customer-dine-in/orders/${orderId}/items/${itemId}`, {
+                headers: getSessionTokenHeaders(sessionToken),
+                data: formData,
+            }),
+        () =>
+            api.delete(`/cashier/order-items/${itemId}`, {
+                headers: getSessionTokenHeaders(sessionToken),
+                data: formData,
+            }),
+    ];
+    let lastError;
+
+    for (const request of requests) {
+        try {
+            const response = await request();
+
+            return response.data;
+        } catch (error) {
+            lastError = error;
+
+            if (
+                isMissingEndpointError(error) ||
+                error.response?.status === 404 ||
+                error.response?.status === 405
+            ) {
+                continue;
+            }
+
+            throw error;
+        }
+    }
+
+    throw lastError;
+}
+
 async function addItemsToDineInOrder(orderId, cartItems, sessionToken) {
     const responses = [];
 
@@ -2255,6 +2357,10 @@ function DineInOrder() {
         readStoredOrderTimings(orderTimingsStorageKey)
     );
     const [showOrderTimings, setShowOrderTimings] = useState(false);
+    const [pendingCancelOrderId, setPendingCancelOrderId] = useState("");
+    const [cancelingOrderId, setCancelingOrderId] = useState("");
+    const [pendingDeleteItemKey, setPendingDeleteItemKey] = useState("");
+    const [deletingItemKey, setDeletingItemKey] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(
         () => sessionStorage.getItem(onboardingStorageKey) !== "done"
@@ -2673,6 +2779,116 @@ function DineInOrder() {
         setSuccessMessage("");
     };
 
+    const cancelActiveOrder = async (orderId) => {
+        if (!orderId || cancelingOrderId) return;
+
+        if (pendingCancelOrderId !== String(orderId)) {
+            setPendingCancelOrderId(String(orderId));
+            setSuccessMessage("");
+            setErrorMessage("");
+            return;
+        }
+
+        setCancelingOrderId(String(orderId));
+        setErrorMessage("");
+        setSuccessMessage("");
+
+        try {
+            await cancelDineInOrder(orderId, sessionToken, tableId);
+            setPendingCancelOrderId("");
+            saveOrderTimings((currentTimings) =>
+                currentTimings.filter(
+                    (orderTiming) => String(orderTiming.orderId) !== String(orderId)
+                )
+            );
+            setShowOrderTimings(
+                orderTimingsRef.current.some(
+                    (orderTiming) => String(orderTiming.orderId) !== String(orderId)
+                )
+            );
+            sessionStorage.removeItem(orderStorageKey);
+            sessionStorage.removeItem(invoiceStorageKey);
+            setSuccessMessage(`Order #${orderId} canceled.`);
+        } catch (error) {
+            setErrorMessage(
+                error.response?.data?.message ||
+                    "Could not cancel this order. Please ask the waiter for help."
+            );
+        } finally {
+            setCancelingOrderId("");
+        }
+    };
+
+    const deleteActiveOrderItem = async (orderId, itemId) => {
+        const itemKey = `${orderId}:${itemId}`;
+
+        if (!orderId || !itemId || deletingItemKey) return;
+
+        if (pendingDeleteItemKey !== itemKey) {
+            setPendingDeleteItemKey(itemKey);
+            setPendingCancelOrderId("");
+            setSuccessMessage("");
+            setErrorMessage("");
+            return;
+        }
+
+        setDeletingItemKey(itemKey);
+        setErrorMessage("");
+        setSuccessMessage("");
+
+        try {
+            await deleteDineInOrderItem(orderId, itemId, sessionToken, tableId);
+            setPendingDeleteItemKey("");
+            saveOrderTimings((currentTimings) =>
+                currentTimings
+                    .map((orderTiming) => {
+                        if (String(orderTiming.orderId) !== String(orderId)) {
+                            return orderTiming;
+                        }
+
+                        const timing = orderTiming.timing;
+
+                        if (
+                            timing?.scope !== "per_restaurant" ||
+                            !Array.isArray(timing.restaurants)
+                        ) {
+                            return orderTiming;
+                        }
+
+                        const restaurants = timing.restaurants
+                            .map((restaurant) => ({
+                                ...restaurant,
+                                items: restaurant.items.filter(
+                                    (item) => String(item.id) !== String(itemId)
+                                ),
+                            }))
+                            .filter((restaurant) => restaurant.items.length);
+
+                        return {
+                            ...orderTiming,
+                            timing: {
+                                ...timing,
+                                restaurants,
+                            },
+                        };
+                    })
+                    .filter(
+                        (orderTiming) =>
+                            orderTiming.timing?.scope !== "per_restaurant" ||
+                            orderTiming.timing.restaurants.length
+                    )
+            );
+            setSuccessMessage("Item deleted from this order.");
+        } catch (error) {
+            setErrorMessage(
+                error.response?.data?.message ||
+                    "Could not delete this item. Please ask the waiter for help."
+            );
+        } finally {
+            setDeletingItemKey("");
+        }
+    };
+
     const submitOrder = async () => {
         if (!cartItems.length) return;
         if (hasUnavailableCartItems(cartItems)) {
@@ -2944,6 +3160,11 @@ function DineInOrder() {
                                             <div className="space-y-2 rounded-2xl border border-white/10 bg-[#12181B] p-3 text-white">
                                                 {orderTimings.map((orderTiming, index) => {
                                                     const timing = orderTiming.timing;
+                                                    const orderId = String(orderTiming.orderId);
+                                                    const isCancelPending =
+                                                        pendingCancelOrderId === orderId;
+                                                    const isCanceling =
+                                                        cancelingOrderId === orderId;
                                                     const isPerRestaurant =
                                                         timing?.scope === "per_restaurant" &&
                                                         Array.isArray(timing.restaurants);
@@ -2959,16 +3180,66 @@ function DineInOrder() {
 
                                                     return (
                                                         <div
-                                                            key={orderTiming.orderId}
+                                                            key={orderId}
                                                             className="rounded-xl bg-white/[0.07] px-3 py-3"
                                                         >
-                                                            <div className="flex items-center justify-between gap-3">
-                                                                <span className="text-sm font-black text-white/70">
-                                                                    Order {index + 1}
-                                                                </span>
-                                                                <span className="text-xl font-black text-white">
-                                                                    {label}
-                                                                </span>
+                                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                                <div className="min-w-0">
+                                                                    <span className="block text-sm font-black text-white/70">
+                                                                        Order {index + 1}
+                                                                    </span>
+                                                                    {isCancelPending && (
+                                                                        <span className="mt-1 block text-xs font-black text-[#FFB3B3]">
+                                                                            Delete this order? Press confirm to cancel it.
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex shrink-0 items-center gap-2">
+                                                                    <span className="text-xl font-black text-white">
+                                                                        {label}
+                                                                    </span>
+                                                                    {isCancelPending && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setPendingCancelOrderId("")}
+                                                                            disabled={isCanceling}
+                                                                            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white disabled:cursor-wait"
+                                                                            aria-label="Cancel delete order"
+                                                                            title="Cancel"
+                                                                        >
+                                                                            <X size={17} />
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => cancelActiveOrder(orderId)}
+                                                                        disabled={isCanceling}
+                                                                        className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80 ${
+                                                                            isCancelPending
+                                                                                ? "border-[#FF6B6B]/55 bg-[#7F1D1D] hover:bg-[#9B1C1C]"
+                                                                                : "border-[#FF6B6B]/35 bg-[#7F1D1D] hover:border-[#FF8A8A]/55 hover:bg-[#681718]"
+                                                                        }`}
+                                                                        aria-label={
+                                                                            isCancelPending
+                                                                                ? `Confirm cancel order ${orderId}`
+                                                                                : `Cancel order ${orderId}`
+                                                                        }
+                                                                        title={
+                                                                            isCancelPending
+                                                                                ? "Confirm cancel order"
+                                                                                : "Cancel order"
+                                                                        }
+                                                                    >
+                                                                        <Trash2 size={15} className="text-white [stroke:white]" />
+                                                                        <span>
+                                                                            {isCanceling
+                                                                                ? "Canceling..."
+                                                                                : isCancelPending
+                                                                                    ? "Confirm"
+                                                                                    : "Cancel"}
+                                                                        </span>
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                             {isPerRestaurant && (
                                                                 <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
@@ -3003,14 +3274,82 @@ function DineInOrder() {
                                                                                 </div>
                                                                                 {restaurant.items.length > 0 && (
                                                                                     <div className="mt-3 space-y-1">
-                                                                                        {restaurant.items.map((item) => (
-                                                                                            <p
-                                                                                                key={item.id}
-                                                                                                className="text-xs font-semibold leading-5 text-white/70"
-                                                                                            >
-                                                                                                {item.quantity}x {item.name}
-                                                                                            </p>
-                                                                                        ))}
+                                                                                        {restaurant.items.map((item) => {
+                                                                                            const itemKey = `${orderId}:${item.id}`;
+                                                                                            const isDeletePending =
+                                                                                                pendingDeleteItemKey === itemKey;
+                                                                                            const isDeleting =
+                                                                                                deletingItemKey === itemKey;
+
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={item.id}
+                                                                                                    className={`flex items-start justify-between gap-2 rounded-lg px-2 py-1.5 ${
+                                                                                                        isDeletePending
+                                                                                                            ? "bg-[#7F1D1D]/18"
+                                                                                                            : "bg-black/10"
+                                                                                                    }`}
+                                                                                                >
+                                                                                                    <div className="min-w-0">
+                                                                                                        <p className="text-xs font-semibold leading-5 text-white/70">
+                                                                                                            {item.quantity}x {item.name}
+                                                                                                        </p>
+                                                                                                        {isDeletePending && (
+                                                                                                            <p className="mt-0.5 text-[11px] font-black text-[#FFB3B3]">
+                                                                                                                Delete this item? Press confirm.
+                                                                                                            </p>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    <div className="flex shrink-0 items-center gap-1.5">
+                                                                                                        {isDeletePending && (
+                                                                                                            <button
+                                                                                                                type="button"
+                                                                                                                onClick={() => setPendingDeleteItemKey("")}
+                                                                                                                disabled={isDeleting}
+                                                                                                                className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white disabled:cursor-wait"
+                                                                                                                aria-label={`Cancel delete ${item.name}`}
+                                                                                                                title="Cancel"
+                                                                                                            >
+                                                                                                                <X size={15} />
+                                                                                                            </button>
+                                                                                                        )}
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            onClick={() =>
+                                                                                                                deleteActiveOrderItem(
+                                                                                                                    orderId,
+                                                                                                                    item.id
+                                                                                                                )
+                                                                                                            }
+                                                                                                            disabled={isDeleting}
+                                                                                                            className={`grid h-8 min-w-8 place-items-center rounded-lg border px-2 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80 ${
+                                                                                                                isDeletePending
+                                                                                                                    ? "border-[#FF6B6B]/55 bg-[#7F1D1D]"
+                                                                                                                    : "border-[#FF6B6B]/35 bg-[#7F1D1D]"
+                                                                                                            }`}
+                                                                                                            aria-label={
+                                                                                                                isDeletePending
+                                                                                                                    ? `Confirm delete ${item.name}`
+                                                                                                                    : `Delete ${item.name}`
+                                                                                                            }
+                                                                                                            title={
+                                                                                                                isDeletePending
+                                                                                                                    ? "Confirm delete item"
+                                                                                                                    : "Delete item"
+                                                                                                            }
+                                                                                                        >
+                                                                                                            {isDeleting ? (
+                                                                                                                "..."
+                                                                                                            ) : isDeletePending ? (
+                                                                                                                "Confirm"
+                                                                                                            ) : (
+                                                                                                                <Trash2 size={15} className="text-white [stroke:white]" />
+                                                                                                            )}
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
                                                                                 )}
                                                                             </div>
