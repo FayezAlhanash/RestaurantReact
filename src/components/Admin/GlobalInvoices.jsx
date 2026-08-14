@@ -280,6 +280,34 @@ function getPayments(invoice = {}) {
     return getList(getNestedInvoice(record)?.payments);
 }
 
+function normalizePaymentMethod(value) {
+    const method = normalizeText(value).toLowerCase();
+
+    if (method.includes("stripe") || method.includes("card")) return "stripe";
+    if (method.includes("cash")) return "cash";
+
+    return method;
+}
+
+function getPaymentMethods(invoice = {}) {
+    const sources = [invoice, getNestedInvoice(invoice)];
+    const methods = sources
+        .flatMap((source) => [
+            source?.payment_method,
+            source?.paymentMethod,
+            source?.method,
+            source?.payment?.payment_method,
+            source?.payment?.paymentMethod,
+            ...getPayments(source).map((payment) =>
+                payment.payment_method ?? payment.paymentMethod ?? payment.method
+            ),
+        ])
+        .map(normalizePaymentMethod)
+        .filter(Boolean);
+
+    return [...new Set(methods)];
+}
+
 function buildSummaryInvoice(invoice = {}, isRestaurantScope = false) {
     const record = invoice ?? {};
 
@@ -419,7 +447,7 @@ function FinanceRow({ label, value, strong = false, tone = "default" }) {
     );
 }
 
-function FinancialSummary({ invoice }) {
+function FinancialSummary({ invoice, showPaymentMovement = true }) {
     const { isLight } = useTheme();
     const sectionClass = isLight
         ? "border-[#8F1D1D]/22 bg-[#FFF2EC] shadow-[inset_4px_0_0_rgba(143,29,29,0.32)]"
@@ -442,17 +470,19 @@ function FinancialSummary({ invoice }) {
                         <h3 className="text-xl font-black">Financial breakdown</h3>
                     </div>
                 </div>
-                <div className={`rounded-[10px] border px-4 py-2 text-right ${isLight ? "border-emerald-700/25 bg-emerald-50" : "border-emerald-300/22 bg-emerald-300/10"}`}>
-                    <p className={`text-[11px] font-black uppercase tracking-[0.12em] ${isLight ? "text-emerald-700" : "text-emerald-300"}`}>
-                        Net paid
-                    </p>
-                    <p className={`text-2xl font-black tabular-nums ${isLight ? "text-[#241815]" : "text-white"}`}>
-                        {money(invoice.net_paid_amount)}
-                    </p>
-                </div>
+                {showPaymentMovement && (
+                    <div className={`rounded-[10px] border px-4 py-2 text-right ${isLight ? "border-emerald-700/25 bg-emerald-50" : "border-emerald-300/22 bg-emerald-300/10"}`}>
+                        <p className={`text-[11px] font-black uppercase tracking-[0.12em] ${isLight ? "text-emerald-700" : "text-emerald-300"}`}>
+                            Net paid
+                        </p>
+                        <p className={`text-2xl font-black tabular-nums ${isLight ? "text-[#241815]" : "text-white"}`}>
+                            {money(invoice.net_paid_amount)}
+                        </p>
+                    </div>
+                )}
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className={`grid gap-4 ${showPaymentMovement ? "xl:grid-cols-2" : ""}`}>
                 <div className={`rounded-[14px] border p-3 ${innerClass}`}>
                     <p className={`mb-2 px-3 text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
                         Invoice amount
@@ -467,18 +497,20 @@ function FinancialSummary({ invoice }) {
                     </div>
                 </div>
 
-                <div className={`rounded-[14px] border p-3 ${innerClass}`}>
-                    <p className={`mb-2 px-3 text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
-                        Payment movement
-                    </p>
-                    <div className="space-y-1">
-                        <FinanceRow label="Paid" value={money(invoice.paid_amount)} tone="green" />
-                        <FinanceRow label="Refunded" value={money(invoice.refunded_amount)} tone="red" />
-                        <FinanceRow label="Pending refund" value={money(invoice.pending_refund_amount)} />
-                        <div className={`my-2 border-t ${isLight ? "border-[#E4CFC3]" : "border-white/10"}`} />
-                        <FinanceRow label="Net paid" value={money(invoice.net_paid_amount)} strong tone="green" />
+                {showPaymentMovement && (
+                    <div className={`rounded-[14px] border p-3 ${innerClass}`}>
+                        <p className={`mb-2 px-3 text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
+                            Payment movement
+                        </p>
+                        <div className="space-y-1">
+                            <FinanceRow label="Paid" value={money(invoice.paid_amount)} tone="green" />
+                            <FinanceRow label="Refunded" value={money(invoice.refunded_amount)} tone="red" />
+                            <FinanceRow label="Pending refund" value={money(invoice.pending_refund_amount)} />
+                            <div className={`my-2 border-t ${isLight ? "border-[#E4CFC3]" : "border-white/10"}`} />
+                            <FinanceRow label="Net paid" value={money(invoice.net_paid_amount)} strong tone="green" />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </section>
     );
@@ -538,6 +570,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
     const [dateFilter, setDateFilter] = useState("");
     const [minPrice, setMinPrice] = useState("");
     const [maxPrice, setMaxPrice] = useState("");
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [isRestaurantsLoading, setIsRestaurantsLoading] = useState(false);
     const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -730,38 +763,48 @@ export default function GlobalInvoices({ scope = "admin" }) {
         const maximumPrice = maxPrice === "" ? null : Number(maxPrice);
 
         return invoices.filter((invoice) => {
-            const matchesSearch =
-                !query ||
-                [
-                getInvoiceId(invoice),
-                getRestaurantInvoiceId(invoice),
-                getGlobalInvoiceId(invoice),
-                invoice.order_id,
-                invoice.restaurant_order_id,
-                ]
-                    .filter(Boolean)
-                    .some((value) => String(value).includes(query));
-            const matchesDate =
-                !dateFilter ||
-                formatDateInputValue(getCreatedAt(invoice)) === dateFilter;
-            const total = Number(getInvoiceTotal(invoice));
-            const matchesMinPrice =
-                minimumPrice === null ||
-                (!Number.isNaN(total) && total >= minimumPrice);
-            const matchesMaxPrice =
-                maximumPrice === null ||
-                (!Number.isNaN(total) && total <= maximumPrice);
+                const matchesSearch =
+                    !query ||
+                    [
+                    getInvoiceId(invoice),
+                    getRestaurantInvoiceId(invoice),
+                    getGlobalInvoiceId(invoice),
+                    invoice.order_id,
+                    invoice.restaurant_order_id,
+                    ]
+                        .filter(Boolean)
+                        .some((value) => String(value).includes(query));
+                const matchesDate =
+                    !dateFilter ||
+                    formatDateInputValue(getCreatedAt(invoice)) === dateFilter;
+                const matchesPaymentMethod =
+                    !paymentMethodFilter ||
+                    getPaymentMethods(invoice).includes(paymentMethodFilter);
+                const total = Number(getInvoiceTotal(invoice));
+                const matchesMinPrice =
+                    minimumPrice === null ||
+                    (!Number.isNaN(total) && total >= minimumPrice);
+                const matchesMaxPrice =
+                    maximumPrice === null ||
+                    (!Number.isNaN(total) && total <= maximumPrice);
 
-            return matchesSearch && matchesDate && matchesMinPrice && matchesMaxPrice;
-        });
-    }, [dateFilter, invoices, maxPrice, minPrice, search]);
+                return (
+                    matchesSearch &&
+                    matchesDate &&
+                    matchesPaymentMethod &&
+                    matchesMinPrice &&
+                    matchesMaxPrice
+                );
+            });
+    }, [dateFilter, invoices, maxPrice, minPrice, paymentMethodFilter, search]);
 
-    const hasFilters = Boolean(search || dateFilter || minPrice || maxPrice);
+    const hasFilters = Boolean(search || dateFilter || minPrice || maxPrice || paymentMethodFilter);
     const clearFilters = () => {
         setSearch("");
         setDateFilter("");
         setMinPrice("");
         setMaxPrice("");
+        setPaymentMethodFilter("");
     };
 
     const summaryInvoice = buildSummaryInvoice(selectedInvoice, isRestaurantInvoiceScope);
@@ -983,6 +1026,34 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                     />
                                 </label>
                             </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    ["", "All"],
+                                    ["cash", "Cash"],
+                                    ["stripe", "Stripe"],
+                                ].map(([value, label]) => {
+                                    const isSelected = paymentMethodFilter === value;
+
+                                    return (
+                                        <button
+                                            key={value || "all"}
+                                            type="button"
+                                            onClick={() => setPaymentMethodFilter(value)}
+                                            className={`flex h-11 min-w-0 items-center justify-center rounded-[10px] border px-3 text-sm font-black transition active:scale-[0.98] ${
+                                                isSelected
+                                                    ? isLight
+                                                        ? "border-[#8F1D1D] bg-[#8F1D1D] text-white"
+                                                        : "border-[#FFD166] bg-[#FFD166] text-[#16120A]"
+                                                    : isLight
+                                                        ? "border-[#8F1D1D]/22 bg-white text-[#5A4037] hover:border-[#8F1D1D]/45"
+                                                        : "border-white/10 bg-black/18 text-white/70 hover:border-[#FFD166]/35 hover:text-white"
+                                            }`}
+                                        >
+                                            <span className="truncate">{label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                             {hasFilters && (
                                 <button
                                     type="button"
@@ -1094,7 +1165,10 @@ export default function GlobalInvoices({ scope = "admin" }) {
                             <EmptyPanel icon={AlertTriangle} title="Invoice unavailable" text={detailError} />
                         ) : selectedInvoice ? (
                             <div className="space-y-5">
-                                <FinancialSummary invoice={summaryInvoice} />
+                                <FinancialSummary
+                                    invoice={summaryInvoice}
+                                    showPaymentMovement={!isRestaurantInvoiceScope}
+                                />
 
                                 <div className="grid gap-4 lg:grid-cols-2">
                                     <section className={`rounded-[18px] border p-4 ${isLight ? "border-[#8F1D1D]/18 bg-[#FFF2EC]" : "border-white/10 bg-black/14"}`}>

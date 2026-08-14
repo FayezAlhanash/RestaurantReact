@@ -71,6 +71,8 @@ const OPERATIONS_WORKSPACE_PERMISSIONS = [
   "manage_loyalty_settings",
   "view_invoices",
   "view_global_invoices",
+  "manage_global_employee_shifts",
+  "Manage Global Employee Shifts",
 ];
 
 const GLOBAL_INVOICE_PERMISSIONS = [
@@ -230,7 +232,7 @@ function App() {
             <Route element={<ProtectedRoute allowedPermissions={RESTAURANT_STAFF_PERMISSIONS} />}>
               <Route path="/restaurant-staff" element={<RestaurantStaff />} />
             </Route>
-            <Route element={<ProtectedRoute allowedPermissions={["manage_employee_shifts", "manage_users"]} />}>
+            <Route element={<ProtectedRoute allowedPermissions={["manage_employee_shifts", "Manage Employee Shifts", "manage_global_employee_shifts", "Manage Global Employee Shifts", "manage_users"]} />}>
               <Route path="/employee-shifts" element={<EmployeeShifts />} />
             </Route>
             <Route element={<ProtectedRoute allowedPermissions={["manage_permissions"]} />}>

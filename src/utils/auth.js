@@ -190,8 +190,11 @@ function collectRevokedPermissionIds(user = {}) {
 export function getPermissionHomePath(user = {}) {
     const permissions = collectPermissionKeys(user);
     const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
+    const normalizedPermissions = permissions.map(normalizePermissionKey);
     const can = (...requiredPermissions) =>
-        requiredPermissions.some((permission) => permissions.includes(permission));
+        requiredPermissions.some((permission) =>
+            normalizedPermissions.includes(normalizePermissionKey(permission))
+        );
 
     if (can("manage_users")) return "/employee";
     if (
@@ -206,7 +209,16 @@ export function getPermissionHomePath(user = {}) {
     ) {
         return "/restaurant-staff";
     }
-    if (can("manage_employee_shifts")) return "/employee-shifts";
+    if (
+        can(
+            "manage_employee_shifts",
+            "Manage Employee Shifts",
+            "manage_global_employee_shifts",
+            "Manage Global Employee Shifts"
+        )
+    ) {
+        return "/employee-shifts";
+    }
     if (can("manage_roles", "manage_permissions")) return "/roles";
     if (isAdmin && can("manage_restaurants", "monitor_restaurant")) return "/restaurants";
     if (can("manage_tables")) return "/tables";

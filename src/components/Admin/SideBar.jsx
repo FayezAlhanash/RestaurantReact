@@ -32,6 +32,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { ROLE_IDS, clearSession, getStoredUser, storeUser } from "../../utils/auth";
 import {
     getAssignedPermissionKeys,
+    normalizePermissionKey,
     getUserPermissions,
 } from "../../utils/permissions";
 
@@ -150,7 +151,13 @@ function SideBar({
             icon: CalendarDays,
             title: "Manage Employee Shifts",
             path: "/employee-shifts",
-            permissions: ["manage_employee_shifts", "manage_users"],
+            permissions: [
+                "manage_employee_shifts",
+                "Manage Employee Shifts",
+                "manage_global_employee_shifts",
+                "Manage Global Employee Shifts",
+                "manage_users",
+            ],
         },
         {
             icon: UserCog,
@@ -335,13 +342,23 @@ function SideBar({
         fetchRestaurantName();
     }, [restaurantLabel, sessionUser]);
 
+    const hasPermission = (permissionList, permission) => {
+        const normalizedPermission = normalizePermissionKey(permission);
+
+        return permissionList.some(
+            (assignedPermission) =>
+                normalizePermissionKey(assignedPermission) === normalizedPermission
+        );
+    };
     const canShow = (requiredPermissions = []) =>
         !requiredPermissions.length ||
-        requiredPermissions.some((permission) => permissions.includes(permission));
+        requiredPermissions.some((permission) =>
+            hasPermission(permissions, permission)
+        );
     const isAssigned = (requiredPermissions = []) =>
         !requiredPermissions.length ||
         requiredPermissions.some((permission) =>
-            assignedPermissions.includes(permission)
+            hasPermission(assignedPermissions, permission)
         );
     const canShowMenuItem = (item) =>
         (!item.adminOnly || isAdmin) &&

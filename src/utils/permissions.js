@@ -53,7 +53,7 @@ export function getRevokedPermissions(data = {}) {
     ];
 }
 
-function normalizePermissionKey(value) {
+export function normalizePermissionKey(value) {
     return String(value ?? "")
         .trim()
         .toLowerCase()
@@ -231,16 +231,22 @@ export function getUserPermissions() {
 export function can(permission) {
     const permissions = getUserPermissions();
 
-    return permissions.includes(permission);
+    const normalizedPermission = normalizePermissionKey(permission);
+
+    return permissions.some(
+        (assignedPermission) =>
+            normalizePermissionKey(assignedPermission) === normalizedPermission
+    );
 }
 
 export function canAny(requiredPermissions = []) {
     if (!requiredPermissions.length) return true;
 
     const permissions = getUserPermissions();
+    const normalizedPermissions = permissions.map(normalizePermissionKey);
 
     return requiredPermissions.some((permission) =>
-        permissions.includes(permission)
+        normalizedPermissions.includes(normalizePermissionKey(permission))
     );
 }
 
@@ -248,8 +254,9 @@ export function canAll(requiredPermissions = []) {
     if (!requiredPermissions.length) return true;
 
     const permissions = getUserPermissions();
+    const normalizedPermissions = permissions.map(normalizePermissionKey);
 
     return requiredPermissions.every((permission) =>
-        permissions.includes(permission)
+        normalizedPermissions.includes(normalizePermissionKey(permission))
     );
 }

@@ -3261,11 +3261,11 @@ function DineInOrder() {
                                                                             type="button"
                                                                             onClick={() => setPendingCancelOrderId("")}
                                                                             disabled={isCanceling}
-                                                                            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white disabled:cursor-wait"
+                                                                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#9B1C1C]/35 bg-[#FFF1F1] text-[#7F1D1D] shadow-[0_6px_14px_rgba(127,29,29,0.10)] transition hover:border-[#9B1C1C]/55 hover:bg-[#FFE1E1] disabled:cursor-wait disabled:opacity-70"
                                                                             aria-label="Cancel delete order"
                                                                             title="Cancel"
                                                                         >
-                                                                            <X size={17} />
+                                                                            <X size={17} className="text-[#7F1D1D] [stroke:#7F1D1D]" />
                                                                         </button>
                                                                     )}
                                                                     <button
@@ -3367,11 +3367,11 @@ function DineInOrder() {
                                                                                                                 type="button"
                                                                                                                 onClick={() => setPendingDeleteItemKey("")}
                                                                                                                 disabled={isDeleting}
-                                                                                                                className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white disabled:cursor-wait"
+                                                                                                                className="grid h-8 w-8 place-items-center rounded-lg border border-[#9B1C1C]/35 bg-[#FFF1F1] text-[#7F1D1D] shadow-[0_6px_14px_rgba(127,29,29,0.10)] transition hover:border-[#9B1C1C]/55 hover:bg-[#FFE1E1] disabled:cursor-wait disabled:opacity-70"
                                                                                                                 aria-label={`Cancel delete ${item.name}`}
                                                                                                                 title="Cancel"
                                                                                                             >
-                                                                                                                <X size={15} />
+                                                                                                                <X size={15} className="text-[#7F1D1D] [stroke:#7F1D1D]" />
                                                                                                             </button>
                                                                                                         )}
                                                                                                         <button
