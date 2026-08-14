@@ -411,7 +411,7 @@ const fetchFoodDetails = async (food) => {
     }
 };
 
-const fetchRestaurantMenu = async (restaurant) => {
+const fetchRestaurantMenu = async (restaurant, { includeDetails = true } = {}) => {
     const restaurantId = getRestaurantId(restaurant);
 
     if (!restaurantId) return [];
@@ -422,6 +422,9 @@ const fetchRestaurantMenu = async (restaurant) => {
     const foods = getList(foodsResponse.data).map((food) =>
         normalizeFoodItem(food, restaurant)
     );
+
+    if (!includeDetails) return foods;
+
     const detailResponses = await Promise.allSettled(foods.map(fetchFoodDetails));
 
     return detailResponses.map((result, index) =>
@@ -2489,48 +2492,69 @@ function DineInOrder() {
                 const restaurantList = getList(restaurantsResponse.data)
                     .map(normalizeRestaurant)
                     .filter((restaurant) => restaurant.id);
-                const activeOrders = await fetchCurrentDineInOrders(
+                const menuResponses = await Promise.allSettled(
+                    restaurantList.map((restaurant) =>
+                        fetchRestaurantMenu(restaurant, { includeDetails: false })
+                    )
+                );
+                const initialMenuItems = menuResponses.flatMap((result) =>
+                    result.status === "fulfilled" ? result.value : []
+                );
+
+                setRestaurants(restaurantList);
+                setMenuItems(initialMenuItems);
+                setIsLoading(false);
+
+                Promise.allSettled(
+                    restaurantList.map((restaurant) =>
+                        fetchRestaurantMenu(restaurant, { includeDetails: true })
+                    )
+                ).then((detailResponses) => {
+                    const detailedMenuItems = detailResponses.flatMap((result) =>
+                        result.status === "fulfilled" ? result.value : []
+                    );
+
+                    if (detailedMenuItems.length) {
+                        setMenuItems(detailedMenuItems);
+                    }
+                });
+
+                fetchCurrentDineInOrders(
                     resolvedSessionToken,
                     tableId,
                     sessionData,
                     restaurantList.map(getRestaurantId).filter(Boolean)
-                );
-                const activeOrderTimings = await buildOrderTimingItems(
-                    activeOrders,
-                    resolvedSessionToken
-                );
-
-                if (activeOrderTimings.length) {
-                    setOrderTimings(activeOrderTimings);
-                    sessionStorage.setItem(
-                        orderTimingsStorageKey,
-                        JSON.stringify(activeOrderTimings)
-                    );
-                    setShowOrderTimings(true);
-                    setSuccessMessage(
-                        activeOrderTimings.length === 1
-                            ? "You have an active order for this table."
-                            : `You have ${activeOrderTimings.length} active orders for this table.`
-                    );
-                } else {
-                    setSuccessMessage("");
-                    setOrderTimings([]);
-                    sessionStorage.removeItem(orderStorageKey);
-                    sessionStorage.removeItem(invoiceStorageKey);
-                    sessionStorage.removeItem(orderTimingsStorageKey);
-                    setShowOrderTimings(false);
-                }
-
-                const menuResponses = await Promise.allSettled(
-                    restaurantList.map(fetchRestaurantMenu)
-                );
-
-                setRestaurants(restaurantList);
-                setMenuItems(
-                    menuResponses.flatMap((result) =>
-                        result.status === "fulfilled" ? result.value : []
+                )
+                    .then((activeOrders) =>
+                        buildOrderTimingItems(activeOrders, resolvedSessionToken)
                     )
-                );
+                    .then((activeOrderTimings) => {
+                        if (activeOrderTimings.length) {
+                            setOrderTimings(activeOrderTimings);
+                            sessionStorage.setItem(
+                                orderTimingsStorageKey,
+                                JSON.stringify(activeOrderTimings)
+                            );
+                            setShowOrderTimings(true);
+                            setSuccessMessage(
+                                activeOrderTimings.length === 1
+                                    ? "You have an active order for this table."
+                                    : `You have ${activeOrderTimings.length} active orders for this table.`
+                            );
+                            return;
+                        }
+
+                        setSuccessMessage("");
+                        setOrderTimings([]);
+                        sessionStorage.removeItem(orderStorageKey);
+                        sessionStorage.removeItem(invoiceStorageKey);
+                        sessionStorage.removeItem(orderTimingsStorageKey);
+                        setShowOrderTimings(false);
+                    })
+                    .catch(() => {
+                        setOrderTimings([]);
+                        setShowOrderTimings(false);
+                    });
 
             } catch (error) {
                 if (error.isSessionUnavailable) {
@@ -2552,14 +2576,18 @@ function DineInOrder() {
                 try {
                     const foodsResponse = await api.get("/food");
                     const foods = getList(foodsResponse.data).map(normalizeFoodItem);
-                    const detailResponses = await Promise.allSettled(
-                        foods.map(fetchFoodDetails)
-                    );
+                    setMenuItems(foods);
 
-                    setMenuItems(
-                        detailResponses.map((result, index) =>
-                            result.status === "fulfilled" ? result.value : foods[index]
-                        )
+                    Promise.allSettled(foods.map(fetchFoodDetails)).then(
+                        (detailResponses) => {
+                            setMenuItems(
+                                detailResponses.map((result, index) =>
+                                    result.status === "fulfilled"
+                                        ? result.value
+                                        : foods[index]
+                                )
+                            );
+                        }
                     );
 
                     if (!sessionTokenFromUrl && !sessionStorage.getItem(sessionTokenStorageKey)) {
