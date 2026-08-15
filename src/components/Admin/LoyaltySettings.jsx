@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
     ArrowDownUp,
     BadgePercent,
+    Check,
+    ChevronDown,
     Coins,
     Gift,
     Globe2,
@@ -169,15 +171,13 @@ function normalizeSettings(settings = {}) {
     );
 }
 
-function appendSettings(formData, settings) {
-    formData.append("_method", "PATCH");
-
-    FIELDS.forEach(({ key, type }) => {
-        formData.append(
+function buildSettingsPayload(settings) {
+    return Object.fromEntries(
+        FIELDS.map(({ key, type }) => [
             key,
-            type === "toggle" ? (settings[key] ? 1 : 0) : settings[key] ?? 0
-        );
-    });
+            type === "toggle" ? (settings[key] ? 1 : 0) : settings[key] ?? 0,
+        ])
+    );
 }
 
 export default function LoyaltySettings({ scope = "restaurant" }) {
@@ -191,6 +191,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
     );
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isRestaurantMenuOpen, setIsRestaurantMenuOpen] = useState(false);
     const [message, setMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
@@ -288,9 +289,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
         setErrorMessage("");
 
         try {
-            const formData = new FormData();
-            appendSettings(formData, settings);
-            const response = await api.post(endpoint, formData);
+            const response = await api.patch(endpoint, buildSettingsPayload(settings));
             const savedSettings = getSettings(response.data);
 
             if (savedSettings && Object.keys(savedSettings).length) {
@@ -319,7 +318,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
     return (
         <main className="loyalty-settings-page admin-rich-page min-h-full p-4 text-white sm:p-6 lg:p-8">
             <div className="mx-auto max-w-[1180px]">
-                <section className="mb-5 overflow-hidden rounded-[18px] border border-white/10 bg-[#171D20] shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+                <section className="loyalty-settings-panel mb-5 overflow-hidden rounded-[18px] border border-white/10 bg-[#171D20] shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
                     <div className="flex flex-col gap-5 border-b border-white/10 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex min-w-0 items-center gap-4">
                             <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[12px] border border-[#FFD166]/35 bg-[#FFD166]/14 text-[#FFD166] shadow-[0_12px_28px_rgba(255,209,102,0.08)]">
@@ -345,7 +344,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                             ].map(([label, value]) => (
                                 <div
                                     key={label}
-                                    className="rounded-[12px] border border-white/10 bg-black/18 px-3 py-3"
+                                    className="loyalty-settings-card rounded-[12px] border border-white/10 bg-black/18 px-3 py-3"
                                 >
                                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/40">
                                         {label}
@@ -361,30 +360,102 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
 
                 <form
                     onSubmit={saveSettings}
-                    className="overflow-hidden rounded-[18px] border border-white/10 bg-[#20272A] shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
+                    className="loyalty-settings-panel overflow-hidden rounded-[18px] border border-white/10 bg-[#20272A] shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
                 >
                     <div className="border-b border-white/10 bg-white/[0.025] px-5 py-4 sm:px-6">
                         {!isGlobal && isAdmin && (
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                                <label className="block w-full max-w-md">
-                                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
+                                <div
+                                    className="relative block w-full max-w-md"
+                                    onBlur={(event) => {
+                                        if (!event.currentTarget.contains(event.relatedTarget)) {
+                                            setIsRestaurantMenuOpen(false);
+                                        }
+                                    }}
+                                >
+                                    <span className="loyalty-settings-muted mb-2 block text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
                                         Restaurant
                                     </span>
-                                    <select
-                                        value={selectedRestaurantId}
-                                        onChange={(event) =>
-                                            setSelectedRestaurantId(event.target.value)
+                                    <button
+                                        type="button"
+                                        className="loyalty-settings-input loyalty-restaurant-filter flex h-12 w-full items-center justify-between gap-3 rounded-[12px] border border-white/10 bg-[#111518] px-3.5 text-left text-sm font-black text-white outline-none transition hover:border-[#FFD166]/45 focus:border-[#FFD166]/70"
+                                        onClick={() =>
+                                            setIsRestaurantMenuOpen((isOpen) => !isOpen)
                                         }
-                                        className="h-11 w-full rounded-[10px] border border-white/10 bg-[#111518] px-3 text-sm font-black text-white outline-none transition focus:border-[#FFD166]/70"
+                                        aria-haspopup="listbox"
+                                        aria-expanded={isRestaurantMenuOpen}
                                     >
-                                        <option value="">Select restaurant</option>
-                                        {restaurants.map((restaurant) => (
-                                            <option key={restaurant.id} value={restaurant.id}>
-                                                {restaurant.name || `Restaurant #${restaurant.id}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                        <span className="flex min-w-0 items-center gap-3">
+                                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-[#FFD166]/25 bg-[#FFD166]/12 text-[#FFD166]">
+                                                <Store size={15} />
+                                            </span>
+                                            <span className="truncate">
+                                                {selectedRestaurant?.name || "Select restaurant"}
+                                            </span>
+                                        </span>
+                                        <ChevronDown
+                                            size={17}
+                                            className={`shrink-0 text-[#FFD166] transition-transform duration-200 ${
+                                                isRestaurantMenuOpen ? "rotate-180" : ""
+                                            }`}
+                                        />
+                                    </button>
+
+                                    {isRestaurantMenuOpen && (
+                                        <div
+                                            role="listbox"
+                                            className="loyalty-restaurant-menu absolute left-0 top-[calc(100%+8px)] z-40 w-full overflow-hidden rounded-[14px] border border-white/10 bg-[#111518] p-1.5 shadow-[0_20px_44px_rgba(0,0,0,0.28)]"
+                                        >
+                                            <button
+                                                type="button"
+                                                role="option"
+                                                aria-selected={!selectedRestaurantId}
+                                                onClick={() => {
+                                                    setSelectedRestaurantId("");
+                                                    setIsRestaurantMenuOpen(false);
+                                                }}
+                                                className={`loyalty-restaurant-option flex h-10 w-full items-center justify-between gap-3 rounded-[10px] px-3 text-left text-sm font-black transition ${
+                                                    !selectedRestaurantId
+                                                        ? "is-selected bg-[#FFD166] text-[#211704]"
+                                                        : "text-white/72 hover:bg-white/[0.07] hover:text-white"
+                                                }`}
+                                            >
+                                                <span className="truncate">Select restaurant</span>
+                                                {!selectedRestaurantId && <Check size={15} />}
+                                            </button>
+
+                                            {restaurants.map((restaurant) => {
+                                                const isSelected =
+                                                    String(restaurant.id) ===
+                                                    String(selectedRestaurantId);
+
+                                                return (
+                                                    <button
+                                                        key={restaurant.id}
+                                                        type="button"
+                                                        role="option"
+                                                        aria-selected={isSelected}
+                                                        onClick={() => {
+                                                            setSelectedRestaurantId(restaurant.id);
+                                                            setIsRestaurantMenuOpen(false);
+                                                        }}
+                                                        className={`loyalty-restaurant-option flex h-10 w-full items-center justify-between gap-3 rounded-[10px] px-3 text-left text-sm font-black transition ${
+                                                            isSelected
+                                                                ? "is-selected bg-[#FFD166] text-[#211704]"
+                                                                : "text-white/72 hover:bg-white/[0.07] hover:text-white"
+                                                        }`}
+                                                    >
+                                                        <span className="truncate">
+                                                            {restaurant.name ||
+                                                                `Restaurant #${restaurant.id}`}
+                                                        </span>
+                                                        {isSelected && <Check size={15} />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
 
                                 {selectedRestaurant && (
                                     <div className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 text-sm font-black text-[#FFD166]">
@@ -432,7 +503,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                                 onClick={() =>
                                                     updateField(field.key, checked ? 0 : 1)
                                                 }
-                                                className={`flex w-full items-center justify-between gap-4 rounded-[14px] border p-4 text-left transition ${
+                                                className={`loyalty-settings-card flex w-full items-center justify-between gap-4 rounded-[14px] border p-4 text-left transition ${
                                                     checked
                                                         ? "border-[#FFD166]/35 bg-[#FFD166]/12"
                                                         : "border-white/10 bg-[#121719]"
@@ -449,11 +520,11 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                                         <Icon size={20} />
                                                     </span>
                                                     <span className="min-w-0">
-                                                        <span className="block text-sm font-black text-white">
+                                                        <span className="loyalty-settings-field-label block text-sm font-black text-white">
                                                             {field.label}
                                                         </span>
                                                         <span
-                                                            className={`mt-1 block text-xs font-bold ${
+                                                            className={`loyalty-settings-muted mt-1 block text-xs font-bold ${
                                                                 checked
                                                                     ? "text-[#FFD166]"
                                                                     : "text-white/42"
@@ -464,13 +535,13 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                                     </span>
                                                 </span>
                                                 <span
-                                                    className={`relative h-7 w-12 shrink-0 rounded-full transition ${
-                                                        checked ? "bg-[#FFD166]" : "bg-white/12"
+                                                    className={`loyalty-toggle-track relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ease-out ${
+                                                        checked ? "is-on bg-[#FFD166]" : "is-off bg-white/12"
                                                     }`}
                                                 >
                                                     <span
-                                                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${
-                                                            checked ? "left-6" : "left-1"
+                                                        className={`loyalty-toggle-knob absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-out ${
+                                                            checked ? "translate-x-5" : "translate-x-0"
                                                         }`}
                                                     />
                                                 </span>
@@ -486,14 +557,14 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                         return (
                                             <label
                                                 key={field.key}
-                                                className="rounded-[14px] border border-white/10 bg-[#121719] p-4 transition focus-within:border-[#FFD166]/55"
+                                                className="loyalty-settings-card rounded-[14px] border border-white/10 bg-[#121719] p-4 transition focus-within:border-[#FFD166]/55"
                                             >
                                                 <span className="mb-3 flex items-start justify-between gap-3">
                                                     <span className="min-w-0">
-                                                        <span className="block text-sm font-black text-white">
+                                                        <span className="loyalty-settings-field-label block text-sm font-black text-white">
                                                             {field.label}
                                                         </span>
-                                                        <span className="mt-1 block text-xs font-semibold leading-5 text-white/42">
+                                                        <span className="loyalty-settings-muted mt-1 block text-xs font-semibold leading-5 text-white/42">
                                                             {field.helper}
                                                         </span>
                                                     </span>
@@ -501,7 +572,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                                         <Icon size={18} />
                                                     </span>
                                                 </span>
-                                                <span className="flex h-12 items-center rounded-[10px] border border-white/10 bg-[#0B0F10] px-3 focus-within:border-[#FFD166]/45">
+                                                <span className="loyalty-settings-input flex h-12 items-center rounded-[10px] border border-white/10 bg-[#0B0F10] px-3 focus-within:border-[#FFD166]/45">
                                                     {field.prefix && (
                                                         <span className="mr-1 text-sm font-black text-[#FFD166]">
                                                             {field.prefix}
@@ -517,7 +588,7 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                                         className="min-w-0 flex-1 bg-transparent text-base font-black text-white outline-none"
                                                     />
                                                     {field.suffix && (
-                                                        <span className="ml-2 text-xs font-black uppercase tracking-wide text-white/38">
+                                                        <span className="loyalty-settings-muted ml-2 text-xs font-black uppercase tracking-wide text-white/38">
                                                             {field.suffix}
                                                         </span>
                                                     )}
@@ -528,8 +599,8 @@ export default function LoyaltySettings({ scope = "restaurant" }) {
                                 </section>
                             </div>
 
-                            <div className="flex items-center justify-between gap-4 border-t border-white/10 bg-[#171D20] px-5 py-4 sm:px-6">
-                                <p className="text-xs font-bold text-white/45">
+                            <div className="loyalty-settings-panel flex items-center justify-between gap-4 border-t border-white/10 bg-[#171D20] px-5 py-4 sm:px-6">
+                                <p className="loyalty-settings-muted text-xs font-bold text-white/45">
                                     Changes apply after saving.
                                 </p>
                                 <button

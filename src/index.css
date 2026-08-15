@@ -2189,6 +2189,94 @@ img, svg {
     box-shadow: 0 0 0 4px rgba(216, 162, 45, 0.14) !important;
 }
 
+[data-theme="light"] .loyalty-restaurant-filter {
+    background: linear-gradient(180deg, #ffffff 0%, #fffaf3 100%) !important;
+    border-color: rgba(216, 162, 45, 0.42) !important;
+    box-shadow:
+        0 8px 22px rgba(127, 29, 29, 0.07),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.72) !important;
+}
+
+[data-theme="light"] .loyalty-restaurant-filter:hover,
+[data-theme="light"] .loyalty-restaurant-filter:focus {
+    border-color: rgba(216, 162, 45, 0.78) !important;
+    box-shadow:
+        0 12px 28px rgba(127, 29, 29, 0.10),
+        0 0 0 4px rgba(216, 162, 45, 0.12) !important;
+}
+
+[data-theme="light"] .loyalty-restaurant-filter [class*="bg-[#FFD166]/"] {
+    background: #fff4d8 !important;
+    border-color: rgba(216, 162, 45, 0.36) !important;
+}
+
+[data-theme="light"] .loyalty-restaurant-menu {
+    background: #fffaf3 !important;
+    border-color: rgba(216, 162, 45, 0.42) !important;
+    box-shadow:
+        0 20px 46px rgba(70, 45, 30, 0.14),
+        0 0 0 1px rgba(255, 255, 255, 0.78) !important;
+}
+
+[data-theme="light"] .loyalty-restaurant-option {
+    color: #241815 !important;
+    -webkit-text-fill-color: #241815 !important;
+}
+
+[data-theme="light"] .loyalty-restaurant-option:hover {
+    background: #fff0dd !important;
+    color: #7f1d1d !important;
+    -webkit-text-fill-color: #7f1d1d !important;
+}
+
+[data-theme="light"] .loyalty-restaurant-option.is-selected {
+    background: linear-gradient(135deg, #ffd166 0%, #e2ad35 100%) !important;
+    color: #211704 !important;
+    -webkit-text-fill-color: #211704 !important;
+}
+
+[data-theme="light"] .loyalty-toggle-track.is-off {
+    background: #c9bdb7 !important;
+    box-shadow: inset 0 0 0 1px rgba(36, 24, 21, 0.18) !important;
+}
+
+[data-theme="light"] .loyalty-toggle-track.is-on {
+    background: #d8a22d !important;
+    box-shadow: inset 0 0 0 1px rgba(154, 100, 0, 0.18) !important;
+}
+
+[data-theme="light"] .loyalty-toggle-knob {
+    background: #ffffff !important;
+    box-shadow:
+        0 2px 7px rgba(36, 24, 21, 0.22),
+        0 0 0 1px rgba(36, 24, 21, 0.10) !important;
+}
+
+.loyalty-toggle-track {
+    transition:
+        background-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.loyalty-toggle-knob {
+    transition:
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 220ms ease !important;
+    will-change: transform;
+}
+
+.loyalty-settings-card:active .loyalty-toggle-knob {
+    transform: translateX(var(--loyalty-toggle-x, 0)) scale(0.94);
+}
+
+.loyalty-toggle-track.is-on .loyalty-toggle-knob {
+    --loyalty-toggle-x: 1.25rem;
+}
+
+.loyalty-toggle-track.is-off .loyalty-toggle-knob {
+    --loyalty-toggle-x: 0rem;
+}
+
 .invoice-refresh-button,
 .invoice-refresh-button *,
 .brand-red-action-button,
@@ -2287,4 +2375,244 @@ img, svg {
 [data-theme="light"] .invoice-red-page .restaurant-invoice-menu {
     background: linear-gradient(180deg, #fffaf7 0%, #fbe5de 100%) !important;
     border-color: rgba(143, 29, 29, 0.34) !important;
+}
+
+[data-theme="dark"] .invoice-red-page {
+    background:
+        radial-gradient(circle at 16% 8%, rgba(239, 68, 68, 0.22), transparent 30%),
+        radial-gradient(circle at 92% 18%, rgba(185, 28, 28, 0.20), transparent 26%),
+        linear-gradient(145deg, #110f11 0%, #191416 48%, #2a1014 100%) !important;
+}
+
+[data-theme="dark"] .invoice-red-page > section:first-of-type {
+    background: linear-gradient(135deg, #2b1719 0%, #241416 52%, #351116 100%) !important;
+    border-color: rgba(248, 113, 113, 0.34) !important;
+    box-shadow: 0 22px 52px rgba(185, 28, 28, 0.20) !important;
+}
+
+[data-theme="dark"] .invoice-red-page > section:first-of-type > div:first-child {
+    background: #ef4444 !important;
+}
+
+[data-theme="dark"] .invoice-red-page .invoice-scope-badge {
+    background: rgba(239, 68, 68, 0.16) !important;
+    border-color: rgba(248, 113, 113, 0.46) !important;
+    color: #fca5a5 !important;
+    -webkit-text-fill-color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .invoice-red-page .invoice-scope-badge * {
+    stroke: #fca5a5 !important;
+}
+
+[data-theme="dark"] .invoice-red-page > section:first-of-type h1 {
+    color: #fecaca !important;
+    -webkit-text-fill-color: #fecaca !important;
+}
+
+[data-theme="dark"] .invoice-red-page aside,
+[data-theme="dark"] .invoice-red-page article {
+    background: linear-gradient(180deg, #252224 0%, #20191b 100%) !important;
+    border-color: rgba(248, 113, 113, 0.24) !important;
+    box-shadow: 0 18px 44px rgba(127, 29, 29, 0.22) !important;
+}
+
+[data-theme="dark"] .invoice-red-page aside > div:first-child,
+[data-theme="dark"] .invoice-red-page article > div:first-child {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(255, 255, 255, 0.035) 100%) !important;
+    border-color: rgba(248, 113, 113, 0.20) !important;
+}
+
+[data-theme="dark"] .invoice-red-page label {
+    background: rgba(6, 9, 11, 0.30) !important;
+    border-color: rgba(248, 113, 113, 0.22) !important;
+}
+
+[data-theme="dark"] .invoice-red-page label:focus-within {
+    border-color: rgba(248, 113, 113, 0.52) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14) !important;
+}
+
+[data-theme="dark"] .invoice-red-page aside button.group {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.055) 0%, rgba(239, 68, 68, 0.075) 100%) !important;
+    border-color: rgba(248, 113, 113, 0.18) !important;
+    box-shadow: inset 4px 0 0 rgba(239, 68, 68, 0.34) !important;
+}
+
+[data-theme="dark"] .invoice-red-page aside button.group:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(255, 255, 255, 0.065) 100%) !important;
+    border-color: rgba(248, 113, 113, 0.44) !important;
+}
+
+[data-theme="dark"] .invoice-red-page aside button.group:focus,
+[data-theme="dark"] .invoice-red-page aside button.group:focus-visible {
+    outline: 3px solid rgba(239, 68, 68, 0.20) !important;
+    outline-offset: 2px !important;
+}
+
+[data-theme="dark"] .invoice-red-page .invoice-refresh-button {
+    background: rgba(185, 28, 28, 0.34) !important;
+    border-color: rgba(248, 113, 113, 0.54) !important;
+    color: #fecaca !important;
+    -webkit-text-fill-color: #fecaca !important;
+}
+
+[data-theme="dark"] .invoice-red-page .invoice-refresh-button * {
+    stroke: #fecaca !important;
+}
+
+[data-theme="dark"] .invoice-red-page .invoice-refresh-button:hover {
+    background: rgba(220, 38, 38, 0.42) !important;
+}
+
+[data-theme="dark"] .invoice-red-page .restaurant-invoice-menu {
+    background: linear-gradient(180deg, #2a171a 0%, #1c1719 100%) !important;
+    border-color: rgba(248, 113, 113, 0.28) !important;
+}
+
+[data-theme="dark"] .invoice-red-page .invoice-filter-mark,
+[data-theme="dark"] .invoice-red-page .invoice-brand-icon {
+    background: rgba(239, 68, 68, 0.16) !important;
+    color: #fca5a5 !important;
+    -webkit-text-fill-color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .invoice-red-page :is(.invoice-filter-panel, aside, article) [class*="text-[#FFD166]"] {
+    color: #fca5a5 !important;
+    -webkit-text-fill-color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .invoice-red-page :is(.invoice-filter-panel, aside, article) [class*="text-[#FFD166]"] :is(svg, svg *) {
+    stroke: #fca5a5 !important;
+}
+
+[data-theme="light"] .invoice-global-page {
+    background:
+        radial-gradient(circle at 16% 8%, rgba(20, 184, 166, 0.18), transparent 30%),
+        radial-gradient(circle at 92% 16%, rgba(245, 158, 11, 0.14), transparent 26%),
+        linear-gradient(145deg, #eefcf8 0%, #d8f3ea 48%, #c6e7df 100%) !important;
+}
+
+[data-theme="light"] .invoice-global-page > section:first-of-type {
+    background: linear-gradient(135deg, #fbfffd 0%, #e0f7ef 55%, #d3eee7 100%) !important;
+    border-color: rgba(15, 118, 110, 0.34) !important;
+    box-shadow: 0 22px 52px rgba(15, 118, 110, 0.16) !important;
+}
+
+[data-theme="light"] .invoice-global-page > section:first-of-type > div:first-child {
+    background: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-scope-badge {
+    background: #dff7f0 !important;
+    border-color: rgba(15, 118, 110, 0.34) !important;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-scope-badge * {
+    stroke: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page > section:first-of-type h1 {
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page aside,
+[data-theme="light"] .invoice-global-page article {
+    background: linear-gradient(180deg, #fbfffd 0%, #eefaf6 100%) !important;
+    border-color: rgba(15, 118, 110, 0.28) !important;
+    box-shadow: 0 18px 44px rgba(15, 118, 110, 0.12) !important;
+}
+
+[data-theme="light"] .invoice-global-page aside > div:first-child,
+[data-theme="light"] .invoice-global-page article > div:first-child {
+    background: linear-gradient(135deg, #ddf6ef 0%, #fbfffd 100%) !important;
+    border-color: rgba(15, 118, 110, 0.26) !important;
+}
+
+[data-theme="light"] .invoice-global-page aside button.group {
+    background: linear-gradient(135deg, #ffffff 0%, #edf9f5 100%) !important;
+    border-color: rgba(15, 118, 110, 0.26) !important;
+    box-shadow: inset 4px 0 0 rgba(15, 118, 110, 0.24) !important;
+}
+
+[data-theme="light"] .invoice-global-page aside button.group:hover {
+    background: linear-gradient(135deg, #f3fffb 0%, #dff7f0 100%) !important;
+    border-color: rgba(15, 118, 110, 0.48) !important;
+}
+
+[data-theme="light"] .invoice-global-page aside button.group:focus,
+[data-theme="light"] .invoice-global-page aside button.group:focus-visible {
+    outline: 3px solid rgba(15, 118, 110, 0.18) !important;
+    outline-offset: 2px !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-refresh-button {
+    background: #0f766e !important;
+    border-color: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-refresh-button:hover {
+    background: #115e59 !important;
+}
+
+[data-theme="dark"] .invoice-global-page {
+    background:
+        radial-gradient(circle at 14% 10%, rgba(45, 212, 191, 0.13), transparent 30%),
+        radial-gradient(circle at 90% 14%, rgba(245, 158, 11, 0.10), transparent 26%),
+        linear-gradient(145deg, #0b1414 0%, #121c1b 54%, #17211d 100%) !important;
+}
+
+[data-theme="dark"] .invoice-global-page > section:first-of-type,
+[data-theme="dark"] .invoice-global-page aside,
+[data-theme="dark"] .invoice-global-page article {
+    background: linear-gradient(180deg, #1b2625 0%, #172120 100%) !important;
+    border-color: rgba(94, 234, 212, 0.18) !important;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24) !important;
+}
+
+[data-theme="dark"] .invoice-global-page > section:first-of-type > div:first-child {
+    background: #2dd4bf !important;
+}
+
+[data-theme="dark"] .invoice-global-page .invoice-scope-badge {
+    background: rgba(45, 212, 191, 0.12) !important;
+    border-color: rgba(94, 234, 212, 0.34) !important;
+    color: #5eead4 !important;
+    -webkit-text-fill-color: #5eead4 !important;
+}
+
+[data-theme="dark"] .invoice-global-page .invoice-scope-badge * {
+    stroke: #5eead4 !important;
+}
+
+[data-theme="dark"] .invoice-global-page > section:first-of-type h1 {
+    color: #5eead4 !important;
+    -webkit-text-fill-color: #5eead4 !important;
+}
+
+[data-theme="dark"] .invoice-global-page aside > div:first-child,
+[data-theme="dark"] .invoice-global-page article > div:first-child {
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.09) 0%, rgba(255, 255, 255, 0.035) 100%) !important;
+    border-color: rgba(94, 234, 212, 0.16) !important;
+}
+
+[data-theme="dark"] .invoice-global-page aside button.group {
+    background: rgba(45, 212, 191, 0.055) !important;
+    border-color: rgba(94, 234, 212, 0.18) !important;
+    box-shadow: inset 4px 0 0 rgba(45, 212, 191, 0.28) !important;
+}
+
+[data-theme="dark"] .invoice-global-page aside button.group:hover {
+    background: rgba(45, 212, 191, 0.09) !important;
+    border-color: rgba(94, 234, 212, 0.36) !important;
+}
+
+[data-theme="dark"] .invoice-global-page .invoice-refresh-button {
+    background: rgba(45, 212, 191, 0.14) !important;
+    border-color: rgba(94, 234, 212, 0.42) !important;
+    color: #5eead4 !important;
+    -webkit-text-fill-color: #5eead4 !important;
 }

@@ -2,10 +2,11 @@ import {
     AlertTriangle,
     CalendarDays,
     ChevronDown,
+    ChevronLeft,
     ChevronRight,
     ClipboardList,
-    CreditCard,
     DollarSign,
+    Globe2,
     Loader2,
     ReceiptText,
     RefreshCw,
@@ -30,6 +31,45 @@ function getList(data) {
     if (Array.isArray(data)) return data;
 
     return [];
+}
+
+function getPagination(data, fallbackPage = 1, itemCount = 0) {
+    const meta = data?.pagination ?? data?.data?.pagination ?? data?.meta ?? data?.data?.meta ?? data ?? {};
+    const links = data?.links ?? data?.data?.links ?? {};
+    const currentPage = Number(
+        meta.current_page ??
+            meta.currentPage ??
+            data?.current_page ??
+            data?.currentPage ??
+            fallbackPage
+    );
+    const lastPage = Number(
+        meta.last_page ??
+            meta.lastPage ??
+            data?.last_page ??
+            data?.lastPage ??
+            currentPage
+    );
+    const totalValue =
+        meta.total ??
+        data?.total ??
+        data?.data?.total ??
+        (lastPage <= 1 ? itemCount : null);
+    const total = totalValue === null ? null : Number(totalValue);
+    const hasNext =
+        Boolean(links.next ?? meta.next_page_url ?? data?.next_page_url) ||
+        currentPage < lastPage;
+    const hasPrevious =
+        Boolean(links.prev ?? links.previous ?? meta.prev_page_url ?? data?.prev_page_url) ||
+        currentPage > 1;
+
+    return {
+        currentPage: Number.isFinite(currentPage) ? currentPage : fallbackPage,
+        lastPage: Number.isFinite(lastPage) ? lastPage : fallbackPage,
+        total: Number.isFinite(total) ? total : null,
+        hasNext,
+        hasPrevious,
+    };
 }
 
 function getRestaurantsList(data) {
@@ -271,43 +311,6 @@ function flattenRestaurantInvoices(invoices = [], restaurantId) {
     });
 }
 
-function getPayments(invoice = {}) {
-    const record = invoice ?? {};
-    const directPayments = getList(record.payments);
-
-    if (directPayments.length) return directPayments;
-
-    return getList(getNestedInvoice(record)?.payments);
-}
-
-function normalizePaymentMethod(value) {
-    const method = normalizeText(value).toLowerCase();
-
-    if (method.includes("stripe") || method.includes("card")) return "stripe";
-    if (method.includes("cash")) return "cash";
-
-    return method;
-}
-
-function getPaymentMethods(invoice = {}) {
-    const sources = [invoice, getNestedInvoice(invoice)];
-    const methods = sources
-        .flatMap((source) => [
-            source?.payment_method,
-            source?.paymentMethod,
-            source?.method,
-            source?.payment?.payment_method,
-            source?.payment?.paymentMethod,
-            ...getPayments(source).map((payment) =>
-                payment.payment_method ?? payment.paymentMethod ?? payment.method
-            ),
-        ])
-        .map(normalizePaymentMethod)
-        .filter(Boolean);
-
-    return [...new Set(methods)];
-}
-
 function buildSummaryInvoice(invoice = {}, isRestaurantScope = false) {
     const record = invoice ?? {};
 
@@ -539,6 +542,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
     const isRestaurantScope = scope === "restaurant";
     const isAdminRestaurantScope = scope === "adminRestaurant";
     const isRestaurantInvoiceScope = isRestaurantScope || isAdminRestaurantScope;
+    const isGlobalInvoiceScope = !isRestaurantInvoiceScope;
     const listEndpoint = isRestaurantScope
         ? "/restaurant/invoices"
         : isAdminRestaurantScope
@@ -568,15 +572,19 @@ export default function GlobalInvoices({ scope = "admin" }) {
     const [isRestaurantMenuOpen, setIsRestaurantMenuOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [dateFilter, setDateFilter] = useState("");
+    const [isDateFilterFocused, setIsDateFilterFocused] = useState(false);
     const [minPrice, setMinPrice] = useState("");
     const [maxPrice, setMaxPrice] = useState("");
-    const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [isRestaurantsLoading, setIsRestaurantsLoading] = useState(false);
     const [isDetailLoading, setIsDetailLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [restaurantError, setRestaurantError] = useState("");
     const [detailError, setDetailError] = useState("");
+    const [invoicePage, setInvoicePage] = useState(1);
+    const [invoicePagination, setInvoicePagination] = useState(() =>
+        getPagination({}, 1, 0)
+    );
 
     const loadRestaurants = useCallback(async () => {
         if (!isAdminRestaurantScope) return;
@@ -605,6 +613,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
 
         if (isAdminRestaurantScope && !selectedRestaurantId) {
             setInvoices([]);
+            setInvoicePagination(getPagination({}, 1, 0));
             setSelectedInvoiceId(null);
             setSelectedInvoice(null);
             setIsLoading(false);
@@ -613,15 +622,20 @@ export default function GlobalInvoices({ scope = "admin" }) {
 
         try {
             const requestConfig = isAdminRestaurantScope
-                ? { params: { restaurant_id: selectedRestaurantId } }
-                : undefined;
+                ? { params: { restaurant_id: selectedRestaurantId, page: invoicePage } }
+                : { params: { page: invoicePage } };
             const response = await api.get(listEndpoint, requestConfig);
-            setInvoices(getList(response.data));
+            const nextInvoices = getList(response.data);
+
+            setInvoices(nextInvoices);
+            setInvoicePagination(
+                getPagination(response.data, invoicePage, nextInvoices.length)
+            );
         } catch (error) {
             if (isAdminRestaurantScope) {
                 try {
                     const response = await api.get("/admin/invoices", {
-                        params: { restaurant_id: selectedRestaurantId },
+                        params: { restaurant_id: selectedRestaurantId, page: invoicePage },
                     });
                     const adminInvoices = getList(response.data);
                     const flattenedInvoices = flattenRestaurantInvoices(
@@ -631,6 +645,9 @@ export default function GlobalInvoices({ scope = "admin" }) {
 
                     if (flattenedInvoices.length || !adminInvoices.length) {
                         setInvoices(flattenedInvoices);
+                        setInvoicePagination(
+                            getPagination(response.data, invoicePage, flattenedInvoices.length)
+                        );
                         return;
                     }
 
@@ -655,6 +672,9 @@ export default function GlobalInvoices({ scope = "admin" }) {
                     setInvoices(
                         flattenRestaurantInvoices(detailedInvoices, selectedRestaurantId)
                     );
+                    setInvoicePagination(
+                        getPagination(response.data, invoicePage, detailedInvoices.length)
+                    );
                     return;
                 } catch (fallbackError) {
                     setErrorMessage(
@@ -673,7 +693,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
         } finally {
             setIsLoading(false);
         }
-    }, [isAdminRestaurantScope, listEndpoint, pageTitle, selectedRestaurantId]);
+    }, [invoicePage, isAdminRestaurantScope, listEndpoint, pageTitle, selectedRestaurantId]);
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -687,6 +707,10 @@ export default function GlobalInvoices({ scope = "admin" }) {
         loadRestaurants();
     }, [loadRestaurants]);
 
+    useEffect(() => {
+        setInvoicePage(1);
+    }, [dateFilter, maxPrice, minPrice, search]);
+
     const handleRestaurantSelect = useCallback((restaurantId) => {
         setSelectedRestaurantId(restaurantId);
         setIsRestaurantMenuOpen(false);
@@ -697,6 +721,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
         setMinPrice("");
         setMaxPrice("");
         setDetailError("");
+        setInvoicePage(1);
     }, []);
 
     const openInvoice = useCallback(async (invoice) => {
@@ -777,9 +802,6 @@ export default function GlobalInvoices({ scope = "admin" }) {
                 const matchesDate =
                     !dateFilter ||
                     formatDateInputValue(getCreatedAt(invoice)) === dateFilter;
-                const matchesPaymentMethod =
-                    !paymentMethodFilter ||
-                    getPaymentMethods(invoice).includes(paymentMethodFilter);
                 const total = Number(getInvoiceTotal(invoice));
                 const matchesMinPrice =
                     minimumPrice === null ||
@@ -791,26 +813,26 @@ export default function GlobalInvoices({ scope = "admin" }) {
                 return (
                     matchesSearch &&
                     matchesDate &&
-                    matchesPaymentMethod &&
                     matchesMinPrice &&
                     matchesMaxPrice
                 );
             });
-    }, [dateFilter, invoices, maxPrice, minPrice, paymentMethodFilter, search]);
+    }, [dateFilter, invoices, maxPrice, minPrice, search]);
 
-    const hasFilters = Boolean(search || dateFilter || minPrice || maxPrice || paymentMethodFilter);
+    const hasFilters = Boolean(search || dateFilter || minPrice || maxPrice);
     const clearFilters = () => {
         setSearch("");
         setDateFilter("");
         setMinPrice("");
         setMaxPrice("");
-        setPaymentMethodFilter("");
+        setInvoicePage(1);
     };
+    const invoiceCountLabel =
+        invoicePagination.total ?? filteredInvoices.length;
 
     const summaryInvoice = buildSummaryInvoice(selectedInvoice, isRestaurantInvoiceScope);
     const restaurantInvoices = getList(selectedInvoice?.restaurant_invoices);
     const restaurantItems = getRestaurantItems(selectedInvoice);
-    const payments = getPayments(selectedInvoice);
     const selectedRestaurant = restaurants.find(
         (restaurant) => String(restaurant.id) === String(selectedRestaurantId)
     );
@@ -820,15 +842,17 @@ export default function GlobalInvoices({ scope = "admin" }) {
     const panelClass = isLight
         ? "border-[#8F1D1D]/24 bg-[#FFFDF8] shadow-[0_18px_42px_rgba(127,29,29,0.14)]"
         : "border-white/10 bg-[#252A2D] shadow-[0_18px_42px_rgba(0,0,0,0.20)]";
+    const pageClass = isGlobalInvoiceScope ? "invoice-global-page" : "invoice-red-page";
+    const InvoiceScopeIcon = isGlobalInvoiceScope ? Globe2 : ReceiptText;
 
     return (
-        <div className={`invoice-red-page min-h-full p-4 sm:p-6 ${shellClass}`}>
+        <div className={`${pageClass} min-h-full p-4 sm:p-6 ${shellClass}`}>
             <section className={`relative z-20 mb-5 overflow-visible rounded-[24px] border p-5 sm:p-6 ${panelClass}`}>
                 <div className={`absolute inset-x-0 top-0 h-1.5 ${isLight ? "bg-[#8F1D1D]" : "bg-[#FFD166]"}`} />
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="min-w-0">
-                        <div className={`mb-3 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-[0.16em] ${isLight ? "border-[#8F1D1D]/30 bg-[#F3DCDC] text-[#8F1D1D]" : "border-[#FFD166]/28 bg-[#FFD166]/10 text-[#FFD166]"}`}>
-                            <ReceiptText size={14} />
+                        <div className={`invoice-scope-badge mb-3 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-[0.16em] ${isLight ? "border-[#8F1D1D]/30 bg-[#F3DCDC] text-[#8F1D1D]" : "border-[#FFD166]/28 bg-[#FFD166]/10 text-[#FFD166]"}`}>
+                            <InvoiceScopeIcon size={14} />
                             {isRestaurantInvoiceScope ? "Restaurant Invoice" : "Global Invoice"}
                         </div>
                         <h1 className={`text-[clamp(2rem,1.45rem+1.15vw,3rem)] font-black leading-tight ${isLight ? "text-[#241815]" : "text-white"}`}>
@@ -959,100 +983,102 @@ export default function GlobalInvoices({ scope = "admin" }) {
                 </div>
             )}
 
-            <section className="grid min-h-[640px] gap-5 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)]">
-                <aside className={`min-h-0 rounded-[24px] border ${panelClass}`}>
-                    <div className={`border-b p-4 ${isLight ? "border-[#8F1D1D]/20 bg-[#FFF8F4]" : "border-white/10"}`}>
-                        <div className="flex flex-col gap-3">
+            <section className="grid items-start gap-5 xl:h-[calc(100dvh-190px)] xl:min-h-0 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)] xl:overflow-hidden">
+                <aside className={`min-h-0 rounded-[24px] border xl:flex xl:max-h-full xl:flex-col xl:overflow-hidden ${panelClass}`}>
+                    <div className={`invoice-filter-panel border-b p-4 ${isLight ? "border-[#8F1D1D]/20 bg-[#FFF8F4]" : "border-white/10"}`}>
+                        <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between gap-3">
-                                <p className={`text-xs font-black uppercase tracking-[0.16em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
-                                    Invoice list
-                                </p>
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <span className={`invoice-filter-mark grid h-9 w-9 shrink-0 place-items-center rounded-[9px] ${isLight ? "bg-[#8F1D1D] text-white" : "bg-[#FFD166]/14 text-[#FFD166]"}`}>
+                                        <SlidersHorizontal size={17} />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <p className={`text-xs font-black uppercase tracking-[0.16em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
+                                            {isGlobalInvoiceScope ? "Global invoice list" : "Invoice filters"}
+                                        </p>
+                                        <p className={`mt-0.5 truncate text-xs font-bold ${isLight ? "text-[#5A4037]" : "text-white/50"}`}>
+                                            Search by number, date, or amount range
+                                        </p>
+                                    </div>
+                                </div>
                                 <span className={`rounded-full border px-3 py-1 text-sm font-black ${isLight ? "border-[#8F1D1D]/24 bg-[#F3DCDC] text-[#8F1D1D]" : "border-white/10 bg-white/[0.06] text-white/60"}`}>
-                                    {filteredInvoices.length}
+                                    {invoiceCountLabel}
                                 </span>
                             </div>
-                            <label className={`flex h-12 min-w-0 items-center gap-3 rounded-[10px] border px-4 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
-                                <Search size={18} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
-                                <input
-                                    value={search}
-                                    onChange={(event) =>
-                                        setSearch(event.target.value.replace(/\D/g, ""))
-                                    }
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    placeholder="Invoice number"
-                                    className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
-                                />
-                            </label>
-                            <label className={`flex h-12 min-w-0 items-center gap-3 rounded-[10px] border px-4 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
-                                <CalendarDays size={18} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
-                                <input
-                                    type="date"
-                                    value={dateFilter}
-                                    onChange={(event) => setDateFilter(event.target.value)}
-                                    aria-label="Filter by invoice date"
-                                    className="invoice-date-input min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none"
-                                />
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <label className={`flex h-12 min-w-0 items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
-                                    <DollarSign size={17} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
-                                    <input
-                                        type="number"
-                                        {...nonNegativeNumberInputProps}
-                                        step="0.01"
-                                        value={minPrice}
-                                        onChange={(event) =>
-                                            setMinPrice(toNonNegativeNumberValue(event.target.value))
-                                        }
-                                        placeholder="Min price"
-                                        aria-label="Minimum invoice price"
-                                        className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
-                                    />
-                                </label>
-                                <label className={`flex h-12 min-w-0 items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
-                                    <DollarSign size={17} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
-                                    <input
-                                        type="number"
-                                        {...nonNegativeNumberInputProps}
-                                        step="0.01"
-                                        value={maxPrice}
-                                        onChange={(event) =>
-                                            setMaxPrice(toNonNegativeNumberValue(event.target.value))
-                                        }
-                                        placeholder="Max price"
-                                        aria-label="Maximum invoice price"
-                                        className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
-                                    />
-                                </label>
+                            <div className={`rounded-[14px] border p-3 ${isLight ? "border-[#8F1D1D]/16 bg-white/70" : "border-white/10 bg-black/12"}`}>
+                                <div className="grid gap-3">
+                                    <label className={`invoice-filter-field flex min-h-12 min-w-0 items-center gap-3 rounded-[10px] border px-4 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
+                                        <Search size={18} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
+                                        <span className="min-w-0 flex-1">
+                                            <input
+                                                value={search}
+                                                onChange={(event) =>
+                                                    setSearch(event.target.value.replace(/\D/g, ""))
+                                                }
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                placeholder="Number"
+                                                className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
+                                            />
+                                        </span>
+                                    </label>
+                                    <label className={`invoice-filter-field flex min-h-12 min-w-0 items-center gap-3 rounded-[10px] border px-4 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
+                                        <CalendarDays size={18} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
+                                        <span className="min-w-0 flex-1">
+                                            <input
+                                                type={dateFilter || isDateFilterFocused ? "date" : "text"}
+                                                value={dateFilter}
+                                                onChange={(event) => setDateFilter(event.target.value)}
+                                                onFocus={(event) => {
+                                                    setIsDateFilterFocused(true);
+                                                    window.requestAnimationFrame(() => {
+                                                        event.currentTarget.showPicker?.();
+                                                    });
+                                                }}
+                                                onBlur={() => setIsDateFilterFocused(false)}
+                                                placeholder="Date"
+                                                aria-label="Filter by invoice date"
+                                                className="invoice-date-input min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
+                                            />
+                                        </span>
+                                    </label>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                {[
-                                    ["", "All"],
-                                    ["cash", "Cash"],
-                                    ["stripe", "Stripe"],
-                                ].map(([value, label]) => {
-                                    const isSelected = paymentMethodFilter === value;
-
-                                    return (
-                                        <button
-                                            key={value || "all"}
-                                            type="button"
-                                            onClick={() => setPaymentMethodFilter(value)}
-                                            className={`flex h-11 min-w-0 items-center justify-center rounded-[10px] border px-3 text-sm font-black transition active:scale-[0.98] ${
-                                                isSelected
-                                                    ? isLight
-                                                        ? "border-[#8F1D1D] bg-[#8F1D1D] text-white"
-                                                        : "border-[#FFD166] bg-[#FFD166] text-[#16120A]"
-                                                    : isLight
-                                                        ? "border-[#8F1D1D]/22 bg-white text-[#5A4037] hover:border-[#8F1D1D]/45"
-                                                        : "border-white/10 bg-black/18 text-white/70 hover:border-[#FFD166]/35 hover:text-white"
-                                            }`}
-                                        >
-                                            <span className="truncate">{label}</span>
-                                        </button>
-                                    );
-                                })}
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className={`invoice-filter-field flex min-h-12 min-w-0 items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
+                                    <DollarSign size={17} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
+                                    <span className="min-w-0 flex-1">
+                                        <input
+                                            type="number"
+                                            {...nonNegativeNumberInputProps}
+                                            step="0.01"
+                                            value={minPrice}
+                                            onChange={(event) =>
+                                                setMinPrice(toNonNegativeNumberValue(event.target.value))
+                                            }
+                                            placeholder="Min"
+                                            aria-label="Minimum invoice price"
+                                            className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
+                                        />
+                                    </span>
+                                </label>
+                                <label className={`invoice-filter-field flex min-h-12 min-w-0 items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
+                                    <DollarSign size={17} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
+                                    <span className="min-w-0 flex-1">
+                                        <input
+                                            type="number"
+                                            {...nonNegativeNumberInputProps}
+                                            step="0.01"
+                                            value={maxPrice}
+                                            onChange={(event) =>
+                                                setMaxPrice(toNonNegativeNumberValue(event.target.value))
+                                            }
+                                            placeholder="Max"
+                                            aria-label="Maximum invoice price"
+                                            className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
+                                        />
+                                    </span>
+                                </label>
                             </div>
                             {hasFilters && (
                                 <button
@@ -1066,7 +1092,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                         </div>
                     </div>
 
-                    <div className="cashier-scroll max-h-[calc(100dvh-360px)] min-h-[520px] space-y-3 overflow-y-auto p-3">
+                    <div className="cashier-scroll min-h-0 space-y-3 overflow-y-auto p-3 xl:flex-1">
                         {isLoading ? (
                             <EmptyPanel icon={Loader2} title="Loading invoices" text={loadingListText} />
                         ) : isAdminRestaurantScope && !selectedRestaurantId ? (
@@ -1096,7 +1122,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0">
                                                 <p className={`text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
-                                                    {isRestaurantInvoiceScope ? "Restaurant invoice" : "Invoice"} #{displayInvoiceId}
+                                                    {isRestaurantInvoiceScope ? "Restaurant invoice" : "Global invoice"} #{displayInvoiceId}
                                                 </p>
                                                 <h3 className="mt-1 truncate text-xl font-black tabular-nums">
                                                     {money(getInvoiceTotal(invoice))}
@@ -1134,18 +1160,56 @@ export default function GlobalInvoices({ scope = "admin" }) {
                             <EmptyPanel icon={ReceiptText} title="No invoices" text={hasFilters ? "There are no invoices matching these filters." : "There are no invoices yet."} />
                         )}
                     </div>
+                    {(invoicePagination.hasPrevious || invoicePagination.hasNext || invoicePagination.lastPage > 1) && (
+                        <div className={`flex shrink-0 items-center justify-between gap-3 border-t p-3 ${isLight ? "border-[#8F1D1D]/20 bg-[#FFF8F4]" : "border-white/10 bg-black/10"}`}>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setInvoicePage((page) => Math.max(1, page - 1))
+                                }
+                                disabled={!invoicePagination.hasPrevious || isLoading}
+                                className={`inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border px-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${
+                                    isLight
+                                        ? "border-[#8F1D1D]/24 bg-white text-[#8F1D1D] hover:bg-[#FFF2EC]"
+                                        : "border-white/10 bg-white/[0.06] text-white/70 hover:bg-white/[0.09] hover:text-white"
+                                }`}
+                            >
+                                <ChevronLeft size={16} />
+                                Prev
+                            </button>
+                            <span className={`shrink-0 text-sm font-black tabular-nums ${isLight ? "text-[#5A4037]" : "text-white/60"}`}>
+                                Page {invoicePagination.currentPage}
+                                {invoicePagination.lastPage > 1
+                                    ? ` / ${invoicePagination.lastPage}`
+                                    : ""}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setInvoicePage((page) => page + 1)}
+                                disabled={!invoicePagination.hasNext || isLoading}
+                                className={`inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border px-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${
+                                    isLight
+                                        ? "border-[#8F1D1D]/24 bg-white text-[#8F1D1D] hover:bg-[#FFF2EC]"
+                                        : "border-white/10 bg-white/[0.06] text-white/70 hover:bg-white/[0.09] hover:text-white"
+                                }`}
+                            >
+                                Next
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    )}
                 </aside>
 
-                <article className={`min-w-0 rounded-[24px] border ${panelClass}`}>
+                <article className={`min-h-0 min-w-0 rounded-[24px] border xl:flex xl:max-h-full xl:flex-col xl:overflow-hidden ${panelClass}`}>
                     <div className={`border-b p-4 sm:p-5 ${isLight ? "border-[#8F1D1D]/20 bg-[#FFF8F4]" : "border-white/10"}`}>
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                                 <p className={`text-xs font-black uppercase tracking-[0.16em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
-                                    Invoice details
+                                    {isGlobalInvoiceScope ? "Global invoice details" : "Invoice details"}
                                 </p>
                                 <h2 className="mt-1 truncate text-2xl font-black">
                                     {selectedInvoiceId
-                                        ? `${isRestaurantInvoiceScope ? "Restaurant invoice" : "Invoice"} #${selectedInvoiceId}`
+                                        ? `${isRestaurantInvoiceScope ? "Restaurant invoice" : "Global invoice"} #${selectedInvoiceId}`
                                         : "Select an invoice"}
                                 </h2>
                             </div>
@@ -1158,7 +1222,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                         </div>
                     </div>
 
-                    <div className="cashier-scroll max-h-[calc(100dvh-360px)] min-h-[520px] overflow-y-auto p-4 sm:p-5">
+                    <div className="cashier-scroll min-h-0 overflow-y-auto p-4 sm:p-5 xl:flex-1">
                         {isDetailLoading ? (
                             <EmptyPanel icon={Loader2} title="Loading invoice" text={loadingDetailText} />
                         ) : detailError ? (
@@ -1170,7 +1234,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                     showPaymentMovement={!isRestaurantInvoiceScope}
                                 />
 
-                                <div className="grid gap-4 lg:grid-cols-2">
+                                <div className="grid gap-4">
                                     <section className={`rounded-[18px] border p-4 ${isLight ? "border-[#8F1D1D]/18 bg-[#FFF2EC]" : "border-white/10 bg-black/14"}`}>
                                         <div className="mb-4 flex items-center gap-3">
                                             <div className={`invoice-brand-icon grid h-10 w-10 place-items-center rounded-[10px] ${isLight ? "bg-[#8F1D1D] text-white" : "bg-[#7F1D1D]/16 text-red-300"}`}>
@@ -1193,49 +1257,6 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                             <DetailLine label="Updated" value={formatDate(getUpdatedAt(selectedInvoice))} />
                                             {isRestaurantInvoiceScope && getGlobalInvoiceId(selectedInvoice) && (
                                                 <DetailLine label="Global invoice" value={`#${getGlobalInvoiceId(selectedInvoice)}`} />
-                                            )}
-                                        </div>
-                                    </section>
-
-                                    <section className={`rounded-[18px] border p-4 ${isLight ? "border-[#8F1D1D]/18 bg-[#FFF2EC]" : "border-white/10 bg-black/14"}`}>
-                                        <div className="mb-4 flex items-center gap-3">
-                                            <div className={`grid h-10 w-10 place-items-center rounded-[10px] ${isLight ? "bg-emerald-50 text-emerald-700" : "bg-emerald-300/12 text-emerald-300"}`}>
-                                                <CreditCard size={20} />
-                                            </div>
-                                            <div>
-                                                <p className={`text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"}`}>
-                                                    Payments
-                                                </p>
-                                                <h3 className="text-xl font-black">{payments.length} records</h3>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {payments.length ? (
-                                                payments.map((payment) => (
-                                                    <div key={payment.id ?? payment.transaction_id} className={`rounded-[12px] border p-3 ${isLight ? "border-[#8F1D1D]/16 bg-white" : "border-white/10 bg-white/[0.045]"}`}>
-                                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                                            <strong className="text-lg font-black">{money(payment.amount)}</strong>
-                                                            <StatusBadge value={payment.payment_status} />
-                                                        </div>
-                                                        <p className={`mt-2 text-sm font-bold capitalize ${isLight ? "text-[#5A4037]" : "text-white/58"}`}>
-                                                            {normalizeText(payment.payment_method)} - {formatDate(payment.paid_at)}
-                                                        </p>
-                                                        {getList(payment.refunds).length > 0 && (
-                                                            <div className="mt-3 space-y-2">
-                                                                {getList(payment.refunds).map((refund) => (
-                                                                    <div key={refund.id} className={`flex items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-sm font-black ${isLight ? "bg-[#F3DCDC] text-[#8F1D1D]" : "bg-[#7F1D1D]/14 text-red-300"}`}>
-                                                                        <span>{normalizeText(refund.refund_status)}</span>
-                                                                        <span>{money(refund.amount)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className={`rounded-[12px] border border-dashed p-4 text-sm font-bold ${isLight ? "border-[#D8B7A8] text-[#5A4037]" : "border-white/15 text-white/55"}`}>
-                                                    No payment records.
-                                                </div>
                                             )}
                                         </div>
                                     </section>
