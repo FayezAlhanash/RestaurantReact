@@ -12,6 +12,12 @@ const getList = (data, key) => {
     return [];
 };
 
+const getRoleList = (data) => {
+    const roles = getList(data, "roles");
+
+    return roles.length ? roles : getList(data, "staff_roles");
+};
+
 const EXCLUDED_ROLE_NAMES = ["admin", "customer"];
 
 const normalizeRoleName = (name) =>
@@ -148,13 +154,13 @@ function AddEmployeeModal({ isOpen, onClose, roles = [] }) {
             try {
                 const [restaurantsResponse, rolesResponse] = await Promise.all([
                     api.get("/restaurants"),
-                    roles.length ? Promise.resolve(null) : api.get("/admin/roles"),
+                    roles.length ? Promise.resolve(null) : api.get("/staff-roles"),
                 ]);
 
                 setRestaurants(restaurantsResponse.data.restaurants || []);
 
                 if (rolesResponse) {
-                    setModalRoles(getList(rolesResponse.data, "roles"));
+                    setModalRoles(getRoleList(rolesResponse.data));
                 }
             } catch (error) {
                 console.log(error);

@@ -1084,7 +1084,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                 <button
                                     type="button"
                                     onClick={clearFilters}
-                                    className={`inline-flex h-11 items-center justify-center rounded-[10px] border px-4 text-sm font-black transition active:scale-[0.98] ${isLight ? "border-[#8F1D1D]/28 bg-[#F3DCDC] text-[#8F1D1D] hover:bg-[#EACBCB]" : "border-white/10 bg-white/[0.06] text-white/70 hover:bg-white/[0.09] hover:text-white"}`}
+                                    className={`invoice-clear-filter-button inline-flex h-11 items-center justify-center rounded-[10px] border px-4 text-sm font-black transition active:scale-[0.98] ${isLight ? "border-[#8F1D1D]/28 bg-[#9f1d1d] text-white hover:bg-[#7f1d1d]" : "border-white/10 bg-white/[0.06] text-white/70 hover:bg-white/[0.09] hover:text-white"}`}
                                 >
                                     Clear filters
                                 </button>

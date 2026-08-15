@@ -1005,6 +1005,28 @@ img, svg {
     background: #dc2626;
 }
 
+[data-theme="light"] .kitchen-screen > header {
+    background: linear-gradient(90deg, #252b30 0%, #22282c 54%, #3a1e22 100%) !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+[data-theme="light"] .kitchen-screen > header :is(p, span) {
+    color: #f8f5ef !important;
+    -webkit-text-fill-color: #f8f5ef !important;
+}
+
+[data-theme="light"] .kitchen-screen > header p:nth-child(2),
+[data-theme="light"] .kitchen-screen > header p:nth-child(2) span {
+    color: rgba(255, 250, 243, 0.78) !important;
+    -webkit-text-fill-color: rgba(255, 250, 243, 0.78) !important;
+}
+
+[data-theme="light"] .kitchen-screen > header button :is(span, svg) {
+    color: inherit !important;
+    -webkit-text-fill-color: currentColor !important;
+    stroke: currentColor !important;
+}
+
 [data-theme="light"] .customer-experience [class*="text-white"] {
     color: #241815 !important;
 }
@@ -2555,6 +2577,61 @@ img, svg {
 }
 
 [data-theme="light"] .invoice-global-page .invoice-refresh-button:hover {
+    background: #115e59 !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-panel {
+    background: linear-gradient(135deg, #dff7f0 0%, #f6fffb 100%) !important;
+    border-color: rgba(15, 118, 110, 0.24) !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-mark {
+    background: #0f766e !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-mark * {
+    stroke: #ffffff !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-panel :is(p, span, input) {
+    color: #134e4a !important;
+    -webkit-text-fill-color: #134e4a !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-panel [class*="bg-[#F3DCDC]"] {
+    background: #ccfbf1 !important;
+    border-color: rgba(15, 118, 110, 0.28) !important;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-field {
+    background: #ffffff !important;
+    border-color: rgba(15, 118, 110, 0.22) !important;
+    color: #134e4a !important;
+    -webkit-text-fill-color: #134e4a !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-field:focus-within {
+    border-color: rgba(15, 118, 110, 0.58) !important;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14) !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-filter-field svg {
+    color: #0f766e !important;
+    stroke: #0f766e !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-clear-filter-button {
+    background: #0f766e !important;
+    border-color: #0f766e !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-theme="light"] .invoice-global-page .invoice-clear-filter-button:hover {
     background: #115e59 !important;
 }
 

@@ -6,7 +6,7 @@ import {
     RefreshCw,
     X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
@@ -110,6 +110,7 @@ function formatNotificationTime(value) {
 export default function NotificationsButton() {
     const navigate = useNavigate();
     const { isLight } = useTheme();
+    const containerRef = useRef(null);
     const [isOpen, setIsOpen] = useState(false);
     const [isShown, setIsShown] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -207,6 +208,21 @@ export default function NotificationsButton() {
         };
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const handlePointerDown = (event) => {
+            if (containerRef.current?.contains(event.target)) return;
+            closePanel();
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown, true);
+
+        return () => {
+            document.removeEventListener("pointerdown", handlePointerDown, true);
+        };
+    }, [isOpen]);
+
     const openPanel = () => {
         window.dispatchEvent(new CustomEvent("big4:close-profile"));
         setIsOpen(true);
@@ -281,7 +297,7 @@ export default function NotificationsButton() {
     };
 
     return (
-        <div className="relative z-[120]">
+        <div ref={containerRef} className="relative z-[120]">
             <button
                 type="button"
                 aria-label="Notifications"

@@ -5,6 +5,7 @@ import {
     ChevronDown,
     Info,
     ListFilter,
+    Loader2,
     Mail,
     Pencil,
     Phone,
@@ -27,6 +28,12 @@ const getList = (data, key) => {
     if (Array.isArray(data?.[key])) return data[key];
     if (Array.isArray(data?.data)) return data.data;
     return [];
+};
+
+const getRoleList = (data) => {
+    const roles = getList(data, "roles");
+
+    return roles.length ? roles : getList(data, "staff_roles");
 };
 
 const EXCLUDED_ROLE_NAMES = ["admin", "customer"];
@@ -176,6 +183,22 @@ function isActive(employee) {
     return String(employee?.status || "").toLowerCase() === "active";
 }
 
+function getDateValue(value) {
+    if (!value) return "";
+
+    return String(value).split("T")[0];
+}
+
+function getErrorMessage(error, fallbackMessage) {
+    const errors = error.response?.data?.errors;
+
+    if (errors && typeof errors === "object") {
+        return Object.values(errors).flat().filter(Boolean).join(" ");
+    }
+
+    return error.response?.data?.message || fallbackMessage;
+}
+
 function Employee() {
     const { isLight } = useTheme();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -187,11 +210,14 @@ function Employee() {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [editRestaurantId, setEditRestaurantId] = useState("");
+    const [editImage, setEditImage] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState("all");
     const [roles, setRoles] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [editErrorMessage, setEditErrorMessage] = useState("");
+    const [isEditSubmitting, setIsEditSubmitting] = useState(false);
     const [spotlightIndex, setSpotlightIndex] = useState(0);
     const [roleSpotlightIndex, setRoleSpotlightIndex] = useState(0);
 
@@ -227,11 +253,11 @@ function Employee() {
             try {
                 const [restaurantsResponse, rolesResponse] = await Promise.all([
                     api.get("/restaurants"),
-                    api.get("/admin/roles"),
+                    api.get("/staff-roles"),
                 ]);
 
                 setRestaurants(restaurantsResponse.data.restaurants || []);
-                setRoles(getList(rolesResponse.data, "roles"));
+                setRoles(getRoleList(rolesResponse.data));
             } catch (err) {
                 console.log(err);
             }
@@ -300,8 +326,15 @@ function Employee() {
     }, [roleCounts.length, roleSpotlightIndex]);
 
     const openEditModal = (employee) => {
-        setSelectedEmployee(employee);
-        setEditRestaurantId(employee.restaurant_id || employee.restaurant?.id || "");
+        setErrorMessage("");
+        setEditErrorMessage("");
+        setSelectedEmployee({
+            ...employee,
+            role_id: employee.role_id ?? employee.role?.id ?? "",
+            date_of_birth: getDateValue(employee.date_of_birth),
+        });
+        setEditRestaurantId(getRestaurantId(employee));
+        setEditImage(null);
         setIsEditOpen(true);
     };
 
@@ -318,11 +351,14 @@ function Employee() {
         }
     };
 
-    const handleShowEmployee = async (id) => {
+    const handleShowEmployee = async (employee) => {
+        setErrorMessage("");
+        setSelectedEmployee(employee);
+        setIsInfoOpen(true);
+
         try {
-            const response = await api.get(`/admin/staff-users/${id}`);
+            const response = await api.get(`/admin/staff-users/${employee.id}`);
             setSelectedEmployee(response.data.user);
-            setIsInfoOpen(true);
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message || "Could not load employee details."
@@ -331,19 +367,37 @@ function Employee() {
     };
 
     const handleUpdateEmployee = async () => {
+        if (isEditSubmitting) return;
+
+        setEditErrorMessage("");
+        setIsEditSubmitting(true);
+
         try {
-            await api.post(`/admin/staff-users/${selectedEmployee.id}`, {
-                phone_number: selectedEmployee.phone_number,
-                role_id: selectedEmployee.role_id,
-                restaurant_id: needsRestaurant ? editRestaurantId : null,
-            });
+            const formData = new FormData();
+
+            formData.append("first_name", String(selectedEmployee.first_name || "").trim());
+            formData.append("father_name", String(selectedEmployee.father_name || "").trim());
+            formData.append("last_name", String(selectedEmployee.last_name || "").trim());
+            formData.append("phone_number", String(selectedEmployee.phone_number || "").trim());
+            formData.append("role_id", selectedEmployee.role_id || "");
+            formData.append("restaurant_id", needsRestaurant ? editRestaurantId : "");
+            formData.append("date_of_birth", getDateValue(selectedEmployee.date_of_birth));
+            formData.append("job_title", String(selectedEmployee.job_title || "").trim());
+            formData.append("national_number", String(selectedEmployee.national_number || "").trim());
+
+            if (editImage) {
+                formData.append("image", editImage);
+            }
+
+            await api.post(`/admin/staff-users/${selectedEmployee.id}`, formData);
 
             await getEmployees();
             setIsEditOpen(false);
+            setEditImage(null);
         } catch (error) {
-            setErrorMessage(
-                error.response?.data?.message || "Could not update employee."
-            );
+            setEditErrorMessage(getErrorMessage(error, "Could not update employee."));
+        } finally {
+            setIsEditSubmitting(false);
         }
     };
 
@@ -758,38 +812,47 @@ function Employee() {
                                                 </span>
                                             </td>
                                             <td className={`border-b px-4 py-4 transition ${tableRowBorder}`}>
-                                                <div className="flex items-center justify-end gap-2">
+                                                <div
+                                                    className={`ml-auto flex w-fit items-center justify-end gap-1.5 rounded-2xl border p-1 shadow-inner ${
+                                                        isLight
+                                                            ? "border-[#D8B7A8] bg-[#FFF1E8]"
+                                                            : "border-white/10 bg-black/15"
+                                                    }`}
+                                                >
                                                     <button
-                                                        onClick={() => handleShowEmployee(employee.id)}
-                                                        className={`grid h-9 w-9 place-items-center rounded-xl border transition ${
+                                                        type="button"
+                                                        onClick={() => handleShowEmployee(employee)}
+                                                        className={`grid h-9 w-9 place-items-center rounded-xl border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform hover:-translate-y-0.5 hover:scale-105 hover:shadow-lg active:translate-y-0 active:scale-90 focus:outline-none focus:ring-2 focus:ring-sky-400/30 ${
                                                             isLight
-                                                                ? "border-sky-600/35 bg-sky-100 text-sky-700 hover:bg-sky-200"
-                                                                : "border-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/18"
+                                                                ? "border-sky-600/25 bg-white text-sky-700 hover:border-sky-600/40 hover:bg-sky-100 hover:shadow-sky-900/10"
+                                                                : "border-sky-400/25 bg-white/[0.04] text-sky-300 hover:border-sky-400/45 hover:bg-sky-400/14 hover:shadow-sky-950/25"
                                                         }`}
                                                         title="Details"
                                                     >
                                                         <Info size={17} />
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => openEditModal(employee)}
-                                                        className={`grid h-9 w-9 place-items-center rounded-xl border transition ${
+                                                        className={`grid h-9 w-9 place-items-center rounded-xl border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform hover:-translate-y-0.5 hover:scale-105 hover:shadow-lg active:translate-y-0 active:scale-90 focus:outline-none focus:ring-2 focus:ring-[#FFD166]/30 ${
                                                             isLight
-                                                                ? "border-[#C18200]/35 bg-[#FFE8A3] text-[#8A5700] hover:bg-[#FFD166]/55"
-                                                                : "border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] hover:bg-[#FFD166]/18"
+                                                                ? "border-[#C18200]/25 bg-white text-[#8A5700] hover:border-[#C18200]/45 hover:bg-[#FFE8A3] hover:shadow-[#8A5700]/10"
+                                                                : "border-[#FFD166]/25 bg-white/[0.04] text-[#FFD166] hover:border-[#FFD166]/45 hover:bg-[#FFD166]/14 hover:shadow-black/25"
                                                         }`}
                                                         title="Edit"
                                                     >
                                                         <Pencil size={17} />
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => {
                                                             setEmployeeToDelete(employee);
                                                             setIsDeleteOpen(true);
                                                         }}
-                                                        className={`grid h-9 w-9 place-items-center rounded-xl border transition ${
+                                                        className={`grid h-9 w-9 place-items-center rounded-xl border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform hover:-translate-y-0.5 hover:scale-105 hover:shadow-lg active:translate-y-0 active:scale-90 focus:outline-none focus:ring-2 focus:ring-[#7F1D1D]/30 ${
                                                             isLight
-                                                                ? "border-[#8F1D1D]/35 bg-[#F3DCDC] text-[#8F1D1D] hover:bg-[#EBC7C7]"
-                                                                : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D] hover:bg-[#7F1D1D]/18"
+                                                                ? "border-[#8F1D1D]/25 bg-white text-[#8F1D1D] hover:border-[#8F1D1D]/45 hover:bg-[#F3DCDC] hover:shadow-[#7F1D1D]/10"
+                                                                : "border-[#7F1D1D]/25 bg-white/[0.04] text-[#EF8888] hover:border-[#7F1D1D]/45 hover:bg-[#7F1D1D]/14 hover:text-[#FFB0B0] hover:shadow-black/25"
                                                         }`}
                                                         title="Delete"
                                                     >
@@ -823,8 +886,8 @@ function Employee() {
             />
 
             {isInfoOpen && selectedEmployee && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
+                <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="modal-panel-enter w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-black">Employee Details</h2>
                             <button
@@ -847,30 +910,115 @@ function Employee() {
             )}
 
             {isEditOpen && selectedEmployee && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
+                <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="modal-panel-enter max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#182124] p-5 text-white shadow-2xl">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-black">Edit Employee</h2>
                             <button
-                                onClick={() => setIsEditOpen(false)}
+                                onClick={() => {
+                                    setEditErrorMessage("");
+                                    setEditImage(null);
+                                    setIsEditOpen(false);
+                                }}
                                 className="grid h-9 w-9 place-items-center rounded-xl text-white/55 hover:bg-white/[0.06] hover:text-white"
                             >
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <label className="block">
-                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Phone</span>
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">First Name</span>
                                 <input
                                     type="text"
-                                    value={selectedEmployee.phone_number || ""}
-                                    onChange={(event) =>
+                                    value={selectedEmployee.first_name || ""}
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
                                         setSelectedEmployee({
                                             ...selectedEmployee,
-                                            phone_number: event.target.value,
-                                        })
-                                    }
+                                            first_name: event.target.value,
+                                        });
+                                    }}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Father Name</span>
+                                <input
+                                    type="text"
+                                    value={selectedEmployee.father_name || ""}
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
+                                        setSelectedEmployee({
+                                            ...selectedEmployee,
+                                            father_name: event.target.value,
+                                        });
+                                    }}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Last Name</span>
+                                <input
+                                    type="text"
+                                    value={selectedEmployee.last_name || ""}
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
+                                        setSelectedEmployee({
+                                            ...selectedEmployee,
+                                            last_name: event.target.value,
+                                        });
+                                    }}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Date Of Birth</span>
+                                <input
+                                    type="date"
+                                    value={getDateValue(selectedEmployee.date_of_birth)}
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
+                                        setSelectedEmployee({
+                                            ...selectedEmployee,
+                                            date_of_birth: event.target.value,
+                                        });
+                                    }}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">National Number</span>
+                                <input
+                                    type="text"
+                                    value={selectedEmployee.national_number || ""}
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
+                                        setSelectedEmployee({
+                                            ...selectedEmployee,
+                                            national_number: event.target.value,
+                                        });
+                                    }}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Job Title</span>
+                                <input
+                                    type="text"
+                                    value={selectedEmployee.job_title || ""}
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
+                                        setSelectedEmployee({
+                                            ...selectedEmployee,
+                                            job_title: event.target.value,
+                                        });
+                                    }}
                                     className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                                 />
                             </label>
@@ -882,13 +1030,27 @@ function Employee() {
                                     options={roleOptions}
                                     placeholder="Select role"
                                     getOptionLabel={formatRoleLabel}
-                                    onChange={(nextRole) =>
+                                    onChange={(nextRole) => {
+                                        setEditErrorMessage("");
                                         setSelectedEmployee({
                                             ...selectedEmployee,
                                             role_id: nextRole,
-                                        })
-                                    }
+                                        });
+                                    }}
                                     disabled={!roleOptions.length}
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">Photo</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(event) => {
+                                        setEditErrorMessage("");
+                                        setEditImage(event.target.files?.[0] || null);
+                                    }}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white file:mr-4 file:rounded-xl file:border-0 file:bg-[#FFD166] file:px-4 file:py-2 file:text-sm file:font-black file:text-[#151A1D] focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                                 />
                             </label>
 
@@ -900,25 +1062,43 @@ function Employee() {
                                         options={restaurants}
                                         placeholder="Select Restaurant"
                                         getOptionLabel={(restaurant) => restaurant.name}
-                                        onChange={setEditRestaurantId}
+                                        onChange={(nextRestaurantId) => {
+                                            setEditErrorMessage("");
+                                            setEditRestaurantId(nextRestaurantId);
+                                        }}
                                         disabled={!restaurants.length}
                                     />
                                 </label>
                             )}
                         </div>
 
+                        {editErrorMessage && (
+                            <p className="mt-4 rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 px-4 py-3 text-sm font-bold leading-relaxed text-[#FFB0B0]">
+                                {editErrorMessage}
+                            </p>
+                        )}
+
                         <div className="mt-6 flex gap-3">
                             <button
-                                onClick={() => setIsEditOpen(false)}
-                                className="flex-1 rounded-2xl border border-white/10 py-3 text-sm font-black text-white/65 hover:bg-white/[0.05] hover:text-white"
+                                type="button"
+                                disabled={isEditSubmitting}
+                                onClick={() => {
+                                    setEditErrorMessage("");
+                                    setEditImage(null);
+                                    setIsEditOpen(false);
+                                }}
+                                className="flex-1 rounded-2xl border border-white/10 py-3 text-sm font-black text-white/65 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:text-white active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={handleUpdateEmployee}
-                                className="flex-1 rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white hover:bg-[#681718]"
+                                disabled={isEditSubmitting}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(127,29,29,0.24)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#681718] hover:shadow-[0_18px_36px_rgba(127,29,29,0.32)] active:translate-y-0 active:scale-[0.98] disabled:cursor-wait disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:bg-[#7F1D1D]"
                             >
-                                Save
+                                {isEditSubmitting && <Loader2 size={17} className="animate-spin" />}
+                                {isEditSubmitting ? "Saving..." : "Save"}
                             </button>
                         </div>
                     </div>
@@ -926,8 +1106,8 @@ function Employee() {
             )}
 
             {isDeleteOpen && employeeToDelete && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-center text-white shadow-2xl">
+                <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="modal-panel-enter w-full max-w-md rounded-[28px] border border-white/10 bg-[#182124] p-5 text-center text-white shadow-2xl">
                         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D]">
                             <Trash2 size={28} />
                         </div>
