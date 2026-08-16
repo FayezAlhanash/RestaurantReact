@@ -54,7 +54,8 @@ const getList = (data) => {
 
 const getFoodImageUrl = (image) => {
     if (!image) return "";
-    if (image.startsWith("http://") || image.startsWith("https://")) return image;
+    if (image.startsWith("http://") || image.startsWith("https://"))
+        return image;
 
     const cleanPath = image.replace(/^\/+/, "");
 
@@ -118,7 +119,9 @@ const normalizeRestaurant = (restaurant) => {
 
 const normalizeFoodItem = (food, restaurant = null) => ({
     ...food,
-    id: getRestaurantId(restaurant) ? `${getRestaurantId(restaurant)}-${food.id}` : food.id,
+    id: getRestaurantId(restaurant)
+        ? `${getRestaurantId(restaurant)}-${food.id}`
+        : food.id,
     food_id: food.id,
     restaurant_id:
         food.restaurant_id ??
@@ -136,7 +139,9 @@ const normalizeFoodItem = (food, restaurant = null) => ({
         food.tax_percentage ??
         food.taxPercentage ??
         0,
-    restaurantTaxRate: getRestaurantTaxRate(food.restaurant ?? restaurant ?? food),
+    restaurantTaxRate: getRestaurantTaxRate(
+        food.restaurant ?? restaurant ?? food,
+    ),
     title: food.name ?? food.title ?? "Food item",
     description: food.description ?? "",
     price: Number(food.price ?? 0),
@@ -153,7 +158,8 @@ const appendIfPresent = (formData, key, value) => {
     }
 };
 
-const getFirstRecord = (data) => getList(data)[0] || data?.table || data?.data || data;
+const getFirstRecord = (data) =>
+    getList(data)[0] || data?.table || data?.data || data;
 
 const getSessionToken = (table) =>
     table?.session_token ??
@@ -230,13 +236,27 @@ const isMissingEndpointError = (error) => {
         error.response?.data?.message ||
             error.response?.data?.error ||
             error.message ||
-            ""
+            "",
     ).toLowerCase();
 
     return (
         message.includes("route") ||
         message.includes("endpoint") ||
         message.includes("could not be found")
+    );
+};
+
+const isInvalidSessionError = (error) => {
+    const data = error.response?.data;
+    const status = String(data?.status || data?.error || "").toLowerCase();
+    const message = String(data?.message || error.message || "").toLowerCase();
+
+    return (
+        data?.valid === false ||
+        status === "invalid" ||
+        message.includes("session is invalid") ||
+        message.includes("invalid session") ||
+        message.includes("table session is invalid")
     );
 };
 
@@ -291,13 +311,10 @@ const isInactiveSessionResponse = (data) => {
             data?.data?.status ??
             session?.status ??
             session?.state ??
-            ""
+            "",
     ).toLowerCase();
     const message = String(
-        data?.message ??
-            data?.data?.message ??
-            session?.message ??
-            ""
+        data?.message ?? data?.data?.message ?? session?.message ?? "",
     ).toLowerCase();
     const closedAt =
         session?.closed_at ??
@@ -313,7 +330,15 @@ const isInactiveSessionResponse = (data) => {
         activeValue === "0" ||
         activeValue === "false" ||
         closedAt ||
-        ["closed", "ended", "expired", "inactive", "completed", "cancelled", "canceled"].includes(status) ||
+        [
+            "closed",
+            "ended",
+            "expired",
+            "inactive",
+            "completed",
+            "cancelled",
+            "canceled",
+        ].includes(status) ||
         (message.includes("no active") && message.includes("session")) ||
         (message.includes("session") &&
             (message.includes("closed") ||
@@ -325,7 +350,9 @@ const isInactiveSessionResponse = (data) => {
 
 const validateDineInSession = async (sessionToken, tableId) => {
     if (!sessionToken) {
-        throw createSessionUnavailableError("This table session is not available.");
+        throw createSessionUnavailableError(
+            "This table session is not available.",
+        );
     }
 
     let lastError;
@@ -347,12 +374,20 @@ const validateDineInSession = async (sessionToken, tableId) => {
             });
 
             if (isInactiveSessionResponse(response.data)) {
-                throw createSessionUnavailableError("This table session has ended.");
+                throw createSessionUnavailableError(
+                    "This table session has ended.",
+                );
             }
 
             return response.data;
         } catch (error) {
             if (error.isSessionUnavailable) throw error;
+            if (isInvalidSessionError(error)) {
+                throw createSessionUnavailableError(
+                    error.response?.data?.message ||
+                        "This table session is not available.",
+                );
+            }
 
             lastError = error;
             if (isMissingEndpointError(error)) {
@@ -361,25 +396,21 @@ const validateDineInSession = async (sessionToken, tableId) => {
             }
 
             throw createSessionUnavailableError(
-                error.response?.data?.message || "This table session is no longer active."
+                error.response?.data?.message ||
+                    "This table session is no longer active.",
             );
         }
     }
 
     if (missingEndpointCount === endpoints.length) {
-        return {
-            has_active_session: true,
-            verification_skipped: true,
-            session: {
-                session_token: sessionToken,
-                is_active: true,
-            },
-        };
+        throw createSessionUnavailableError(
+            "This table session could not be verified.",
+        );
     }
 
     throw createSessionUnavailableError(
         lastError?.response?.data?.message ||
-            "This table session could not be verified."
+            "This table session could not be verified.",
     );
 };
 
@@ -398,7 +429,11 @@ const fetchFoodDetails = async (food) => {
     try {
         const response = await api.get(`/food/${food.food_id}`);
         const [details] = getList(response.data);
-        const foodDetails = details || response.data?.food || response.data?.data || response.data;
+        const foodDetails =
+            details ||
+            response.data?.food ||
+            response.data?.data ||
+            response.data;
         const modifierGroups =
             foodDetails?.modifier_groups ??
             foodDetails?.modifierGroups ??
@@ -411,7 +446,10 @@ const fetchFoodDetails = async (food) => {
     }
 };
 
-const fetchRestaurantMenu = async (restaurant, { includeDetails = true } = {}) => {
+const fetchRestaurantMenu = async (
+    restaurant,
+    { includeDetails = true } = {},
+) => {
     const restaurantId = getRestaurantId(restaurant);
 
     if (!restaurantId) return [];
@@ -420,21 +458,25 @@ const fetchRestaurantMenu = async (restaurant, { includeDetails = true } = {}) =
         params: { restaurant_id: restaurantId },
     });
     const foods = getList(foodsResponse.data).map((food) =>
-        normalizeFoodItem(food, restaurant)
+        normalizeFoodItem(food, restaurant),
     );
 
     if (!includeDetails) return foods;
 
-    const detailResponses = await Promise.allSettled(foods.map(fetchFoodDetails));
+    const detailResponses = await Promise.allSettled(
+        foods.map(fetchFoodDetails),
+    );
 
     return detailResponses.map((result, index) =>
-        result.status === "fulfilled" ? result.value : foods[index]
+        result.status === "fulfilled" ? result.value : foods[index],
     );
 };
 
 const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
     const formData = new FormData();
-    const restaurantId = cartItems.find((item) => item.restaurant_id)?.restaurant_id;
+    const restaurantId = cartItems.find(
+        (item) => item.restaurant_id,
+    )?.restaurant_id;
     const requestTableId = getTableIdForRequest(tableId);
 
     appendIfPresent(formData, "order_type", orderType);
@@ -459,13 +501,29 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
         const modifierOptions = item.selectedModifierOptions ?? [];
         const notes = [item.size, item.notes].filter(Boolean).join(" · ");
 
-        appendIfPresent(formData, `items[${index}][food_id]`, item.food_id || item.id);
-        appendIfPresent(formData, `items[${index}][menu_item_id]`, item.food_id || item.id);
-        appendIfPresent(formData, `items[${index}][restaurant_id]`, item.restaurant_id);
+        appendIfPresent(
+            formData,
+            `items[${index}][food_id]`,
+            item.food_id || item.id,
+        );
+        appendIfPresent(
+            formData,
+            `items[${index}][menu_item_id]`,
+            item.food_id || item.id,
+        );
+        appendIfPresent(
+            formData,
+            `items[${index}][restaurant_id]`,
+            item.restaurant_id,
+        );
         appendIfPresent(formData, `items[${index}][quantity]`, quantity);
         appendIfPresent(formData, `items[${index}][unit_price]`, unitPrice);
         appendIfPresent(formData, `items[${index}][price]`, unitPrice);
-        appendIfPresent(formData, `items[${index}][total_price]`, unitPrice * quantity);
+        appendIfPresent(
+            formData,
+            `items[${index}][total_price]`,
+            unitPrice * quantity,
+        );
         appendIfPresent(formData, `items[${index}][notes]`, notes);
 
         modifierOptions.forEach((option, optionIndex) => {
@@ -474,12 +532,12 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
             appendIfPresent(
                 formData,
                 `items[${index}][modifiers][${optionIndex}]`,
-                optionId
+                optionId,
             );
             appendIfPresent(
                 formData,
                 `items[${index}][modifier_options][${optionIndex}]`,
-                optionId
+                optionId,
             );
         });
     });
@@ -500,9 +558,13 @@ const buildAddItemFormData = (item, sessionToken) => {
     appendIfPresent(
         formData,
         "total_price",
-        Number(item.price ?? 0) * Number(item.quantity ?? 1)
+        Number(item.price ?? 0) * Number(item.quantity ?? 1),
     );
-    appendIfPresent(formData, "notes", [item.size, item.notes].filter(Boolean).join(" · "));
+    appendIfPresent(
+        formData,
+        "notes",
+        [item.size, item.notes].filter(Boolean).join(" · "),
+    );
     appendIfPresent(formData, "session_token", sessionToken);
     appendIfPresent(formData, "table_session_token", sessionToken);
     appendIfPresent(formData, "table_token", sessionToken);
@@ -513,12 +575,12 @@ const buildAddItemFormData = (item, sessionToken) => {
         appendIfPresent(
             formData,
             `modifiers[${optionIndex}]`,
-            option.modifier_option_id ?? option.id
+            option.modifier_option_id ?? option.id,
         );
         appendIfPresent(
             formData,
             `modifier_options[${optionIndex}]`,
-            option.modifier_option_id ?? option.id
+            option.modifier_option_id ?? option.id,
         );
     });
 
@@ -569,7 +631,7 @@ const isActiveDineInOrder = (order = {}) => {
             order?.kitchen_status ??
             order?.kitchenStatus ??
             order?.order?.status ??
-            ""
+            "",
     ).toLowerCase();
 
     return !TERMINAL_ORDER_STATUSES.includes(status);
@@ -652,7 +714,7 @@ async function fetchCurrentDineInOrders(
     sessionToken,
     tableId,
     sessionData = null,
-    restaurantIds = []
+    restaurantIds = [],
 ) {
     const sessionOrders = getUniqueActiveDineInOrders(sessionData);
 
@@ -731,12 +793,12 @@ const collectInvoiceIds = (value, ids = []) => {
 const getCreatedInvoiceId = (data) => collectInvoiceIds(data)[0] ?? null;
 
 const getFirstPresent = (values) =>
-    values.find((value) => value !== undefined && value !== null && value !== "");
+    values.find(
+        (value) => value !== undefined && value !== null && value !== "",
+    );
 
 const isTruthyFlag = (value) =>
-    value === true ||
-    value === 1 ||
-    String(value).toLowerCase() === "true";
+    value === true || value === 1 || String(value).toLowerCase() === "true";
 
 const normalizeTimingStatus = (status) => String(status || "").toLowerCase();
 
@@ -759,7 +821,7 @@ const getPreparationTrackingScope = (value = {}) =>
             value?.preparationTrackingScope,
             value?.order?.preparation_tracking_scope,
             value?.order?.preparationTrackingScope,
-        ]) || "whole_order"
+        ]) || "whole_order",
     ).toLowerCase();
 
 const getPreparationTimingFromObject = (value = {}) => {
@@ -794,14 +856,18 @@ const hasPreparationTiming = (timing) =>
         timing?.remainingMinutes !== "");
 
 const isPreparationOnTheWay = (timing) => {
-    if (!hasPreparationTiming(timing) || timing?.waitingForPreparation) return false;
+    if (!hasPreparationTiming(timing) || timing?.waitingForPreparation)
+        return false;
 
     const remainingMinutes = Number(timing.remainingMinutes);
 
     return Number.isFinite(remainingMinutes) && remainingMinutes <= 0;
 };
 
-const getPreparationTimingLabel = (timing, onTheWayLabel = "Your order is on the way") => {
+const getPreparationTimingLabel = (
+    timing,
+    onTheWayLabel = "Your order is on the way",
+) => {
     if (timing?.waitingForPreparation) return "Waiting";
     if (!hasPreparationTiming(timing)) return "-";
     if (isPreparationOnTheWay(timing)) return onTheWayLabel;
@@ -852,28 +918,35 @@ const getPerRestaurantPreparationTiming = (order = {}) => {
         const status = normalizeTimingStatus(restaurantOrder.status);
         const timing = getPreparationTimingFromObject(restaurantOrder);
         const hasStarted = PREPARATION_STARTED_STATUSES.includes(status);
-        const waitingForPreparation = timing.waitingForPreparation || !hasStarted;
+        const waitingForPreparation =
+            timing.waitingForPreparation || !hasStarted;
         const remainingMinutes = Number(timing.remainingMinutes);
 
         return {
-            id: restaurantOrder.id ?? restaurantOrder.restaurant_order_id ?? index,
-            restaurantId: restaurantOrder.restaurant_id ?? restaurantOrder.restaurantId,
+            id:
+                restaurantOrder.id ??
+                restaurantOrder.restaurant_order_id ??
+                index,
+            restaurantId:
+                restaurantOrder.restaurant_id ?? restaurantOrder.restaurantId,
             restaurantName: getRestaurantOrderName(restaurantOrder, index),
             status,
             remainingMinutes: Number.isFinite(remainingMinutes)
                 ? Math.max(0, remainingMinutes)
                 : timing.remainingMinutes,
             waitingForPreparation,
-            items: getRestaurantOrderItems(restaurantOrder).map((item, itemIndex) => ({
-                id: item.id ?? `${index}-${itemIndex}`,
-                name: getRestaurantOrderItemName(item, itemIndex),
-                quantity: Number(item.quantity ?? 1),
-                notes: item.notes ?? "",
-            })),
+            items: getRestaurantOrderItems(restaurantOrder).map(
+                (item, itemIndex) => ({
+                    id: item.id ?? `${index}-${itemIndex}`,
+                    name: getRestaurantOrderItemName(item, itemIndex),
+                    quantity: Number(item.quantity ?? 1),
+                    notes: item.notes ?? "",
+                }),
+            ),
         };
     });
     const readyRestaurants = restaurants.filter(
-        (restaurant) => !restaurant.waitingForPreparation
+        (restaurant) => !restaurant.waitingForPreparation,
     );
     const remainingMinutes = readyRestaurants
         .map((restaurant) => Number(restaurant.remainingMinutes))
@@ -882,7 +955,7 @@ const getPerRestaurantPreparationTiming = (order = {}) => {
     return {
         scope: "per_restaurant",
         waitingForPreparation: restaurants.some(
-            (restaurant) => restaurant.waitingForPreparation
+            (restaurant) => restaurant.waitingForPreparation,
         ),
         remainingMinutes: remainingMinutes.length
             ? Math.max(...remainingMinutes)
@@ -919,7 +992,9 @@ const findPreparationTiming = (value, seen = new Set()) => {
 
     for (const child of Object.values(value)) {
         const nestedTiming = Array.isArray(child)
-            ? child.map((item) => findPreparationTiming(item, seen)).find(Boolean)
+            ? child
+                  .map((item) => findPreparationTiming(item, seen))
+                  .find(Boolean)
             : findPreparationTiming(child, seen);
 
         if (nestedTiming) return nestedTiming;
@@ -929,7 +1004,9 @@ const findPreparationTiming = (value, seen = new Set()) => {
 };
 
 const getBestPreparationTiming = (...values) => {
-    const timings = values.map((value) => findPreparationTiming(value)).filter(Boolean);
+    const timings = values
+        .map((value) => findPreparationTiming(value))
+        .filter(Boolean);
 
     return (
         timings.find((timing) => timing.scope === "per_restaurant") ??
@@ -966,13 +1043,18 @@ async function buildOrderTimingItems(orders, sessionToken) {
                       timing,
                   }
                 : null;
-        })
+        }),
     );
 
     return timingItems.filter(Boolean);
 }
 
-async function selectDineInPayment(invoiceId, orderId, sessionToken, paymentMethod) {
+async function selectDineInPayment(
+    invoiceId,
+    orderId,
+    sessionToken,
+    paymentMethod,
+) {
     const formData = new FormData();
 
     appendIfPresent(formData, "invoice_id", invoiceId);
@@ -998,17 +1080,19 @@ async function selectDineInPaymentForCurrentOrder(
     invoiceId,
     orderId,
     sessionToken,
-    paymentMethod
+    paymentMethod,
 ) {
     try {
         return await selectDineInPayment(
             invoiceId || orderId,
             orderId,
             sessionToken,
-            paymentMethod
+            paymentMethod,
         );
     } catch (error) {
-        const message = JSON.stringify(error.response?.data || error.message || "");
+        const message = JSON.stringify(
+            error.response?.data || error.message || "",
+        );
         const shouldRetryWithOrderId =
             orderId &&
             invoiceId &&
@@ -1017,7 +1101,12 @@ async function selectDineInPaymentForCurrentOrder(
 
         if (!shouldRetryWithOrderId) throw error;
 
-        return selectDineInPayment(orderId, orderId, sessionToken, paymentMethod);
+        return selectDineInPayment(
+            orderId,
+            orderId,
+            sessionToken,
+            paymentMethod,
+        );
     }
 }
 
@@ -1032,12 +1121,14 @@ async function createDineInOrder(cartItems, tableId, sessionToken) {
                 buildOrderFormData(cartItems, tableId, orderType, sessionToken),
                 {
                     headers: getSessionTokenHeaders(sessionToken),
-                }
+                },
             );
             return response.data;
         } catch (error) {
             lastError = error;
-            const message = JSON.stringify(error.response?.data || {}).toLowerCase();
+            const message = JSON.stringify(
+                error.response?.data || {},
+            ).toLowerCase();
             const isTypeError =
                 error.response?.status === 422 &&
                 message.includes("order type") &&
@@ -1161,7 +1252,7 @@ async function addItemsToDineInOrder(orderId, cartItems, sessionToken) {
             buildAddItemFormData(item, sessionToken),
             {
                 headers: getSessionTokenHeaders(sessionToken),
-            }
+            },
         );
 
         responses.push(response.data);
@@ -1186,7 +1277,9 @@ function CustomerFoodCard({ item, onOpen }) {
     return (
         <article
             className={`customer-food-card group grid grid-cols-[118px_minmax(0,1fr)] overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.07] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur transition duration-300 hover:border-[#7F1D1D]/45 hover:bg-white/[0.10] focus:outline-none focus:ring-4 focus:ring-[#FFD166]/25 sm:block sm:rounded-[26px] ${
-                canOrder ? "cursor-pointer sm:hover:-translate-y-1" : "cursor-not-allowed border-[#7F1D1D]/45"
+                canOrder
+                    ? "cursor-pointer sm:hover:-translate-y-1"
+                    : "cursor-not-allowed border-[#7F1D1D]/45"
             }`}
             role="button"
             tabIndex={0}
@@ -1205,14 +1298,18 @@ function CustomerFoodCard({ item, onOpen }) {
                     src={imageUrl}
                     alt={item.title}
                     className={`h-full w-full object-cover transition duration-700 ${
-                        canOrder ? "group-hover:scale-105" : "grayscale contrast-110 opacity-55"
+                        canOrder
+                            ? "group-hover:scale-105"
+                            : "grayscale contrast-110 opacity-55"
                     }`}
                 />
-                <div className={`absolute inset-0 ${
-                    canOrder
-                        ? "bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent"
-                        : "bg-black/52"
-                }`} />
+                <div
+                    className={`absolute inset-0 ${
+                        canOrder
+                            ? "bg-gradient-to-t from-[#111719] via-[#111719]/25 to-transparent"
+                            : "bg-black/52"
+                    }`}
+                />
                 <span
                     className={`menu-type-badge absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-lg sm:left-3 sm:top-3 sm:px-3 sm:text-[11px] ${
                         isDiet
@@ -1245,11 +1342,15 @@ function CustomerFoodCard({ item, onOpen }) {
                     {item.title}
                 </h2>
                 <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5 text-white/62 sm:mt-2 sm:text-sm sm:leading-6">
-                    {item.description || item.categoryName || "Freshly prepared for your table."}
+                    {item.description ||
+                        item.categoryName ||
+                        "Freshly prepared for your table."}
                 </p>
 
                 <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:gap-3 sm:pt-5">
-                    <span className={`truncate text-xs font-bold sm:text-sm ${canOrder ? "text-white/45" : "text-[#FFB3B3]"}`}>
+                    <span
+                        className={`truncate text-xs font-bold sm:text-sm ${canOrder ? "text-white/45" : "text-[#FFB3B3]"}`}
+                    >
                         {canOrder ? "Tap to customize" : "Unavailable"}
                     </span>
                     <button
@@ -1261,7 +1362,11 @@ function CustomerFoodCard({ item, onOpen }) {
                             onOpen();
                         }}
                         className="customer-food-add-button grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7F1D1D] text-white shadow-[0_14px_28px_rgba(127,29,29,0.28)] transition hover:bg-[#681718] active:scale-95 disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/35 disabled:shadow-none sm:h-11 sm:w-11"
-                        aria-label={canOrder ? `Add ${item.title}` : `${item.title} unavailable`}
+                        aria-label={
+                            canOrder
+                                ? `Add ${item.title}`
+                                : `${item.title} unavailable`
+                        }
                     >
                         <Plus size={18} />
                     </button>
@@ -1271,11 +1376,18 @@ function CustomerFoodCard({ item, onOpen }) {
     );
 }
 
-function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }) {
+function RestaurantPicker({
+    restaurants,
+    menuItems,
+    activeRestaurant,
+    onSelect,
+}) {
     if (!restaurants.length) return null;
 
     const getItemCount = (restaurantId) =>
-        menuItems.filter((item) => String(item.restaurant_id) === String(restaurantId)).length;
+        menuItems.filter(
+            (item) => String(item.restaurant_id) === String(restaurantId),
+        ).length;
     const isAllActive = activeRestaurant === "all" || !activeRestaurant;
 
     return (
@@ -1314,15 +1426,20 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
                         <Utensils size={22} />
                     </span>
                     <span className="min-w-0">
-                        <span className="block text-base font-black leading-5">All</span>
-                        <span className={`mt-1 block text-[11px] font-black uppercase tracking-wide ${isAllActive ? "text-[#7F1D1D]" : "text-white/52"}`}>
+                        <span className="block text-base font-black leading-5">
+                            All
+                        </span>
+                        <span
+                            className={`mt-1 block text-[11px] font-black uppercase tracking-wide ${isAllActive ? "text-[#7F1D1D]" : "text-white/52"}`}
+                        >
                             All menus
                         </span>
                     </span>
                 </button>
 
                 {restaurants.map((restaurant) => {
-                    const active = String(activeRestaurant) === String(restaurant.id);
+                    const active =
+                        String(activeRestaurant) === String(restaurant.id);
                     const itemCount = getItemCount(restaurant.id);
 
                     return (
@@ -1341,7 +1458,9 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
                                     src={getRestaurantImageUrl(restaurant)}
                                     alt={restaurant.name}
                                     className={`h-14 w-14 shrink-0 rounded-2xl bg-white object-cover ring-2 sm:h-16 sm:w-16 ${
-                                        active ? "ring-[#7F1D1D]" : "ring-white/10"
+                                        active
+                                            ? "ring-[#7F1D1D]"
+                                            : "ring-white/10"
                                     }`}
                                 />
                                 {active && (
@@ -1354,7 +1473,9 @@ function RestaurantPicker({ restaurants, menuItems, activeRestaurant, onSelect }
                                 <span className="line-clamp-2 text-sm font-black leading-5 sm:text-base">
                                     {restaurant.name}
                                 </span>
-                                <span className={`mt-1 block text-[11px] font-black uppercase tracking-wide ${active ? "text-[#7F1D1D]" : "text-white/52"}`}>
+                                <span
+                                    className={`mt-1 block text-[11px] font-black uppercase tracking-wide ${active ? "text-[#7F1D1D]" : "text-white/52"}`}
+                                >
                                     {itemCount} dishes
                                 </span>
                             </span>
@@ -1378,11 +1499,13 @@ function FeaturedDishSlider({ featuredItems, onGoToMenu }) {
         if (!featuredItems.length || isSliderPaused) return undefined;
 
         setActiveIndex((currentIndex) =>
-            Math.min(currentIndex, featuredItems.length - 1)
+            Math.min(currentIndex, featuredItems.length - 1),
         );
 
         const intervalId = window.setInterval(() => {
-            setActiveIndex((currentIndex) => (currentIndex + 1) % featuredItems.length);
+            setActiveIndex(
+                (currentIndex) => (currentIndex + 1) % featuredItems.length,
+            );
         }, 3000);
 
         return () => window.clearInterval(intervalId);
@@ -1438,7 +1561,9 @@ function FeaturedDishSlider({ featuredItems, onGoToMenu }) {
             <section className="relative mb-3 h-[240px] w-full overflow-hidden rounded-[22px] border border-white/10 bg-[#101517] px-4 text-white sm:mb-4 sm:h-[280px] sm:rounded-[26px] lg:h-[320px]">
                 <div className="mx-auto flex h-full max-w-7xl items-center justify-center text-center">
                     <div>
-                        <h2 className="text-2xl font-black">Loading dishes...</h2>
+                        <h2 className="text-2xl font-black">
+                            Loading dishes...
+                        </h2>
                         <p className="mt-2 text-sm font-semibold text-white/55">
                             Preparing the dine-in menu.
                         </p>
@@ -1490,7 +1615,8 @@ function FeaturedDishSlider({ featuredItems, onGoToMenu }) {
                                     {item.title}
                                 </h1>
                                 <p className="customer-image-text mt-3 line-clamp-2 max-w-xl text-sm font-extrabold leading-6 !text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.95)] sm:text-base sm:leading-7">
-                                    {item.description || `Freshly prepared by ${item.restaurantName}.`}
+                                    {item.description ||
+                                        `Freshly prepared by ${item.restaurantName}.`}
                                 </p>
 
                                 <div className="mt-4 flex flex-wrap items-center gap-2.5 sm:mt-5 sm:gap-3">
@@ -1524,7 +1650,10 @@ function FeaturedDishSlider({ featuredItems, onGoToMenu }) {
                                                 {item.categoryName}
                                             </p>
                                         </div>
-                                        <ShoppingBag className="shrink-0 text-[#FFD166]" size={22} />
+                                        <ShoppingBag
+                                            className="shrink-0 text-[#FFD166]"
+                                            size={22}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -1540,7 +1669,9 @@ function FeaturedDishSlider({ featuredItems, onGoToMenu }) {
                         type="button"
                         onClick={() => selectByIndex(index)}
                         className={`h-2 shrink-0 rounded-full transition sm:h-2.5 ${
-                            index === activeIndex ? "w-7 bg-[#FFD166] sm:w-9" : "w-2 bg-white/40 sm:w-2.5"
+                            index === activeIndex
+                                ? "w-7 bg-[#FFD166] sm:w-9"
+                                : "w-2 bg-white/40 sm:w-2.5"
                         }`}
                         aria-label={`Show ${item.title}`}
                     />
@@ -1616,31 +1747,62 @@ function OrderPanel({
                     : "max-h-[calc(100dvh-7.5rem)] min-h-[520px] rounded-[28px]"
             }`}
         >
-            <div className={`shrink-0 border-b border-white/10 bg-white/[0.03] ${isMobile ? "p-4" : "p-5"}`}>
+            <div
+                className={`shrink-0 border-b border-white/10 bg-white/[0.03] ${isMobile ? "p-4" : "p-5"}`}
+            >
                 <div className="flex items-center gap-3">
-                    <div className={`${isMobile ? "h-10 w-10" : "h-12 w-12"} grid place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_14px_32px_rgba(127,29,29,0.28)]`}>
+                    <div
+                        className={`${isMobile ? "h-10 w-10" : "h-12 w-12"} grid place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_14px_32px_rgba(127,29,29,0.28)]`}
+                    >
                         <ReceiptText size={isMobile ? 19 : 22} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h2 className={`${isMobile ? "text-xl" : "text-2xl"} font-black leading-7`}>Your order</h2>
+                        <h2
+                            className={`${isMobile ? "text-xl" : "text-2xl"} font-black leading-7`}
+                        >
+                            Your order
+                        </h2>
                         <p className="text-sm font-bold text-white/55">
-                            {itemCount ? `${itemCount} items in your order` : "No items yet"}
+                            {itemCount
+                                ? `${itemCount} items in your order`
+                                : "No items yet"}
                         </p>
                     </div>
                     {itemCount > 0 && (
                         <button
                             type="button"
-                            onClick={isClearPending ? confirmClearOrder : requestClearOrder}
+                            onClick={
+                                isClearPending
+                                    ? confirmClearOrder
+                                    : requestClearOrder
+                            }
                             className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black transition active:scale-95 ${
                                 isClearPending
                                     ? "border-[#FF6B6B]/60 bg-[#7F1D1D] text-white hover:bg-[#9B1C1C]"
                                     : "border-[#7F1D1D]/40 bg-[#7F1D1D]/12 text-[#FFB3B3] hover:bg-[#7F1D1D]/20"
                             }`}
-                            aria-label={isClearPending ? "Confirm delete all items" : "Delete all items from order"}
-                            title={isClearPending ? "Confirm delete all" : "Delete all"}
+                            aria-label={
+                                isClearPending
+                                    ? "Confirm delete all items"
+                                    : "Delete all items from order"
+                            }
+                            title={
+                                isClearPending
+                                    ? "Confirm delete all"
+                                    : "Delete all"
+                            }
                         >
-                            <Trash2 size={16} className={isClearPending ? "text-white [stroke:white]" : ""} />
-                            <span>{isClearPending ? "Confirm" : "Delete all"}</span>
+                            <Trash2
+                                size={16}
+                                className={
+                                    isClearPending
+                                        ? "text-white [stroke:white]"
+                                        : ""
+                                }
+                            />
+                            <span>
+                                {isClearPending ? "Confirm" : "Delete all"}
+                            </span>
                         </button>
                     )}
                     {onClose && (
@@ -1670,105 +1832,134 @@ function OrderPanel({
                 )}
             </div>
 
-            <div className={`customer-order-scroll min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}>
+            <div
+                className={`customer-order-scroll min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}
+            >
                 {cartItems.length ? (
                     cartItems.map((item, index) => {
                         const isDeletePending = pendingDeleteIndex === index;
                         const canOrder = isFoodOrderable(item);
 
                         return (
-                        <div
-                            key={`${item.id}-${item.notes}-${index}`}
-                            className={`rounded-2xl border ${isMobile ? "p-3" : "p-4"} ${
-                                isDeletePending
-                                    ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
-                                    : !canOrder
-                                        ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
-                                    : "border-white/10 bg-white/[0.07]"
-                            }`}
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className={`${isMobile ? "text-base" : "text-lg"} break-words font-black leading-6 text-white`}>
-                                        {item.title}
-                                    </p>
-                                    <p className="mt-1 truncate text-sm font-extrabold text-white/55">
-                                        {item.restaurantName}
-                                    </p>
-                                    {!canOrder && (
-                                        <p className="mt-1 text-xs font-black text-[#FFB3B3]">
-                                            Unavailable
+                            <div
+                                key={`${item.id}-${item.notes}-${index}`}
+                                className={`rounded-2xl border ${isMobile ? "p-3" : "p-4"} ${
+                                    isDeletePending
+                                        ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
+                                        : !canOrder
+                                          ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
+                                          : "border-white/10 bg-white/[0.07]"
+                                }`}
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p
+                                            className={`${isMobile ? "text-base" : "text-lg"} break-words font-black leading-6 text-white`}
+                                        >
+                                            {item.title}
                                         </p>
-                                    )}
-                                    {item.notes && (
-                                        <p className="mt-3 break-words text-sm font-semibold leading-5 text-white/72">
-                                            {item.notes}
+                                        <p className="mt-1 truncate text-sm font-extrabold text-white/55">
+                                            {item.restaurantName}
                                         </p>
+                                        {!canOrder && (
+                                            <p className="mt-1 text-xs font-black text-[#FFB3B3]">
+                                                Unavailable
+                                            </p>
+                                        )}
+                                        {item.notes && (
+                                            <p className="mt-3 break-words text-sm font-semibold leading-5 text-white/72">
+                                                {item.notes}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {isDeletePending ? (
+                                        <div className="flex shrink-0 gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    confirmRemoveItem(index)
+                                                }
+                                                className="grid h-9 w-9 place-items-center rounded-lg border border-[#FF6B6B]/55 bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C]"
+                                                aria-label={`Confirm remove ${item.title}`}
+                                            >
+                                                <Trash2
+                                                    size={17}
+                                                    className="text-white [stroke:white]"
+                                                />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setPendingDeleteIndex(null)
+                                                }
+                                                className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white"
+                                                aria-label="Cancel remove"
+                                            >
+                                                <X size={17} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                requestRemoveItem(index)
+                                            }
+                                            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C]"
+                                            aria-label={`Remove ${item.title}`}
+                                        >
+                                            <Trash2
+                                                size={18}
+                                                className="text-white [stroke:white]"
+                                            />
+                                        </button>
                                     )}
                                 </div>
-                                {isDeletePending ? (
-                                    <div className="flex shrink-0 gap-1.5">
+
+                                <div className="mt-4 flex items-center justify-between gap-3">
+                                    <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
                                         <button
                                             type="button"
-                                            onClick={() => confirmRemoveItem(index)}
-                                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#FF6B6B]/55 bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C]"
-                                            aria-label={`Confirm remove ${item.title}`}
+                                            onClick={() =>
+                                                handleQuantityChange(index, -1)
+                                            }
+                                            className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
+                                            aria-label="Decrease quantity"
                                         >
-                                            <Trash2 size={17} className="text-white [stroke:white]" />
+                                            <Minus size={16} />
                                         </button>
+                                        <span
+                                            className={`${isMobile ? "w-8 text-base" : "w-10 text-lg"} text-center font-black`}
+                                        >
+                                            {item.quantity}
+                                        </span>
                                         <button
                                             type="button"
-                                            onClick={() => setPendingDeleteIndex(null)}
-                                            className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/60 transition hover:bg-white/10 hover:text-white"
-                                            aria-label="Cancel remove"
+                                            onClick={() =>
+                                                handleQuantityChange(index, 1)
+                                            }
+                                            className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
+                                            aria-label="Increase quantity"
                                         >
-                                            <X size={17} />
+                                            <Plus size={16} />
                                         </button>
                                     </div>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => requestRemoveItem(index)}
-                                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#7F1D1D] text-white transition hover:bg-[#9B1C1C]"
-                                        aria-label={`Remove ${item.title}`}
+                                    <span
+                                        className={`${isMobile ? "text-base" : "text-lg"} shrink-0 font-black text-[#FFD166]`}
                                     >
-                                        <Trash2 size={18} className="text-white [stroke:white]" />
-                                    </button>
+                                        $
+                                        {(
+                                            Number(item.price ?? 0) *
+                                            item.quantity
+                                        ).toFixed(2)}
+                                    </span>
+                                </div>
+                                {isDeletePending && (
+                                    <p className="mt-3 rounded-xl border border-[#7F1D1D]/45 bg-[#7F1D1D]/12 px-3 py-2 text-xs font-black !text-[#7F1D1D]">
+                                        Delete this item? Press the red button
+                                        to confirm.
+                                    </p>
                                 )}
                             </div>
-
-                            <div className="mt-4 flex items-center justify-between gap-3">
-                                <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleQuantityChange(index, -1)}
-                                        className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
-                                        aria-label="Decrease quantity"
-                                    >
-                                        <Minus size={16} />
-                                    </button>
-                                    <span className={`${isMobile ? "w-8 text-base" : "w-10 text-lg"} text-center font-black`}>
-                                        {item.quantity}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleQuantityChange(index, 1)}
-                                        className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid place-items-center rounded-lg text-[#FFD166]`}
-                                        aria-label="Increase quantity"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
-                                </div>
-                                <span className={`${isMobile ? "text-base" : "text-lg"} shrink-0 font-black text-[#FFD166]`}>
-                                    ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
-                                </span>
-                            </div>
-                            {isDeletePending && (
-                                <p className="mt-3 rounded-xl border border-[#7F1D1D]/45 bg-[#7F1D1D]/12 px-3 py-2 text-xs font-black !text-[#7F1D1D]">
-                                    Delete this item? Press the red button to confirm.
-                                </p>
-                            )}
-                        </div>
                         );
                     })
                 ) : (
@@ -1782,93 +1973,112 @@ function OrderPanel({
                 )}
             </div>
 
-            <div className={`shrink-0 border-t border-white/10 ${isMobile ? "p-3" : "p-5"}`}>
-            {hasUnavailableOrderItems && (
-                <p className="mb-3 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
-                    {FOOD_UNAVAILABLE_MESSAGE}
-                </p>
-            )}
-            <div className="mb-4">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
-                    Payment method
-                </p>
-                <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
-                    {[
-                        { id: "cash", label: "Cash", icon: Banknote },
-                        { id: "stripe", label: "Stripe", icon: CreditCard },
-                    ].map((method) => {
-                        const Icon = method.icon;
-                        const isActive = paymentMethod === method.id;
-
-                        return (
-                            <button
-                                key={method.id}
-                                type="button"
-                                onClick={() => onPaymentMethodChange(method.id)}
-                                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-black transition ${
-                                    isActive
-                                        ? "bg-[#FFD166] text-[#151A1D]"
-                                        : "text-white/70 hover:bg-white/10 hover:text-white"
-                                }`}
-                            >
-                                <Icon size={16} />
-                                {method.label}
-                            </button>
-                        );
-                    })}
-                </div>
-                {paymentMethod === "cash" && (
-                    <p className="mt-2 text-xs font-semibold text-white/55">
-                        The waiter will collect and confirm the cash payment.
+            <div
+                className={`shrink-0 border-t border-white/10 ${isMobile ? "p-3" : "p-5"}`}
+            >
+                {hasUnavailableOrderItems && (
+                    <p className="mb-3 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
+                        {FOOD_UNAVAILABLE_MESSAGE}
                     </p>
                 )}
-                {paymentMethod === "stripe" && (
-                    <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
-                        <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
-                            Card
-                        </p>
-                        <div
-                            ref={stripeCardContainerRef}
-                            className="rounded-lg border border-white/10 bg-white px-3 py-3"
-                        />
-                        <p className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}>
-                            {stripeCardMessage || (isStripeReady ? "Card ready." : "Loading Stripe...")}
-                        </p>
-                    </div>
-                )}
-            </div>
-            <div className={`space-y-3 rounded-2xl border border-white/10 bg-white/[0.07] ${isMobile ? "p-3" : "p-4"} text-base`}>
-                <div className="flex items-center justify-between text-white/65">
-                    <span>Subtotal</span>
-                    <span className="font-black text-white">
-                        ${subtotal.toFixed(2)}
-                    </span>
-                </div>
-                <div className="flex items-center justify-between text-white/65">
-                    <span>Tax</span>
-                    <span className="font-black text-white">
-                        ${tax.toFixed(2)}
-                    </span>
-                </div>
-                <div className="border-t border-dashed border-white/20" />
-                <div className="flex items-end justify-between">
-                    <span className="text-lg font-black">Total</span>
-                    <span className={`${isMobile ? "text-2xl" : "text-3xl"} font-black text-[#FFD166]`}>
-                        ${total.toFixed(2)}
-                    </span>
-                </div>
-            </div>
+                <div className="mb-4">
+                    <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                        Payment method
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
+                        {[
+                            { id: "cash", label: "Cash", icon: Banknote },
+                            { id: "stripe", label: "Stripe", icon: CreditCard },
+                        ].map((method) => {
+                            const Icon = method.icon;
+                            const isActive = paymentMethod === method.id;
 
-            <div className="mt-4">
-                <button
-                    type="button"
-                    onClick={onSubmit}
-                    disabled={!itemCount || hasUnavailableOrderItems || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
-                    className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
+                            return (
+                                <button
+                                    key={method.id}
+                                    type="button"
+                                    onClick={() =>
+                                        onPaymentMethodChange(method.id)
+                                    }
+                                    className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-black transition ${
+                                        isActive
+                                            ? "bg-[#FFD166] text-[#151A1D]"
+                                            : "text-white/70 hover:bg-white/10 hover:text-white"
+                                    }`}
+                                >
+                                    <Icon size={16} />
+                                    {method.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {paymentMethod === "cash" && (
+                        <p className="mt-2 text-xs font-semibold text-white/55">
+                            The waiter will collect and confirm the cash
+                            payment.
+                        </p>
+                    )}
+                    {paymentMethod === "stripe" && (
+                        <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
+                            <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                                Card
+                            </p>
+                            <div
+                                ref={stripeCardContainerRef}
+                                className="rounded-lg border border-white/10 bg-white px-3 py-3"
+                            />
+                            <p
+                                className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}
+                            >
+                                {stripeCardMessage ||
+                                    (isStripeReady
+                                        ? "Card ready."
+                                        : "Loading Stripe...")}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div
+                    className={`space-y-3 rounded-2xl border border-white/10 bg-white/[0.07] ${isMobile ? "p-3" : "p-4"} text-base`}
                 >
-                    {isSubmitting ? "Sending..." : "Confirm order"}
-                </button>
-            </div>
+                    <div className="flex items-center justify-between text-white/65">
+                        <span>Subtotal</span>
+                        <span className="font-black text-white">
+                            ${subtotal.toFixed(2)}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between text-white/65">
+                        <span>Tax</span>
+                        <span className="font-black text-white">
+                            ${tax.toFixed(2)}
+                        </span>
+                    </div>
+                    <div className="border-t border-dashed border-white/20" />
+                    <div className="flex items-end justify-between">
+                        <span className="text-lg font-black">Total</span>
+                        <span
+                            className={`${isMobile ? "text-2xl" : "text-3xl"} font-black text-[#FFD166]`}
+                        >
+                            ${total.toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="mt-4">
+                    <button
+                        type="button"
+                        onClick={onSubmit}
+                        disabled={
+                            !itemCount ||
+                            hasUnavailableOrderItems ||
+                            isSubmitting ||
+                            (paymentMethod === "stripe" && !isStripeReady)
+                        }
+                        className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
+                    >
+                        {isSubmitting ? "Sending..." : "Confirm order"}
+                    </button>
+                </div>
             </div>
         </section>
     );
@@ -1973,7 +2183,11 @@ function MobileOrderBar({
                     <button
                         type="button"
                         onClick={onSubmit}
-                        disabled={hasUnavailableOrderItems || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
+                        disabled={
+                            hasUnavailableOrderItems ||
+                            isSubmitting ||
+                            (paymentMethod === "stripe" && !isStripeReady)
+                        }
                         className="h-12 shrink-0 rounded-2xl bg-[#7F1D1D] px-5 text-xs font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] active:scale-95 disabled:opacity-60 sm:h-14 sm:px-6 sm:text-sm"
                     >
                         {isSubmitting ? "Sending..." : "Confirm"}
@@ -2000,7 +2214,7 @@ function ConfirmOrderModal({
 }) {
     const itemCount = cartItems.reduce(
         (total, item) => total + Number(item.quantity ?? 1),
-        0
+        0,
     );
     const hasUnavailableOrderItems = hasUnavailableCartItems(cartItems);
 
@@ -2017,7 +2231,8 @@ function ConfirmOrderModal({
                                 Confirm your order
                             </h2>
                             <p className="mt-1 text-sm font-bold text-white/55">
-                                {itemCount} item{itemCount === 1 ? "" : "s"} will be sent to the restaurant.
+                                {itemCount} item{itemCount === 1 ? "" : "s"}{" "}
+                                will be sent to the restaurant.
                             </p>
                         </div>
                         <button
@@ -2037,33 +2252,38 @@ function ConfirmOrderModal({
                         const canOrder = isFoodOrderable(item);
 
                         return (
-                        <div
-                            key={`${item.id}-${item.notes}-${index}`}
-                            className={`rounded-2xl border p-3 ${
-                                canOrder
-                                    ? "border-white/10 bg-white/[0.07]"
-                                    : "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
-                            }`}
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="line-clamp-2 text-sm font-black text-white">
-                                        {item.title}
-                                    </p>
-                                    <p className="mt-1 text-xs font-bold text-[#FFD166]">
-                                        {item.restaurantName} · Qty {item.quantity}
-                                    </p>
-                                    {!canOrder && (
-                                        <p className="mt-1 text-xs font-black text-[#FFB3B3]">
-                                            Unavailable
+                            <div
+                                key={`${item.id}-${item.notes}-${index}`}
+                                className={`rounded-2xl border p-3 ${
+                                    canOrder
+                                        ? "border-white/10 bg-white/[0.07]"
+                                        : "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
+                                }`}
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="line-clamp-2 text-sm font-black text-white">
+                                            {item.title}
                                         </p>
-                                    )}
+                                        <p className="mt-1 text-xs font-bold text-[#FFD166]">
+                                            {item.restaurantName} · Qty{" "}
+                                            {item.quantity}
+                                        </p>
+                                        {!canOrder && (
+                                            <p className="mt-1 text-xs font-black text-[#FFB3B3]">
+                                                Unavailable
+                                            </p>
+                                        )}
+                                    </div>
+                                    <span className="shrink-0 text-sm font-black text-white">
+                                        $
+                                        {(
+                                            Number(item.price ?? 0) *
+                                            item.quantity
+                                        ).toFixed(2)}
+                                    </span>
                                 </div>
-                                <span className="shrink-0 text-sm font-black text-white">
-                                    ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
-                                </span>
                             </div>
-                        </div>
                         );
                     })}
                 </div>
@@ -2076,17 +2296,28 @@ function ConfirmOrderModal({
                             </p>
                             <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
                                 {[
-                                    { id: "cash", label: "Cash", icon: Banknote },
-                                    { id: "stripe", label: "Stripe", icon: CreditCard },
+                                    {
+                                        id: "cash",
+                                        label: "Cash",
+                                        icon: Banknote,
+                                    },
+                                    {
+                                        id: "stripe",
+                                        label: "Stripe",
+                                        icon: CreditCard,
+                                    },
                                 ].map((method) => {
                                     const Icon = method.icon;
-                                    const isActive = paymentMethod === method.id;
+                                    const isActive =
+                                        paymentMethod === method.id;
 
                                     return (
                                         <button
                                             key={method.id}
                                             type="button"
-                                            onClick={() => onPaymentMethodChange(method.id)}
+                                            onClick={() =>
+                                                onPaymentMethodChange(method.id)
+                                            }
                                             disabled={isSubmitting}
                                             className={`flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
                                                 isActive
@@ -2104,7 +2335,8 @@ function ConfirmOrderModal({
 
                         {paymentMethod === "cash" && (
                             <p className="mt-2 text-xs font-semibold text-white/55">
-                                The waiter will collect and confirm the cash payment.
+                                The waiter will collect and confirm the cash
+                                payment.
                             </p>
                         )}
 
@@ -2117,8 +2349,13 @@ function ConfirmOrderModal({
                                     ref={stripeCardContainerRef}
                                     className="rounded-lg border border-white/10 bg-white px-3 py-3"
                                 />
-                                <p className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}>
-                                    {stripeCardMessage || (isStripeReady ? "Card ready." : "Loading Stripe...")}
+                                <p
+                                    className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}
+                                >
+                                    {stripeCardMessage ||
+                                        (isStripeReady
+                                            ? "Card ready."
+                                            : "Loading Stripe...")}
                                 </p>
                             </div>
                         )}
@@ -2126,11 +2363,15 @@ function ConfirmOrderModal({
                         <div className="mt-3 space-y-2 border-t border-dashed border-white/20 pt-3">
                             <div className="flex items-center justify-between text-sm font-bold text-white/65">
                                 <span>Subtotal</span>
-                                <span className="text-white">${subtotal.toFixed(2)}</span>
+                                <span className="text-white">
+                                    ${subtotal.toFixed(2)}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between text-sm font-bold text-white/65">
                                 <span>Tax</span>
-                                <span className="text-white">${tax.toFixed(2)}</span>
+                                <span className="text-white">
+                                    ${tax.toFixed(2)}
+                                </span>
                             </div>
                         </div>
                         <div className="mt-3 flex items-end justify-between">
@@ -2158,7 +2399,11 @@ function ConfirmOrderModal({
                         <button
                             type="button"
                             onClick={onConfirm}
-                            disabled={hasUnavailableOrderItems || isSubmitting || (paymentMethod === "stripe" && !isStripeReady)}
+                            disabled={
+                                hasUnavailableOrderItems ||
+                                isSubmitting ||
+                                (paymentMethod === "stripe" && !isStripeReady)
+                            }
                             className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
                         >
                             {isSubmitting ? "Sending..." : "Place order"}
@@ -2211,7 +2456,7 @@ function CustomerOnboarding({ onFinish }) {
         }
 
         setActiveSlide((current) =>
-            Math.min(onboardingSlides.length - 1, current + 1)
+            Math.min(onboardingSlides.length - 1, current + 1),
         );
     };
 
@@ -2318,13 +2563,16 @@ function CustomerOnboarding({ onFinish }) {
     );
 }
 
-function SessionUnavailableScreen({ title = "Menu unavailable", message, variant = "error" }) {
+function SessionUnavailableScreen({
+    title = "Menu unavailable",
+    message,
+    variant = "error",
+}) {
     const isLoadingVariant = variant === "loading";
     const messageText = String(message || "");
-    const friendlyMessage =
-        messageText.toLowerCase().includes("session")
-            ? "This table menu is not available right now. Please ask the waiter for help."
-            : messageText || "This table menu is not available right now.";
+    const friendlyMessage = messageText.toLowerCase().includes("session")
+        ? "This table menu is not available right now. Please ask the waiter for help."
+        : messageText || "This table menu is not available right now.";
 
     return (
         <main className="grid min-h-dvh place-items-center bg-[radial-gradient(circle_at_82%_12%,rgba(127,29,29,0.12),transparent_30%),radial-gradient(circle_at_14%_20%,rgba(255,209,102,0.13),transparent_24%),linear-gradient(145deg,#fffaf3_0%,#f8efe4_48%,#f1dfd0_100%)] px-4 py-6">
@@ -2369,7 +2617,7 @@ function DineInOrder() {
     const location = useLocation();
     const sessionTokenFromUrl = useMemo(
         () => getSessionTokenFromUrl(tableId, location.search),
-        [location.search, tableId]
+        [location.search, tableId],
     );
     const orderStorageKey = `customer-dine-in-order:${tableId}`;
     const invoiceStorageKey = `customer-dine-in-invoice:${tableId}`;
@@ -2378,8 +2626,8 @@ function DineInOrder() {
     const onboardingStorageKey = `customer-dine-in-onboarding:${tableId}`;
     const [restaurants, setRestaurants] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
-    const [sessionToken, setSessionToken] = useState(() =>
-        sessionStorage.getItem(sessionTokenStorageKey) || ""
+    const [sessionToken, setSessionToken] = useState(
+        () => sessionStorage.getItem(sessionTokenStorageKey) || "",
     );
     const [activeRestaurant, setActiveRestaurant] = useState("all");
     const [activeCategory, setActiveCategory] = useState("all");
@@ -2396,7 +2644,7 @@ function DineInOrder() {
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [orderTimings, setOrderTimings] = useState(() =>
-        readStoredOrderTimings(orderTimingsStorageKey)
+        readStoredOrderTimings(orderTimingsStorageKey),
     );
     const [showOrderTimings, setShowOrderTimings] = useState(false);
     const [pendingCancelOrderId, setPendingCancelOrderId] = useState("");
@@ -2405,7 +2653,7 @@ function DineInOrder() {
     const [deletingItemKey, setDeletingItemKey] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(
-        () => sessionStorage.getItem(onboardingStorageKey) !== "done"
+        () => sessionStorage.getItem(onboardingStorageKey) !== "done",
     );
     const menuSectionRef = useRef(null);
     const stripeCardContainerRef = useRef(null);
@@ -2419,7 +2667,7 @@ function DineInOrder() {
 
             sessionStorage.setItem(
                 orderTimingsStorageKey,
-                JSON.stringify(nextTimings)
+                JSON.stringify(nextTimings),
             );
 
             return nextTimings;
@@ -2456,12 +2704,17 @@ function DineInOrder() {
 
     useEffect(() => {
         const loadMenu = async () => {
+            let hasVerifiedSession = false;
+
             setIsLoading(true);
             setErrorMessage("");
 
             try {
                 if (sessionTokenFromUrl) {
-                    sessionStorage.setItem(sessionTokenStorageKey, String(sessionTokenFromUrl));
+                    sessionStorage.setItem(
+                        sessionTokenStorageKey,
+                        String(sessionTokenFromUrl),
+                    );
                     setSessionToken(String(sessionTokenFromUrl));
                 }
 
@@ -2474,18 +2727,24 @@ function DineInOrder() {
                     "";
 
                 if (nextSessionToken) {
-                    sessionStorage.setItem(sessionTokenStorageKey, String(nextSessionToken));
+                    sessionStorage.setItem(
+                        sessionTokenStorageKey,
+                        String(nextSessionToken),
+                    );
                     setSessionToken(String(nextSessionToken));
                 }
 
                 if (!resolvedSessionToken) {
-                    throw createSessionUnavailableError("This table session is not available.");
+                    throw createSessionUnavailableError(
+                        "This table session is not available.",
+                    );
                 }
 
                 const sessionData = await validateDineInSession(
                     resolvedSessionToken,
-                    tableId
+                    tableId,
                 );
+                hasVerifiedSession = true;
                 setIsSessionAvailable(true);
 
                 const restaurantsResponse = await api.get("/restaurants");
@@ -2494,11 +2753,13 @@ function DineInOrder() {
                     .filter((restaurant) => restaurant.id);
                 const menuResponses = await Promise.allSettled(
                     restaurantList.map((restaurant) =>
-                        fetchRestaurantMenu(restaurant, { includeDetails: false })
-                    )
+                        fetchRestaurantMenu(restaurant, {
+                            includeDetails: false,
+                        }),
+                    ),
                 );
                 const initialMenuItems = menuResponses.flatMap((result) =>
-                    result.status === "fulfilled" ? result.value : []
+                    result.status === "fulfilled" ? result.value : [],
                 );
 
                 setRestaurants(restaurantList);
@@ -2507,11 +2768,14 @@ function DineInOrder() {
 
                 Promise.allSettled(
                     restaurantList.map((restaurant) =>
-                        fetchRestaurantMenu(restaurant, { includeDetails: true })
-                    )
+                        fetchRestaurantMenu(restaurant, {
+                            includeDetails: true,
+                        }),
+                    ),
                 ).then((detailResponses) => {
-                    const detailedMenuItems = detailResponses.flatMap((result) =>
-                        result.status === "fulfilled" ? result.value : []
+                    const detailedMenuItems = detailResponses.flatMap(
+                        (result) =>
+                            result.status === "fulfilled" ? result.value : [],
                     );
 
                     if (detailedMenuItems.length) {
@@ -2523,23 +2787,26 @@ function DineInOrder() {
                     resolvedSessionToken,
                     tableId,
                     sessionData,
-                    restaurantList.map(getRestaurantId).filter(Boolean)
+                    restaurantList.map(getRestaurantId).filter(Boolean),
                 )
                     .then((activeOrders) =>
-                        buildOrderTimingItems(activeOrders, resolvedSessionToken)
+                        buildOrderTimingItems(
+                            activeOrders,
+                            resolvedSessionToken,
+                        ),
                     )
                     .then((activeOrderTimings) => {
                         if (activeOrderTimings.length) {
                             setOrderTimings(activeOrderTimings);
                             sessionStorage.setItem(
                                 orderTimingsStorageKey,
-                                JSON.stringify(activeOrderTimings)
+                                JSON.stringify(activeOrderTimings),
                             );
                             setShowOrderTimings(true);
                             setSuccessMessage(
                                 activeOrderTimings.length === 1
                                     ? "You have an active order for this table."
-                                    : `You have ${activeOrderTimings.length} active orders for this table.`
+                                    : `You have ${activeOrderTimings.length} active orders for this table.`,
                             );
                             return;
                         }
@@ -2555,9 +2822,8 @@ function DineInOrder() {
                         setOrderTimings([]);
                         setShowOrderTimings(false);
                     });
-
             } catch (error) {
-                if (error.isSessionUnavailable) {
+                if (error.isSessionUnavailable || !hasVerifiedSession) {
                     sessionStorage.removeItem(sessionTokenStorageKey);
                     sessionStorage.removeItem(orderStorageKey);
                     sessionStorage.removeItem(invoiceStorageKey);
@@ -2569,13 +2835,19 @@ function DineInOrder() {
                     setOrderTimings([]);
                     setShowOrderTimings(false);
                     setIsSessionAvailable(false);
-                    setErrorMessage(error.message || "This table session has ended.");
+                    setShowOnboarding(false);
+                    setErrorMessage(
+                        error.message ||
+                            "This table session is not available. Ask the waiter to open a new table session.",
+                    );
                     return;
                 }
 
                 try {
                     const foodsResponse = await api.get("/food");
-                    const foods = getList(foodsResponse.data).map(normalizeFoodItem);
+                    const foods = getList(foodsResponse.data).map(
+                        normalizeFoodItem,
+                    );
                     setMenuItems(foods);
 
                     Promise.allSettled(foods.map(fetchFoodDetails)).then(
@@ -2584,19 +2856,24 @@ function DineInOrder() {
                                 detailResponses.map((result, index) =>
                                     result.status === "fulfilled"
                                         ? result.value
-                                        : foods[index]
-                                )
+                                        : foods[index],
+                                ),
                             );
-                        }
+                        },
                     );
 
-                    if (!sessionTokenFromUrl && !sessionStorage.getItem(sessionTokenStorageKey)) {
-                        setErrorMessage("Open this page from a valid table QR link before placing an order.");
+                    if (
+                        !sessionTokenFromUrl &&
+                        !sessionStorage.getItem(sessionTokenStorageKey)
+                    ) {
+                        setErrorMessage(
+                            "Open this page from a valid table QR link before placing an order.",
+                        );
                     }
                 } catch (fallbackError) {
                     setErrorMessage(
                         fallbackError.response?.data?.message ||
-                            "Menu could not be loaded."
+                            "Menu could not be loaded.",
                     );
                 }
             } finally {
@@ -2632,9 +2909,9 @@ function DineInOrder() {
                     timing:
                         (await fetchDineInOrderTiming(
                             orderTiming.orderId,
-                            sessionToken
+                            sessionToken,
                         )) ?? orderTiming.timing,
-                }))
+                })),
             );
 
             if (!isMounted) return;
@@ -2642,7 +2919,7 @@ function DineInOrder() {
             setOrderTimings(refreshedTimings);
             sessionStorage.setItem(
                 orderTimingsStorageKey,
-                JSON.stringify(refreshedTimings)
+                JSON.stringify(refreshedTimings),
             );
         };
 
@@ -2688,7 +2965,9 @@ function DineInOrder() {
                     if (!isMounted) return;
 
                     setIsStripeReady(false);
-                    setStripeCardMessage(error.message || "Stripe could not be loaded.");
+                    setStripeCardMessage(
+                        error.message || "Stripe could not be loaded.",
+                    );
                 });
         }, 0);
 
@@ -2708,7 +2987,8 @@ function DineInOrder() {
                 !activeRestaurant ||
                 String(item.restaurant_id) === String(activeRestaurant);
             const matchesCategory =
-                activeCategory === "all" || String(item.category) === String(activeCategory);
+                activeCategory === "all" ||
+                String(item.category) === String(activeCategory);
             const matchesSearch =
                 !query ||
                 `${item.title} ${item.description} ${item.restaurantName}`
@@ -2722,17 +3002,15 @@ function DineInOrder() {
     const activeRestaurantData = useMemo(
         () =>
             restaurants.find(
-                (restaurant) => String(restaurant.id) === String(activeRestaurant)
+                (restaurant) =>
+                    String(restaurant.id) === String(activeRestaurant),
             ),
-        [activeRestaurant, restaurants]
+        [activeRestaurant, restaurants],
     );
 
     const featuredItems = useMemo(
-        () =>
-            menuItems
-                .filter((item) => item.image)
-                .slice(0, 12),
-        [menuItems]
+        () => menuItems.filter((item) => item.image).slice(0, 12),
+        [menuItems],
     );
 
     const activeRestaurantCategories = useMemo(() => {
@@ -2743,7 +3021,7 @@ function DineInOrder() {
                 (item) =>
                     activeRestaurant === "all" ||
                     !activeRestaurant ||
-                    String(item.restaurant_id) === String(activeRestaurant)
+                    String(item.restaurant_id) === String(activeRestaurant),
             )
             .forEach((item) => {
                 categoryMap.set(String(item.category), {
@@ -2756,7 +3034,8 @@ function DineInOrder() {
     }, [activeRestaurant, menuItems]);
 
     const availabilityRestaurantIds = useMemo(() => {
-        if (activeRestaurant !== "all" && activeRestaurant) return [activeRestaurant];
+        if (activeRestaurant !== "all" && activeRestaurant)
+            return [activeRestaurant];
 
         const restaurantIds = restaurants.length
             ? restaurants.map((restaurant) => restaurant.id)
@@ -2773,30 +3052,34 @@ function DineInOrder() {
         const unavailableFoodIds = new Set(
             updatedFoods
                 .filter((food) => food?.can_order === false)
-                .map((food) => String(food.food_id ?? food.foodId ?? food.id))
+                .map((food) => String(food.food_id ?? food.foodId ?? food.id)),
         );
 
         setMenuItems((currentItems) =>
-            applyFoodAvailabilityUpdates(currentItems, updatedFoods)
+            applyFoodAvailabilityUpdates(currentItems, updatedFoods),
         );
         setSelectedItem((currentItem) =>
             currentItem
                 ? applyFoodAvailabilityUpdates([currentItem], updatedFoods)[0]
-                : currentItem
+                : currentItem,
         );
-        if (cartItemsRef.current.some((item) => unavailableFoodIds.has(getFoodKey(item)))) {
+        if (
+            cartItemsRef.current.some((item) =>
+                unavailableFoodIds.has(getFoodKey(item)),
+            )
+        ) {
             setSuccessMessage("");
             setErrorMessage(FOOD_UNAVAILABLE_MESSAGE);
         }
 
         setCartItems((currentItems) =>
-            applyFoodAvailabilityUpdates(currentItems, updatedFoods)
+            applyFoodAvailabilityUpdates(currentItems, updatedFoods),
         );
     }, []);
 
     useFoodAvailabilityRealtime(
         availabilityRestaurantIds,
-        handleFoodAvailabilityUpdate
+        handleFoodAvailabilityUpdate,
     );
 
     useEffect(() => {
@@ -2807,11 +3090,11 @@ function DineInOrder() {
 
     const { subtotal, tax, total } = useMemo(
         () => getCartTotals(cartItems),
-        [cartItems]
+        [cartItems],
     );
     const itemCount = cartItems.reduce(
         (total, item) => total + Number(item.quantity ?? 1),
-        0
+        0,
     );
 
     const addToCart = (product) => {
@@ -2826,7 +3109,7 @@ function DineInOrder() {
                 (item) =>
                     item.id === product.id &&
                     item.size === product.size &&
-                    item.notes === product.notes
+                    item.notes === product.notes,
             );
 
             if (existingIndex === -1) return [...current, product];
@@ -2834,7 +3117,7 @@ function DineInOrder() {
             return current.map((item, index) =>
                 index === existingIndex
                     ? { ...item, quantity: item.quantity + product.quantity }
-                    : item
+                    : item,
             );
         });
         return true;
@@ -2845,16 +3128,19 @@ function DineInOrder() {
             items
                 .map((item, index) =>
                     index === indexToChange
-                        ? { ...item, quantity: Math.max(0, item.quantity + amount) }
-                        : item
+                        ? {
+                              ...item,
+                              quantity: Math.max(0, item.quantity + amount),
+                          }
+                        : item,
                 )
-                .filter((item) => item.quantity > 0)
+                .filter((item) => item.quantity > 0),
         );
     };
 
     const removeCartItem = (indexToRemove) => {
         setCartItems((items) =>
-            items.filter((_, currentIndex) => currentIndex !== indexToRemove)
+            items.filter((_, currentIndex) => currentIndex !== indexToRemove),
         );
     };
 
@@ -2885,13 +3171,15 @@ function DineInOrder() {
             setPendingCancelOrderId("");
             saveOrderTimings((currentTimings) =>
                 currentTimings.filter(
-                    (orderTiming) => String(orderTiming.orderId) !== String(orderId)
-                )
+                    (orderTiming) =>
+                        String(orderTiming.orderId) !== String(orderId),
+                ),
             );
             setShowOrderTimings(
                 orderTimingsRef.current.some(
-                    (orderTiming) => String(orderTiming.orderId) !== String(orderId)
-                )
+                    (orderTiming) =>
+                        String(orderTiming.orderId) !== String(orderId),
+                ),
             );
             sessionStorage.removeItem(orderStorageKey);
             sessionStorage.removeItem(invoiceStorageKey);
@@ -2899,7 +3187,7 @@ function DineInOrder() {
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message ||
-                    "Could not cancel this order. Please ask the waiter for help."
+                    "Could not cancel this order. Please ask the waiter for help.",
             );
         } finally {
             setCancelingOrderId("");
@@ -2946,7 +3234,8 @@ function DineInOrder() {
                             .map((restaurant) => ({
                                 ...restaurant,
                                 items: restaurant.items.filter(
-                                    (item) => String(item.id) !== String(itemId)
+                                    (item) =>
+                                        String(item.id) !== String(itemId),
                                 ),
                             }))
                             .filter((restaurant) => restaurant.items.length);
@@ -2962,14 +3251,14 @@ function DineInOrder() {
                     .filter(
                         (orderTiming) =>
                             orderTiming.timing?.scope !== "per_restaurant" ||
-                            orderTiming.timing.restaurants.length
-                    )
+                            orderTiming.timing.restaurants.length,
+                    ),
             );
             setSuccessMessage("Item deleted from this order.");
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message ||
-                    "Could not delete this item. Please ask the waiter for help."
+                    "Could not delete this item. Please ask the waiter for help.",
             );
         } finally {
             setDeletingItemKey("");
@@ -2991,14 +3280,22 @@ function DineInOrder() {
 
         try {
             if (!sessionToken) {
-                throw new Error("Please scan the table QR again or ask the waiter for help.");
+                throw new Error(
+                    "Please scan the table QR again or ask the waiter for help.",
+                );
             }
 
             if (paymentMethod === "stripe" && !isStripeReady) {
-                throw new Error("Stripe is still loading. Try again in a moment.");
+                throw new Error(
+                    "Stripe is still loading. Try again in a moment.",
+                );
             }
 
-            const response = await createDineInOrder(cartItems, tableId, sessionToken);
+            const response = await createDineInOrder(
+                cartItems,
+                tableId,
+                sessionToken,
+            );
             const createdOrderId = getCreatedOrderId(response);
             const invoiceId = getCreatedInvoiceId(response);
 
@@ -3006,7 +3303,10 @@ function DineInOrder() {
                 sessionStorage.setItem(orderStorageKey, String(createdOrderId));
 
                 if (invoiceId) {
-                    sessionStorage.setItem(invoiceStorageKey, String(invoiceId));
+                    sessionStorage.setItem(
+                        invoiceStorageKey,
+                        String(invoiceId),
+                    );
                 }
             } else {
                 throw new Error("Order was created without an order id.");
@@ -3016,13 +3316,13 @@ function DineInOrder() {
                 invoiceId,
                 createdOrderId,
                 sessionToken,
-                paymentMethod
+                paymentMethod,
             );
 
             if (paymentMethod === "stripe") {
                 await confirmStripePayment(
                     findStripeClientSecret(paymentResponse),
-                    stripeCardRef.current
+                    stripeCardRef.current,
                 );
             }
 
@@ -3037,7 +3337,7 @@ function DineInOrder() {
                 };
                 const nextTimings = currentTimings.filter(
                     (orderTiming) =>
-                        String(orderTiming.orderId) !== String(createdOrderId)
+                        String(orderTiming.orderId) !== String(createdOrderId),
                 );
 
                 return [...nextTimings, nextOrderTimingItem];
@@ -3049,7 +3349,7 @@ function DineInOrder() {
             setSuccessMessage(
                 paymentMethod === "cash"
                     ? "Cash payment selected. The waiter will collect it."
-                    : "Stripe payment completed."
+                    : "Stripe payment completed.",
             );
         } catch (error) {
             const validationErrors = error.response?.data?.errors;
@@ -3059,7 +3359,9 @@ function DineInOrder() {
 
             setIsConfirmOrderOpen(false);
             const responseMessage = error.response?.data?.message || "";
-            const errorText = JSON.stringify(error.response?.data || error.message || "");
+            const errorText = JSON.stringify(
+                error.response?.data || error.message || "",
+            );
             const isMissingPreparationSnapshotColumn =
                 errorText.includes("preparation_batch_size_snapshot") ||
                 errorText.includes("preparation_time_snapshot");
@@ -3078,9 +3380,9 @@ function DineInOrder() {
                 isMissingPreparationSnapshotColumn
                     ? "Order could not be saved. The backend database needs the latest order-items migration."
                     : firstValidationError ||
-                    responseMessage ||
-                    error.message ||
-                    "Order could not be sent."
+                          responseMessage ||
+                          error.message ||
+                          "Order could not be sent.",
             );
         } finally {
             setIsSubmitting(false);
@@ -3120,7 +3422,9 @@ function DineInOrder() {
         }
         if (!sessionToken) {
             setSuccessMessage("");
-            setErrorMessage("Please scan the table QR again or ask the waiter for help.");
+            setErrorMessage(
+                "Please scan the table QR again or ask the waiter for help.",
+            );
             return;
         }
 
@@ -3144,11 +3448,7 @@ function DineInOrder() {
     }
 
     if (showOnboarding) {
-        return (
-            <CustomerOnboarding
-                onFinish={finishOnboarding}
-            />
-        );
+        return <CustomerOnboarding onFinish={finishOnboarding} />;
     }
 
     return (
@@ -3173,7 +3473,11 @@ function DineInOrder() {
                             type="button"
                             onClick={toggleTheme}
                             className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10 text-[#FFD166] shadow-sm transition hover:bg-white/[0.14] active:scale-95 sm:h-11 sm:w-11 sm:rounded-2xl"
-                            aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
+                            aria-label={
+                                isLight
+                                    ? "Switch to dark mode"
+                                    : "Switch to light mode"
+                            }
                             title={isLight ? "Dark mode" : "Light mode"}
                         >
                             {isLight ? <Moon size={20} /> : <Sun size={20} />}
@@ -3181,7 +3485,9 @@ function DineInOrder() {
 
                         <button
                             type="button"
-                            onClick={() => itemCount > 0 && setIsMobileCartOpen(true)}
+                            onClick={() =>
+                                itemCount > 0 && setIsMobileCartOpen(true)
+                            }
                             className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10 text-[#FFD166] shadow-sm transition active:scale-95 sm:h-11 sm:w-11 sm:rounded-2xl lg:pointer-events-none"
                             aria-label="Open bill"
                         >
@@ -3196,7 +3502,9 @@ function DineInOrder() {
                 </div>
             </header>
 
-            <main className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}>
+            <main
+                className={`relative mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:gap-5 sm:px-4 sm:pt-4 ${itemCount ? "pb-28 lg:pb-8" : "pb-6 sm:pb-8"}`}
+            >
                 <FeaturedDishSlider
                     featuredItems={featuredItems}
                     onGoToMenu={goToDishRestaurantMenu}
@@ -3224,7 +3532,9 @@ function DineInOrder() {
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                setShowOrderTimings((current) => !current)
+                                                setShowOrderTimings(
+                                                    (current) => !current,
+                                                )
                                             }
                                             className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#FFD166]/45 bg-[#FFD166]/16 px-4 py-3 text-left text-white shadow-[0_12px_26px_rgba(255,209,102,0.10)]"
                                         >
@@ -3237,218 +3547,336 @@ function DineInOrder() {
                                                         Order times
                                                     </span>
                                                     <span className="mt-0.5 block text-sm font-black text-white">
-                                                        {orderTimings.length} active order{orderTimings.length === 1 ? "" : "s"}
+                                                        {orderTimings.length}{" "}
+                                                        active order
+                                                        {orderTimings.length ===
+                                                        1
+                                                            ? ""
+                                                            : "s"}
                                                     </span>
                                                 </span>
                                             </span>
                                             <span className="text-sm font-black text-white/70">
-                                                {showOrderTimings ? "Hide" : "Show"}
+                                                {showOrderTimings
+                                                    ? "Hide"
+                                                    : "Show"}
                                             </span>
                                         </button>
 
                                         {showOrderTimings && (
                                             <div className="space-y-2 rounded-2xl border border-white/10 bg-[#12181B] p-3 text-white">
-                                                {orderTimings.map((orderTiming, index) => {
-                                                    const timing = orderTiming.timing;
-                                                    const orderId = String(orderTiming.orderId);
-                                                    const isCancelPending =
-                                                        pendingCancelOrderId === orderId;
-                                                    const isCanceling =
-                                                        cancelingOrderId === orderId;
-                                                    const isPerRestaurant =
-                                                        timing?.scope === "per_restaurant" &&
-                                                        Array.isArray(timing.restaurants);
-                                                    const label = isPerRestaurant
-                                                        ? timing.waitingForPreparation
-                                                            ? "Waiting for restaurants"
-                                                            : getPreparationTimingLabel(timing)
-                                                        : getPreparationTimingLabel(timing);
+                                                {orderTimings.map(
+                                                    (orderTiming, index) => {
+                                                        const timing =
+                                                            orderTiming.timing;
+                                                        const orderId = String(
+                                                            orderTiming.orderId,
+                                                        );
+                                                        const isCancelPending =
+                                                            pendingCancelOrderId ===
+                                                            orderId;
+                                                        const isCanceling =
+                                                            cancelingOrderId ===
+                                                            orderId;
+                                                        const isPerRestaurant =
+                                                            timing?.scope ===
+                                                                "per_restaurant" &&
+                                                            Array.isArray(
+                                                                timing.restaurants,
+                                                            );
+                                                        const label =
+                                                            isPerRestaurant
+                                                                ? timing.waitingForPreparation
+                                                                    ? "Waiting for restaurants"
+                                                                    : getPreparationTimingLabel(
+                                                                          timing,
+                                                                      )
+                                                                : getPreparationTimingLabel(
+                                                                      timing,
+                                                                  );
 
-                                                    return (
-                                                        <div
-                                                            key={orderId}
-                                                            className="rounded-xl bg-white/[0.07] px-3 py-3"
-                                                        >
-                                                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                                                <div className="min-w-0">
-                                                                    <span className="block text-sm font-black text-white/70">
-                                                                        Order {index + 1}
-                                                                    </span>
-                                                                    {isCancelPending && (
-                                                                        <span className="mt-1 block text-xs font-black text-[#FFB3B3]">
-                                                                            Delete this order? Press confirm to cancel it.
+                                                        return (
+                                                            <div
+                                                                key={orderId}
+                                                                className="rounded-xl bg-white/[0.07] px-3 py-3"
+                                                            >
+                                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                                    <div className="min-w-0">
+                                                                        <span className="block text-sm font-black text-white/70">
+                                                                            Order{" "}
+                                                                            {index +
+                                                                                1}
                                                                         </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex shrink-0 items-center gap-2">
-                                                                    <span className="text-xl font-black text-white">
-                                                                        {label}
-                                                                    </span>
-                                                                    {isCancelPending && (
+                                                                        {isCancelPending && (
+                                                                            <span className="mt-1 block text-xs font-black text-[#FFB3B3]">
+                                                                                Delete
+                                                                                this
+                                                                                order?
+                                                                                Press
+                                                                                confirm
+                                                                                to
+                                                                                cancel
+                                                                                it.
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex shrink-0 items-center gap-2">
+                                                                        <span className="text-xl font-black text-white">
+                                                                            {
+                                                                                label
+                                                                            }
+                                                                        </span>
+                                                                        {isCancelPending && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    setPendingCancelOrderId(
+                                                                                        "",
+                                                                                    )
+                                                                                }
+                                                                                disabled={
+                                                                                    isCanceling
+                                                                                }
+                                                                                className="grid h-9 w-9 place-items-center rounded-lg border border-[#9B1C1C]/35 bg-[#FFF1F1] text-[#7F1D1D] shadow-[0_6px_14px_rgba(127,29,29,0.10)] transition hover:border-[#9B1C1C]/55 hover:bg-[#FFE1E1] disabled:cursor-wait disabled:opacity-70"
+                                                                                aria-label="Cancel delete order"
+                                                                                title="Cancel"
+                                                                            >
+                                                                                <X
+                                                                                    size={
+                                                                                        17
+                                                                                    }
+                                                                                    className="text-[#7F1D1D] [stroke:#7F1D1D]"
+                                                                                />
+                                                                            </button>
+                                                                        )}
                                                                         <button
                                                                             type="button"
-                                                                            onClick={() => setPendingCancelOrderId("")}
-                                                                            disabled={isCanceling}
-                                                                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#9B1C1C]/35 bg-[#FFF1F1] text-[#7F1D1D] shadow-[0_6px_14px_rgba(127,29,29,0.10)] transition hover:border-[#9B1C1C]/55 hover:bg-[#FFE1E1] disabled:cursor-wait disabled:opacity-70"
-                                                                            aria-label="Cancel delete order"
-                                                                            title="Cancel"
+                                                                            onClick={() =>
+                                                                                cancelActiveOrder(
+                                                                                    orderId,
+                                                                                )
+                                                                            }
+                                                                            disabled={
+                                                                                isCanceling
+                                                                            }
+                                                                            className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80 ${
+                                                                                isCancelPending
+                                                                                    ? "border-[#FF6B6B]/55 bg-[#7F1D1D] hover:bg-[#9B1C1C]"
+                                                                                    : "border-[#FF6B6B]/35 bg-[#7F1D1D] hover:border-[#FF8A8A]/55 hover:bg-[#681718]"
+                                                                            }`}
+                                                                            aria-label={
+                                                                                isCancelPending
+                                                                                    ? `Confirm cancel order ${orderId}`
+                                                                                    : `Cancel order ${orderId}`
+                                                                            }
+                                                                            title={
+                                                                                isCancelPending
+                                                                                    ? "Confirm cancel order"
+                                                                                    : "Cancel order"
+                                                                            }
                                                                         >
-                                                                            <X size={17} className="text-[#7F1D1D] [stroke:#7F1D1D]" />
+                                                                            <Trash2
+                                                                                size={
+                                                                                    15
+                                                                                }
+                                                                                className="text-white [stroke:white]"
+                                                                            />
+                                                                            <span>
+                                                                                {isCanceling
+                                                                                    ? "Canceling..."
+                                                                                    : isCancelPending
+                                                                                      ? "Confirm"
+                                                                                      : "Cancel"}
+                                                                            </span>
                                                                         </button>
-                                                                    )}
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => cancelActiveOrder(orderId)}
-                                                                        disabled={isCanceling}
-                                                                        className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80 ${
-                                                                            isCancelPending
-                                                                                ? "border-[#FF6B6B]/55 bg-[#7F1D1D] hover:bg-[#9B1C1C]"
-                                                                                : "border-[#FF6B6B]/35 bg-[#7F1D1D] hover:border-[#FF8A8A]/55 hover:bg-[#681718]"
-                                                                        }`}
-                                                                        aria-label={
-                                                                            isCancelPending
-                                                                                ? `Confirm cancel order ${orderId}`
-                                                                                : `Cancel order ${orderId}`
-                                                                        }
-                                                                        title={
-                                                                            isCancelPending
-                                                                                ? "Confirm cancel order"
-                                                                                : "Cancel order"
-                                                                        }
-                                                                    >
-                                                                        <Trash2 size={15} className="text-white [stroke:white]" />
-                                                                        <span>
-                                                                            {isCanceling
-                                                                                ? "Canceling..."
-                                                                                : isCancelPending
-                                                                                    ? "Confirm"
-                                                                                    : "Cancel"}
-                                                                        </span>
-                                                                    </button>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            {isPerRestaurant && (
-                                                                <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
-                                                                    {timing.restaurants.map((restaurant) => {
-                                                                        const restaurantLabel = restaurant.waitingForPreparation
-                                                                            ? "Waiting for preparation"
-                                                                            : READY_STATUSES.includes(restaurant.status)
-                                                                                ? "Ready"
-                                                                                : getPreparationTimingLabel(
-                                                                                    restaurant,
-                                                                                    "On the way"
-                                                                                );
-
-                                                                        return (
-                                                                            <div
-                                                                                key={`${orderTiming.orderId}-${restaurant.id}`}
-                                                                                className="rounded-xl border border-white/10 bg-black/15 p-3"
-                                                                            >
-                                                                                <div className="flex items-start justify-between gap-3">
-                                                                                    <div className="min-w-0">
-                                                                                        <p className="truncate text-sm font-black text-white">
-                                                                                            {restaurant.restaurantName}
-                                                                                        </p>
-                                                                                        <p className="mt-1 text-xs font-bold text-white/55">
-                                                                                            {restaurant.items.length} item{restaurant.items.length === 1 ? "" : "s"}
-                                                                                        </p>
-                                                                                    </div>
-                                                                                    <span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-black ${
-                                                                                        restaurant.waitingForPreparation
-                                                                                            ? "bg-[#FFD166]/16 text-[#FFD166]"
-                                                                                            : "bg-emerald-400/16 text-emerald-200"
-                                                                                    }`}>
-                                                                                        {restaurantLabel}
-                                                                                    </span>
-                                                                                </div>
-                                                                                {restaurant.items.length > 0 && (
-                                                                                    <div className="mt-3 space-y-1">
-                                                                                        {restaurant.items.map((item) => {
-                                                                                            const itemKey = `${orderId}:${item.id}`;
-                                                                                            const isDeletePending =
-                                                                                                pendingDeleteItemKey === itemKey;
-                                                                                            const isDeleting =
-                                                                                                deletingItemKey === itemKey;
-
-                                                                                            return (
-                                                                                                <div
-                                                                                                    key={item.id}
-                                                                                                    className={`flex items-start justify-between gap-2 rounded-lg px-2 py-1.5 ${
-                                                                                                        isDeletePending
-                                                                                                            ? "bg-[#7F1D1D]/18"
-                                                                                                            : "bg-black/10"
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    <div className="min-w-0">
-                                                                                                        <p className="text-xs font-semibold leading-5 text-white/70">
-                                                                                                            {item.quantity}x {item.name}
-                                                                                                        </p>
-                                                                                                        {isDeletePending && (
-                                                                                                            <p className="mt-0.5 text-[11px] font-black text-[#FFB3B3]">
-                                                                                                                Delete this item? Press confirm.
-                                                                                                            </p>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                    <div className="flex shrink-0 items-center gap-1.5">
-                                                                                                        {isDeletePending && (
-                                                                                                            <button
-                                                                                                                type="button"
-                                                                                                                onClick={() => setPendingDeleteItemKey("")}
-                                                                                                                disabled={isDeleting}
-                                                                                                                className="grid h-8 w-8 place-items-center rounded-lg border border-[#9B1C1C]/35 bg-[#FFF1F1] text-[#7F1D1D] shadow-[0_6px_14px_rgba(127,29,29,0.10)] transition hover:border-[#9B1C1C]/55 hover:bg-[#FFE1E1] disabled:cursor-wait disabled:opacity-70"
-                                                                                                                aria-label={`Cancel delete ${item.name}`}
-                                                                                                                title="Cancel"
-                                                                                                            >
-                                                                                                                <X size={15} className="text-[#7F1D1D] [stroke:#7F1D1D]" />
-                                                                                                            </button>
-                                                                                                        )}
-                                                                                                        <button
-                                                                                                            type="button"
-                                                                                                            onClick={() =>
-                                                                                                                deleteActiveOrderItem(
-                                                                                                                    orderId,
-                                                                                                                    item.id
-                                                                                                                )
-                                                                                                            }
-                                                                                                            disabled={isDeleting}
-                                                                                                            className={`grid h-8 min-w-8 place-items-center rounded-lg border px-2 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80 ${
-                                                                                                                isDeletePending
-                                                                                                                    ? "border-[#FF6B6B]/55 bg-[#7F1D1D]"
-                                                                                                                    : "border-[#FF6B6B]/35 bg-[#7F1D1D]"
-                                                                                                            }`}
-                                                                                                            aria-label={
-                                                                                                                isDeletePending
-                                                                                                                    ? `Confirm delete ${item.name}`
-                                                                                                                    : `Delete ${item.name}`
-                                                                                                            }
-                                                                                                            title={
-                                                                                                                isDeletePending
-                                                                                                                    ? "Confirm delete item"
-                                                                                                                    : "Delete item"
-                                                                                                            }
-                                                                                                        >
-                                                                                                            {isDeleting ? (
-                                                                                                                "..."
-                                                                                                            ) : isDeletePending ? (
-                                                                                                                "Confirm"
-                                                                                                            ) : (
-                                                                                                                <Trash2 size={15} className="text-white [stroke:white]" />
-                                                                                                            )}
-                                                                                                        </button>
-                                                                                                    </div>
-                                                                                                </div>
+                                                                {isPerRestaurant && (
+                                                                    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                                                                        {timing.restaurants.map(
+                                                                            (
+                                                                                restaurant,
+                                                                            ) => {
+                                                                                const restaurantLabel =
+                                                                                    restaurant.waitingForPreparation
+                                                                                        ? "Waiting for preparation"
+                                                                                        : READY_STATUSES.includes(
+                                                                                                restaurant.status,
+                                                                                            )
+                                                                                          ? "Ready"
+                                                                                          : getPreparationTimingLabel(
+                                                                                                restaurant,
+                                                                                                "On the way",
                                                                                             );
-                                                                                        })}
+
+                                                                                return (
+                                                                                    <div
+                                                                                        key={`${orderTiming.orderId}-${restaurant.id}`}
+                                                                                        className="rounded-xl border border-white/10 bg-black/15 p-3"
+                                                                                    >
+                                                                                        <div className="flex items-start justify-between gap-3">
+                                                                                            <div className="min-w-0">
+                                                                                                <p className="truncate text-sm font-black text-white">
+                                                                                                    {
+                                                                                                        restaurant.restaurantName
+                                                                                                    }
+                                                                                                </p>
+                                                                                                <p className="mt-1 text-xs font-bold text-white/55">
+                                                                                                    {
+                                                                                                        restaurant
+                                                                                                            .items
+                                                                                                            .length
+                                                                                                    }{" "}
+                                                                                                    item
+                                                                                                    {restaurant
+                                                                                                        .items
+                                                                                                        .length ===
+                                                                                                    1
+                                                                                                        ? ""
+                                                                                                        : "s"}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                            <span
+                                                                                                className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-black ${
+                                                                                                    restaurant.waitingForPreparation
+                                                                                                        ? "bg-[#FFD166]/16 text-[#FFD166]"
+                                                                                                        : "bg-emerald-400/16 text-emerald-200"
+                                                                                                }`}
+                                                                                            >
+                                                                                                {
+                                                                                                    restaurantLabel
+                                                                                                }
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        {restaurant
+                                                                                            .items
+                                                                                            .length >
+                                                                                            0 && (
+                                                                                            <div className="mt-3 space-y-1">
+                                                                                                {restaurant.items.map(
+                                                                                                    (
+                                                                                                        item,
+                                                                                                    ) => {
+                                                                                                        const itemKey = `${orderId}:${item.id}`;
+                                                                                                        const isDeletePending =
+                                                                                                            pendingDeleteItemKey ===
+                                                                                                            itemKey;
+                                                                                                        const isDeleting =
+                                                                                                            deletingItemKey ===
+                                                                                                            itemKey;
+
+                                                                                                        return (
+                                                                                                            <div
+                                                                                                                key={
+                                                                                                                    item.id
+                                                                                                                }
+                                                                                                                className={`flex items-start justify-between gap-2 rounded-lg px-2 py-1.5 ${
+                                                                                                                    isDeletePending
+                                                                                                                        ? "bg-[#7F1D1D]/18"
+                                                                                                                        : "bg-black/10"
+                                                                                                                }`}
+                                                                                                            >
+                                                                                                                <div className="min-w-0">
+                                                                                                                    <p className="text-xs font-semibold leading-5 text-white/70">
+                                                                                                                        {
+                                                                                                                            item.quantity
+                                                                                                                        }
+                                                                                                                        x{" "}
+                                                                                                                        {
+                                                                                                                            item.name
+                                                                                                                        }
+                                                                                                                    </p>
+                                                                                                                    {isDeletePending && (
+                                                                                                                        <p className="mt-0.5 text-[11px] font-black text-[#FFB3B3]">
+                                                                                                                            Delete
+                                                                                                                            this
+                                                                                                                            item?
+                                                                                                                            Press
+                                                                                                                            confirm.
+                                                                                                                        </p>
+                                                                                                                    )}
+                                                                                                                </div>
+                                                                                                                <div className="flex shrink-0 items-center gap-1.5">
+                                                                                                                    {isDeletePending && (
+                                                                                                                        <button
+                                                                                                                            type="button"
+                                                                                                                            onClick={() =>
+                                                                                                                                setPendingDeleteItemKey(
+                                                                                                                                    "",
+                                                                                                                                )
+                                                                                                                            }
+                                                                                                                            disabled={
+                                                                                                                                isDeleting
+                                                                                                                            }
+                                                                                                                            className="grid h-8 w-8 place-items-center rounded-lg border border-[#9B1C1C]/35 bg-[#FFF1F1] text-[#7F1D1D] shadow-[0_6px_14px_rgba(127,29,29,0.10)] transition hover:border-[#9B1C1C]/55 hover:bg-[#FFE1E1] disabled:cursor-wait disabled:opacity-70"
+                                                                                                                            aria-label={`Cancel delete ${item.name}`}
+                                                                                                                            title="Cancel"
+                                                                                                                        >
+                                                                                                                            <X
+                                                                                                                                size={
+                                                                                                                                    15
+                                                                                                                                }
+                                                                                                                                className="text-[#7F1D1D] [stroke:#7F1D1D]"
+                                                                                                                            />
+                                                                                                                        </button>
+                                                                                                                    )}
+                                                                                                                    <button
+                                                                                                                        type="button"
+                                                                                                                        onClick={() =>
+                                                                                                                            deleteActiveOrderItem(
+                                                                                                                                orderId,
+                                                                                                                                item.id,
+                                                                                                                            )
+                                                                                                                        }
+                                                                                                                        disabled={
+                                                                                                                            isDeleting
+                                                                                                                        }
+                                                                                                                        className={`grid h-8 min-w-8 place-items-center rounded-lg border px-2 text-xs font-black text-white shadow-[0_8px_18px_rgba(127,29,29,0.18)] transition hover:bg-[#681718] active:scale-[0.96] disabled:cursor-wait disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-80 ${
+                                                                                                                            isDeletePending
+                                                                                                                                ? "border-[#FF6B6B]/55 bg-[#7F1D1D]"
+                                                                                                                                : "border-[#FF6B6B]/35 bg-[#7F1D1D]"
+                                                                                                                        }`}
+                                                                                                                        aria-label={
+                                                                                                                            isDeletePending
+                                                                                                                                ? `Confirm delete ${item.name}`
+                                                                                                                                : `Delete ${item.name}`
+                                                                                                                        }
+                                                                                                                        title={
+                                                                                                                            isDeletePending
+                                                                                                                                ? "Confirm delete item"
+                                                                                                                                : "Delete item"
+                                                                                                                        }
+                                                                                                                    >
+                                                                                                                        {isDeleting ? (
+                                                                                                                            "..."
+                                                                                                                        ) : isDeletePending ? (
+                                                                                                                            "Confirm"
+                                                                                                                        ) : (
+                                                                                                                            <Trash2
+                                                                                                                                size={
+                                                                                                                                    15
+                                                                                                                                }
+                                                                                                                                className="text-white [stroke:white]"
+                                                                                                                            />
+                                                                                                                        )}
+                                                                                                                    </button>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        );
+                                                                                                    },
+                                                                                                )}
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
-                                                                                )}
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
+                                                                                );
+                                                                            },
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    },
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -3462,49 +3890,71 @@ function DineInOrder() {
                             </p>
                         )}
 
-                        <section ref={menuSectionRef} className="scroll-mt-20 min-w-0 rounded-[22px] border border-white/10 bg-white/[0.06] p-3 shadow-[0_22px_54px_rgba(0,0,0,0.18)] backdrop-blur sm:scroll-mt-24 sm:p-4">
-                            {activeRestaurantData || activeRestaurant === "all" ? (
+                        <section
+                            ref={menuSectionRef}
+                            className="scroll-mt-20 min-w-0 rounded-[22px] border border-white/10 bg-white/[0.06] p-3 shadow-[0_22px_54px_rgba(0,0,0,0.18)] backdrop-blur sm:scroll-mt-24 sm:p-4"
+                        >
+                            {activeRestaurantData ||
+                            activeRestaurant === "all" ? (
                                 <>
                                     <div className="mb-3 flex flex-col gap-3 rounded-[20px] border border-white/10 bg-[#12181B] p-2.5 text-white sm:mb-4 sm:p-3 md:flex-row md:items-center md:justify-between">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        {activeRestaurantData ? (
-                                            <img
-                                                src={getRestaurantImageUrl(activeRestaurantData)}
-                                                alt={activeRestaurantData.name}
-                                                className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-white/10 sm:h-16 sm:w-16 sm:rounded-2xl"
-                                            />
-                                        ) : (
-                                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#FFD166] text-[#151A1D] sm:h-16 sm:w-16 sm:rounded-2xl">
-                                                <Utensils size={24} />
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            {activeRestaurantData ? (
+                                                <img
+                                                    src={getRestaurantImageUrl(
+                                                        activeRestaurantData,
+                                                    )}
+                                                    alt={
+                                                        activeRestaurantData.name
+                                                    }
+                                                    className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-white/10 sm:h-16 sm:w-16 sm:rounded-2xl"
+                                                />
+                                            ) : (
+                                                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#FFD166] text-[#151A1D] sm:h-16 sm:w-16 sm:rounded-2xl">
+                                                    <Utensils size={24} />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-black uppercase tracking-wide text-[#FFD166]">
+                                                    {activeRestaurantData
+                                                        ? "Menu"
+                                                        : "All menus"}
+                                                </p>
+                                                <h2 className="truncate text-xl font-black sm:text-2xl">
+                                                    {activeRestaurantData?.name ||
+                                                        "All restaurants"}
+                                                </h2>
                                             </div>
-                                        )}
-                                        <div className="min-w-0">
-                                            <p className="text-xs font-black uppercase tracking-wide text-[#FFD166]">
-                                                {activeRestaurantData ? "Menu" : "All menus"}
-                                            </p>
-                                            <h2 className="truncate text-xl font-black sm:text-2xl">
-                                                {activeRestaurantData?.name || "All restaurants"}
-                                            </h2>
                                         </div>
+
+                                        <label className="flex h-11 min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.07] px-3 backdrop-blur sm:h-12 sm:rounded-2xl sm:px-4 md:w-[340px]">
+                                            <Search
+                                                size={18}
+                                                className="text-[#FFD166]"
+                                            />
+                                            <input
+                                                value={search}
+                                                onChange={(event) =>
+                                                    setSearch(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder={
+                                                    activeRestaurantData
+                                                        ? "Search this menu..."
+                                                        : "Search all menus..."
+                                                }
+                                                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/55"
+                                            />
+                                        </label>
                                     </div>
 
-                                    <label className="flex h-11 min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.07] px-3 backdrop-blur sm:h-12 sm:rounded-2xl sm:px-4 md:w-[340px]">
-                                        <Search size={18} className="text-[#FFD166]" />
-                                        <input
-                                            value={search}
-                                            onChange={(event) => setSearch(event.target.value)}
-                                            placeholder={activeRestaurantData ? "Search this menu..." : "Search all menus..."}
-                                            className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/55"
-                                        />
-                                    </label>
-                                </div>
-
-                                <CategoryTabs
-                                    activeCategory={activeCategory}
-                                    setActiveCategory={setActiveCategory}
-                                    categories={activeRestaurantCategories}
-                                    variant="dark"
-                                />
+                                    <CategoryTabs
+                                        activeCategory={activeCategory}
+                                        setActiveCategory={setActiveCategory}
+                                        categories={activeRestaurantCategories}
+                                        variant="dark"
+                                    />
 
                                     {visibleItems.length ? (
                                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 2xl:grid-cols-3">
@@ -3512,13 +3962,17 @@ function DineInOrder() {
                                                 <CustomerFoodCard
                                                     key={item.id}
                                                     item={item}
-                                                    onOpen={() => setSelectedItem(item)}
+                                                    onOpen={() =>
+                                                        setSelectedItem(item)
+                                                    }
                                                 />
                                             ))}
                                         </div>
                                     ) : (
                                         <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.04] px-6 py-14 text-center text-white">
-                                            <h3 className="text-lg font-black">No items found</h3>
+                                            <h3 className="text-lg font-black">
+                                                No items found
+                                            </h3>
                                             <p className="mt-1 text-sm font-semibold text-white/55">
                                                 Try another search or category.
                                             </p>
@@ -3527,12 +3981,16 @@ function DineInOrder() {
                                 </>
                             ) : (
                                 <div className="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(127,29,29,0.24),transparent_34%),linear-gradient(135deg,#161D20,#202629)] px-6 py-14 text-center text-white">
-                                    <ShoppingBag className="mx-auto text-[#FFD166]" size={34} />
+                                    <ShoppingBag
+                                        className="mx-auto text-[#FFD166]"
+                                        size={34}
+                                    />
                                     <h2 className="mt-3 text-xl font-black">
                                         Choose a restaurant to see its dishes
                                     </h2>
                                     <p className="mt-2 text-sm font-medium text-white/60">
-                                        The dish modal will open only when you tap a food item.
+                                        The dish modal will open only when you
+                                        tap a food item.
                                     </p>
                                 </div>
                             )}
@@ -3559,7 +4017,6 @@ function DineInOrder() {
                         />
                     </aside>
                 </div>
-
             </main>
 
             <MobileOrderBar
@@ -3605,7 +4062,9 @@ function DineInOrder() {
                     stripeCardMessage={stripeCardMessage}
                     stripeCardContainerRef={stripeCardContainerRef}
                     isSubmitting={isSubmitting}
-                    onCancel={() => !isSubmitting && setIsConfirmOrderOpen(false)}
+                    onCancel={() =>
+                        !isSubmitting && setIsConfirmOrderOpen(false)
+                    }
                     onConfirm={submitOrder}
                 />
             )}
