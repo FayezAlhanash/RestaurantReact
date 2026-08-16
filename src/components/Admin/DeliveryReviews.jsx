@@ -40,6 +40,24 @@ function getRoleName(user = {}) {
     return user.role?.name || user.role_name || user.roleName || "";
 }
 
+function getRoleId(user = {}) {
+    return user.role_id ?? user.role?.id;
+}
+
+function getRoleList(data = {}) {
+    const roles = getList(data, "roles");
+
+    return roles.length ? roles : getList(data, "staff_roles");
+}
+
+function getRoleForUser(user = {}, roles = []) {
+    return (
+        user.role ||
+        roles.find((role) => String(role.id) === String(getRoleId(user))) ||
+        {}
+    );
+}
+
 function getDriverId(user = {}) {
     return (
         user.driver_id ??
@@ -50,12 +68,16 @@ function getDriverId(user = {}) {
     );
 }
 
-function isDeliveryDriver(user = {}) {
-    const roleName = getRoleName(user).toLowerCase();
+function isDeliveryDriver(user = {}, roles = []) {
+    const role = getRoleForUser(user, roles);
+    const roleName = (getRoleName(user) || role.name || "").toLowerCase();
+    const jobTitle = String(user.job_title || user.jobTitle || "").toLowerCase();
 
     return (
         roleName.includes("delivery") ||
         roleName.includes("driver") ||
+        jobTitle.includes("delivery") ||
+        jobTitle.includes("driver") ||
         Boolean(user.driver_id || user.driver?.id || user.is_driver || user.isDriver)
     );
 }
@@ -162,14 +184,36 @@ function DeliveryReviews() {
         setErrorMessage("");
 
         try {
-            const response = await api.get("/delivery-reviews/drivers");
+            const [driversResult, staffResult, rolesResult] = await Promise.allSettled([
+                api.get("/delivery-reviews/drivers"),
+                api.get("/admin/staff-users"),
+                api.get("/staff-roles"),
+            ]);
             const currentUser = getStoredUser();
-            const deliveryDrivers = getList(response.data, "drivers");
+            const deliveryDrivers =
+                driversResult.status === "fulfilled"
+                    ? getList(driversResult.value.data, "drivers")
+                    : [];
+            const roles =
+                rolesResult.status === "fulfilled"
+                    ? getRoleList(rolesResult.value.data)
+                    : [];
+            const staffUsers =
+                staffResult.status === "fulfilled"
+                    ? getList(staffResult.value.data, "users")
+                    : [];
+            const deliveryStaff = staffUsers.filter((user) =>
+                isDeliveryDriver(user, roles)
+            );
             const currentUserIsDriver =
-                currentUser && isDeliveryDriver(currentUser)
+                currentUser && isDeliveryDriver(currentUser, roles)
                     ? [currentUser]
                     : [];
-            const uniqueDrivers = [...deliveryDrivers, ...currentUserIsDriver].filter(
+            const uniqueDrivers = [
+                ...deliveryDrivers,
+                ...deliveryStaff,
+                ...currentUserIsDriver,
+            ].filter(
                 (driver, index, list) =>
                     list.findIndex(
                         (item) => String(getDriverId(item)) === String(getDriverId(driver))
@@ -178,6 +222,13 @@ function DeliveryReviews() {
 
             setDrivers(uniqueDrivers);
             setSelectedDriverId((current) => current || getDriverId(uniqueDrivers[0]) || "");
+
+            if (
+                driversResult.status === "rejected" &&
+                staffResult.status === "rejected"
+            ) {
+                throw driversResult.reason || staffResult.reason;
+            }
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message || "Delivery drivers could not be loaded."
@@ -210,11 +261,18 @@ function DeliveryReviews() {
     }, []);
 
     useEffect(() => {
-        loadDrivers();
+        const timeoutId = window.setTimeout(loadDrivers, 0);
+
+        return () => window.clearTimeout(timeoutId);
     }, [loadDrivers]);
 
     useEffect(() => {
-        loadReviews(selectedDriverId);
+        const timeoutId = window.setTimeout(
+            () => loadReviews(selectedDriverId),
+            0
+        );
+
+        return () => window.clearTimeout(timeoutId);
     }, [loadReviews, selectedDriverId]);
 
     return (
