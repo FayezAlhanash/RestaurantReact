@@ -15,6 +15,8 @@ const getList = (data, key) => {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.[key])) return data[key];
     if (Array.isArray(data?.data?.[key])) return data.data[key];
+    if (Array.isArray(data?.[key]?.data)) return data[key].data;
+    if (Array.isArray(data?.data?.[key]?.data)) return data.data[key].data;
     if (Array.isArray(data?.reviews)) return data.reviews;
     if (Array.isArray(data?.delivery_reviews)) return data.delivery_reviews;
     if (Array.isArray(data?.deliveryReviews)) return data.deliveryReviews;
@@ -22,18 +24,23 @@ const getList = (data, key) => {
     if (Array.isArray(data?.staff)) return data.staff;
     if (Array.isArray(data?.drivers)) return data.drivers;
     if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.data?.data)) return data.data.data;
     return [];
 };
 
-function getName(value = {}) {
+function getPersonName(value = {}) {
     return (
         [value.first_name, value.last_name].filter(Boolean).join(" ") ||
         value.name ||
         value.full_name ||
         value.username ||
         value.email ||
-        `Driver #${value.id ?? value.driver_id ?? ""}`
+        ""
     );
+}
+
+function getName(value = {}) {
+    return getPersonName(value) || `Driver #${value.id ?? value.driver_id ?? ""}`;
 }
 
 function getRoleName(user = {}) {
@@ -106,6 +113,8 @@ function getComment(review = {}) {
 
 function getCustomerName(review = {}) {
     return (
+        getPersonName(review.customer) ||
+        getPersonName(review.user) ||
         review.customer?.name ||
         review.user?.name ||
         review.customer_name ||
