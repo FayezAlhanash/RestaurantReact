@@ -1261,6 +1261,58 @@ async function addItemsToDineInOrder(orderId, cartItems, sessionToken) {
     return responses;
 }
 
+function CustomerFoodTitle({ title }) {
+    const containerRef = useRef(null);
+    const textRef = useRef(null);
+    const [shouldScroll, setShouldScroll] = useState(false);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        const text = textRef.current;
+
+        if (!container || !text) return undefined;
+
+        const updateScrollState = () => {
+            const overflowWidth = Math.max(
+                0,
+                text.scrollWidth - container.clientWidth,
+            );
+
+            container.style.setProperty(
+                "--customer-food-title-shift",
+                `${overflowWidth}px`,
+            );
+            container.style.setProperty(
+                "--customer-food-title-duration",
+                `${Math.max(5.5, overflowWidth / 18).toFixed(1)}s`,
+            );
+            setShouldScroll(overflowWidth > 2);
+        };
+
+        updateScrollState();
+
+        const resizeObserver = new ResizeObserver(updateScrollState);
+        resizeObserver.observe(container);
+        resizeObserver.observe(text);
+
+        return () => resizeObserver.disconnect();
+    }, [title]);
+
+    return (
+        <span
+            ref={containerRef}
+            className={`customer-food-title-marquee ${
+                shouldScroll ? "is-scrolling" : ""
+            }`}
+            title={title}
+        >
+            <span ref={textRef} className="customer-food-title-marquee-text">
+                {title}
+            </span>
+        </span>
+    );
+}
+
 function CustomerFoodCard({ item, onOpen }) {
     const imageUrl =
         item.image ||
@@ -1338,8 +1390,8 @@ function CustomerFoodCard({ item, onOpen }) {
                 <p className="truncate text-xs font-black uppercase tracking-wide text-[#FFD166]">
                     {item.restaurantName}
                 </p>
-                <h2 className="mt-1.5 line-clamp-2 text-base font-black leading-5 text-white sm:mt-2 sm:line-clamp-1 sm:text-xl sm:leading-7">
-                    {item.title}
+                <h2 className="mt-1.5 text-base font-black leading-5 text-white sm:mt-2 sm:text-xl sm:leading-7">
+                    <CustomerFoodTitle title={item.title} />
                 </h2>
                 <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5 text-white/62 sm:mt-2 sm:text-sm sm:leading-6">
                     {item.description ||
@@ -3781,6 +3833,7 @@ function DineInOrder() {
                                                                                                                         {
                                                                                                                             item.quantity
                                                                                                                         }
+
                                                                                                                         x{" "}
                                                                                                                         {
                                                                                                                             item.name

@@ -137,6 +137,53 @@ img, svg {
         0 10px 24px rgba(0, 0, 0, 0.72);
 }
 
+.customer-food-title-marquee {
+    --customer-food-title-shift: 0px;
+    --customer-food-title-duration: 6s;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.customer-food-title-marquee-text {
+    display: inline-block;
+    min-width: max-content;
+    transform: translateX(0);
+}
+
+.customer-food-title-marquee.is-scrolling .customer-food-title-marquee-text {
+    animation: customer-food-title-marquee var(--customer-food-title-duration) ease-in-out infinite;
+}
+
+.customer-food-card:hover .customer-food-title-marquee.is-scrolling .customer-food-title-marquee-text,
+.customer-food-card:focus-within .customer-food-title-marquee.is-scrolling .customer-food-title-marquee-text {
+    animation-duration: calc(var(--customer-food-title-duration) * 0.72);
+}
+
+@keyframes customer-food-title-marquee {
+    0%,
+    16% {
+        transform: translateX(0);
+    }
+
+    58%,
+    78% {
+        transform: translateX(calc(var(--customer-food-title-shift) * -1));
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .customer-food-title-marquee.is-scrolling .customer-food-title-marquee-text {
+        animation: none;
+        transform: translateX(0);
+    }
+}
+
 .product-modal-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 209, 102, 0.62) rgba(18, 25, 28, 0.72);

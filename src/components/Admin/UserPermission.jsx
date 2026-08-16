@@ -63,6 +63,63 @@ const getPermissionId = (permission = {}) => {
 const getPermissionIdByKey = (permissions, key) =>
   permissions.find((permission) => getPermissionKey(permission) === key)?.id;
 
+const USER_PERMISSION_REVOKES_STORAGE_KEY = "big4:user-permission-revokes";
+
+const readStoredPermissionRevokes = () => {
+  try {
+    return JSON.parse(
+      localStorage.getItem(USER_PERMISSION_REVOKES_STORAGE_KEY) || "{}",
+    );
+  } catch {
+    return {};
+  }
+};
+
+const getStoredRevokedPermissionIds = (userId) => {
+  if (!userId) return [];
+
+  const storedRevokes = readStoredPermissionRevokes();
+  const revokedPermissionIds = storedRevokes[String(userId)];
+
+  return Array.isArray(revokedPermissionIds)
+    ? revokedPermissionIds.map(String)
+    : [];
+};
+
+const writeStoredRevokedPermissionIds = (userId, permissionIds) => {
+  if (!userId) return;
+
+  const storedRevokes = readStoredPermissionRevokes();
+  const nextPermissionIds = [...new Set(permissionIds.map(String))];
+
+  if (nextPermissionIds.length) {
+    storedRevokes[String(userId)] = nextPermissionIds;
+  } else {
+    delete storedRevokes[String(userId)];
+  }
+
+  localStorage.setItem(
+    USER_PERMISSION_REVOKES_STORAGE_KEY,
+    JSON.stringify(storedRevokes),
+  );
+};
+
+const addStoredRevokedPermissionId = (userId, permissionId) => {
+  writeStoredRevokedPermissionIds(userId, [
+    ...getStoredRevokedPermissionIds(userId),
+    permissionId,
+  ]);
+};
+
+const removeStoredRevokedPermissionId = (userId, permissionId) => {
+  writeStoredRevokedPermissionIds(
+    userId,
+    getStoredRevokedPermissionIds(userId).filter(
+      (id) => String(id) !== String(permissionId),
+    ),
+  );
+};
+
 const formatPermissionLabel = (permission = {}) =>
   getPermissionKey(permission)
     .replace(/_/g, " ")
@@ -165,6 +222,32 @@ const removeRevokedPermission = (user = {}, permissionId) => ({
   ),
 });
 
+const findPermissionForUser = (user = {}, roles = [], permissions = [], permissionId) => {
+  const permissionKey = String(permissionId);
+  const userRole = getRoleForUser(user, roles);
+
+  return (
+    permissions.find((permission) => String(permission.id) === permissionKey) ||
+    getRolePermissions(userRole).find(
+      (permission) => String(getPermissionId(permission)) === permissionKey,
+    ) ||
+    getDirectUserPermissions(user).find(
+      (permission) => String(getPermissionId(permission)) === permissionKey,
+    ) ||
+    { id: permissionId }
+  );
+};
+
+const mergeStoredRevokedPermissions = (user = {}, roles = [], permissions = []) =>
+  getStoredRevokedPermissionIds(user.id).reduce(
+    (nextUser, permissionId) =>
+      addRevokedPermission(
+        nextUser,
+        findPermissionForUser(nextUser, roles, permissions, permissionId),
+      ),
+    user,
+  );
+
 const isAlreadyRevokedError = (error) =>
   String(error.response?.data?.message || error.response?.data?.error || "")
     .toLowerCase()
@@ -208,17 +291,25 @@ export default function UserPermission() {
   };
 
   const selectUser = (user) => {
-    setSelectedUser(user);
+    const userWithStoredRevokes = mergeStoredRevokedPermissions(
+      user,
+      roles,
+      permissions,
+    );
 
-    const directPermissions = getDirectUserPermissions(user);
-    const revokedPermissionIds = new Set(getRevokedPermissionIds(user));
+    setSelectedUser(userWithStoredRevokes);
+
+    const directPermissions = getDirectUserPermissions(userWithStoredRevokes);
+    const revokedPermissionIds = new Set(
+      getRevokedPermissionIds(userWithStoredRevokes),
+    );
     const restaurantIds = {};
 
     directPermissions.forEach((permission) => {
       const restaurantId =
         permission.pivot?.restaurant_id ||
         permission.restaurant_id ||
-        user.restaurant_id ||
+        userWithStoredRevokes.restaurant_id ||
         "";
 
       if (restaurantId) {
@@ -228,7 +319,9 @@ export default function UserPermission() {
 
     setUserPerms(
       directPermissions
-        .filter((permission) => canAssignPermissionToUser(user, permission))
+        .filter((permission) =>
+          canAssignPermissionToUser(userWithStoredRevokes, permission),
+        )
         .map(getPermissionId)
         .filter(Boolean)
         .map(String)
@@ -252,7 +345,9 @@ export default function UserPermission() {
       setIsUsersLoading(false);
     }
 
-    const usersList = getList(res.data, "users");
+    const usersList = getList(res.data, "users").map((user) =>
+      mergeStoredRevokedPermissions(user, roles, permissions),
+    );
 
     setUsers(usersList);
 
@@ -359,6 +454,12 @@ export default function UserPermission() {
           permission_id: permissionId,
         };
 
+        if (isInheritedPermission) {
+          payload.revoked = true;
+          payload.removed = true;
+          payload.from_role = true;
+        }
+
         if (permission?.scope === "restaurant" && restaurantId) {
           payload.restaurant_id = restaurantId;
         }
@@ -372,6 +473,10 @@ export default function UserPermission() {
         const updatedUser = res.data?.user;
 
         if (updatedUser) {
+          if (isInheritedPermission) {
+            addStoredRevokedPermissionId(selectedUser.id, permissionId);
+          }
+
           const nextUser = isInheritedPermission
             ? addRevokedPermission(updatedUser, permission)
             : updatedUser;
@@ -418,6 +523,7 @@ export default function UserPermission() {
           );
 
           if (isInheritedPermission) {
+            addStoredRevokedPermissionId(selectedUser.id, permissionId);
             setSelectedUser((currentUser) =>
               addRevokedPermission(
                 {
@@ -520,6 +626,7 @@ export default function UserPermission() {
         const updatedUser = res.data?.user;
 
         if (updatedUser) {
+          removeStoredRevokedPermissionId(selectedUser.id, permissionId);
           const nextUser = removeRevokedPermission(updatedUser, permissionId);
 
           selectUser(nextUser);
@@ -529,6 +636,7 @@ export default function UserPermission() {
             ),
           );
         } else {
+          removeStoredRevokedPermissionId(selectedUser.id, permissionId);
           setUserPerms((prev) => [...new Set([...prev, permissionKey])]);
 
           if (permission) {
@@ -571,6 +679,7 @@ export default function UserPermission() {
         setSelectedUser((currentUser) =>
           currentUser ? addRevokedPermission(currentUser, permission) : currentUser,
         );
+        addStoredRevokedPermissionId(selectedUser.id, permissionId);
         setUsers((prev) =>
           prev.map((user) =>
             user.id === selectedUser.id
