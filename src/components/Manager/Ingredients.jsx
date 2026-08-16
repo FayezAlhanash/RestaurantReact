@@ -44,8 +44,10 @@ export default function Ingredients() {
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [isFoodPickerOpen, setIsFoodPickerOpen] = useState(false);
   const [isIngredientPickerOpen, setIsIngredientPickerOpen] = useState(false);
+  const [ingredientPickerSearch, setIngredientPickerSearch] = useState("");
   const [pendingQuantityEdits, setPendingQuantityEdits] = useState({});
-  const [pendingDeleteIngredientId, setPendingDeleteIngredientId] = useState("");
+  const [pendingDeleteIngredientId, setPendingDeleteIngredientId] =
+    useState("");
 
   const fetchIngredients = async () => {
     try {
@@ -81,7 +83,7 @@ export default function Ingredients() {
       setLoadingRecipe(true);
       const restaurantId = await ensureManagerRestaurantId();
       const res = await api.get(
-        `/restaurants/${restaurantId}/foods/${foodId}/ingredients`
+        `/restaurants/${restaurantId}/foods/${foodId}/ingredients`,
       );
 
       setFoodIngredients(getResponseList(res.data, ["ingredients"]));
@@ -103,6 +105,7 @@ export default function Ingredients() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFoodIngredients(selectedFoodId);
     setSelectedIngredientId("");
+    setIngredientPickerSearch("");
     setRecipeQuantity("");
     setPendingQuantityEdits({});
     setPendingDeleteIngredientId("");
@@ -112,7 +115,12 @@ export default function Ingredients() {
   const handleSaveRecipeIngredient = async () => {
     if (!canManageRecipes) return;
 
-    if (!selectedFoodId || !selectedIngredientId || !recipeQuantity || isSavingRecipe) {
+    if (
+      !selectedFoodId ||
+      !selectedIngredientId ||
+      !recipeQuantity ||
+      isSavingRecipe
+    ) {
       return;
     }
 
@@ -120,13 +128,14 @@ export default function Ingredients() {
       setIsSavingRecipe(true);
       const restaurantId = await ensureManagerRestaurantId();
       const isLinked = foodIngredients.some(
-        (item) => String(getFoodIngredientId(item)) === String(selectedIngredientId)
+        (item) =>
+          String(getFoodIngredientId(item)) === String(selectedIngredientId),
       );
 
       if (isLinked) {
         await api.patch(
           `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${selectedIngredientId}`,
-          { quantity: Number(recipeQuantity) }
+          { quantity: Number(recipeQuantity) },
         );
       } else {
         const formData = new FormData();
@@ -136,7 +145,7 @@ export default function Ingredients() {
 
         await api.post(
           `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients`,
-          formData
+          formData,
         );
       }
 
@@ -160,7 +169,7 @@ export default function Ingredients() {
 
       await api.patch(
         `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${ingredientId}`,
-        { quantity: Number(quantity || 0) }
+        { quantity: Number(quantity || 0) },
       );
       await fetchFoodIngredients();
       setPendingQuantityEdits((current) => {
@@ -180,7 +189,7 @@ export default function Ingredients() {
       const restaurantId = await ensureManagerRestaurantId();
 
       await api.delete(
-        `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${ingredientId}`
+        `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${ingredientId}`,
       );
       await fetchFoodIngredients();
       setPendingDeleteIngredientId("");
@@ -195,12 +204,14 @@ export default function Ingredients() {
   };
 
   const normalizedSearch = search.trim().toLowerCase();
-  const selectedFood = foods.find((food) => String(food.id) === String(selectedFoodId));
+  const selectedFood = foods.find(
+    (food) => String(food.id) === String(selectedFoodId),
+  );
   const selectedIngredient = ingredients.find(
-    (ingredient) => String(ingredient.id) === String(selectedIngredientId)
+    (ingredient) => String(ingredient.id) === String(selectedIngredientId),
   );
   const recipeIngredientIds = new Set(
-    foodIngredients.map((item) => String(getFoodIngredientId(item)))
+    foodIngredients.map((item) => String(getFoodIngredientId(item))),
   );
   const filteredFoods = useMemo(() => {
     if (!normalizedSearch) return foods;
@@ -208,9 +219,27 @@ export default function Ingredients() {
     return foods.filter((food) =>
       [food.name, food.category?.name]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch))
+        .some((value) =>
+          String(value).toLowerCase().includes(normalizedSearch),
+        ),
     );
   }, [foods, normalizedSearch]);
+  const normalizedIngredientPickerSearch = ingredientPickerSearch
+    .trim()
+    .toLowerCase();
+  const filteredIngredients = useMemo(() => {
+    if (!normalizedIngredientPickerSearch) return ingredients;
+
+    return ingredients.filter((ingredient) =>
+      [ingredient.name, ingredient.unit]
+        .filter(Boolean)
+        .some((value) =>
+          String(value)
+            .toLowerCase()
+            .includes(normalizedIngredientPickerSearch),
+        ),
+    );
+  }, [ingredients, normalizedIngredientPickerSearch]);
 
   const fieldClass =
     "w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3.5 text-sm font-bold text-white outline-none transition duration-200 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10";
@@ -233,15 +262,17 @@ export default function Ingredients() {
                 Link ingredients to foods
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-                Select a food item to view its ingredients. Recipe changes require
-                manage_recipes permission.
+                Select a food item to view its ingredients. Recipe changes
+                require manage_recipes permission.
               </p>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
             <div className="rounded-2xl border border-sky-400/35 bg-sky-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Foods</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">
+                Foods
+              </p>
               <strong className="mt-2 block text-3xl font-black text-white">
                 {foods.length}
               </strong>
@@ -258,17 +289,15 @@ export default function Ingredients() {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[420px_1fr]">
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(31,43,46,0.94),rgba(19,28,31,0.9))] shadow-[0_22px_55px_rgba(0,0,0,0.25)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+      <section className="grid items-start gap-4 xl:grid-cols-[420px_1fr]">
+        <div className="relative z-20 rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(31,43,46,0.94),rgba(19,28,31,0.9))] shadow-[0_22px_55px_rgba(0,0,0,0.25)] ring-1 ring-white/[0.04] backdrop-blur-sm">
           <div className="border-b border-white/[0.08] bg-[radial-gradient(circle_at_92%_0%,rgba(127,29,29,0.18),transparent_34%),rgba(255,255,255,0.03)] p-5">
             <div className="flex items-center gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/12 text-[#7F1D1D]">
                 <UtensilsCrossed size={21} />
               </div>
               <div>
-                <p className="text-sm font-bold text-white/45">
-                  Recipe setup
-                </p>
+                <p className="text-sm font-bold text-white/45">Recipe setup</p>
                 <h2 className="text-xl font-black text-white">
                   Attach existing ingredient
                 </h2>
@@ -284,10 +313,12 @@ export default function Ingredients() {
                     <AlertTriangle size={22} />
                   </span>
                   <div>
-                    <p className="text-lg font-black text-[#FFD166]">View only mode</p>
+                    <p className="text-lg font-black text-[#FFD166]">
+                      View only mode
+                    </p>
                     <p className="mt-1.5 text-sm font-extrabold leading-6 text-white/70">
-                      You can view recipes, but you do not have permission to add or
-                      update ingredients.
+                      You can view recipes, but you do not have permission to
+                      add or update ingredients.
                     </p>
                   </div>
                 </div>
@@ -309,7 +340,10 @@ export default function Ingredients() {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setIsFoodPickerOpen((value) => !value)}
+                  onClick={() => {
+                    setIsIngredientPickerOpen(false);
+                    setIsFoodPickerOpen((value) => !value);
+                  }}
                   className={`${pickerButtonClass} ${
                     isFoodPickerOpen
                       ? "border-[#FFD166]/65 ring-4 ring-[#FFD166]/10"
@@ -319,7 +353,9 @@ export default function Ingredients() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-white">
                       {selectedFood?.name ||
-                        (filteredFoods.length ? "Select food" : "No foods found")}
+                        (filteredFoods.length
+                          ? "Select food"
+                          : "No foods found")}
                     </p>
                     <p className="mt-1 text-xs font-bold text-white/35">
                       {filteredFoods.length} foods available
@@ -338,7 +374,8 @@ export default function Ingredients() {
                     <div className="cashier-scroll max-h-72 overflow-y-auto p-2">
                       {filteredFoods.length ? (
                         filteredFoods.map((food) => {
-                          const isSelected = String(food.id) === String(selectedFoodId);
+                          const isSelected =
+                            String(food.id) === String(selectedFoodId);
 
                           return (
                             <button
@@ -365,7 +402,10 @@ export default function Ingredients() {
                                 )}
                               </div>
                               {isSelected && (
-                                <Check size={17} className="shrink-0 text-[#FFD166]" />
+                                <Check
+                                  size={17}
+                                  className="shrink-0 text-[#FFD166]"
+                                />
                               )}
                             </button>
                           );
@@ -390,6 +430,7 @@ export default function Ingredients() {
                   type="button"
                   onClick={() => {
                     if (!selectedFoodId || !canManageRecipes) return;
+                    setIsFoodPickerOpen(false);
                     setIsIngredientPickerOpen((value) => !value);
                   }}
                   disabled={!selectedFoodId || !canManageRecipes}
@@ -421,46 +462,78 @@ export default function Ingredients() {
                 </button>
 
                 {isIngredientPickerOpen && (
-                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-[22px] border border-[#3A4448] bg-[#0D1214] shadow-[0_24px_56px_rgba(0,0,0,0.45)]">
-                    <div className="cashier-scroll max-h-72 overflow-y-auto p-2">
-                      {ingredients.map((ingredient) => {
-                        const isSelected =
-                          String(ingredient.id) === String(selectedIngredientId);
-                        const isLinked = recipeIngredientIds.has(String(ingredient.id));
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-[22px] border border-[#3A4448] bg-[#0D1214] shadow-[0_30px_70px_rgba(0,0,0,0.58)]">
+                    <div className="border-b border-white/[0.08] bg-white/[0.03] p-3">
+                      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 focus-within:border-[#FFD166]/55 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
+                        <Search size={16} className="shrink-0 text-[#FFD166]" />
+                        <input
+                          type="search"
+                          value={ingredientPickerSearch}
+                          onChange={(event) =>
+                            setIngredientPickerSearch(event.target.value)
+                          }
+                          placeholder="Search ingredients"
+                          className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/32"
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between px-1 text-xs font-black uppercase tracking-[0.12em] text-white/38">
+                        <span>{filteredIngredients.length} shown</span>
+                        <span>{ingredients.length} total</span>
+                      </div>
+                    </div>
 
-                        return (
-                          <button
-                            key={ingredient.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedIngredientId(ingredient.id);
-                              setIsIngredientPickerOpen(false);
-                            }}
-                            className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition ${
-                              isSelected
-                                ? "bg-[#FFD166]/14 text-[#FFD166]"
-                                : "text-white hover:bg-white/[0.06]"
-                            }`}
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-black">
-                                {ingredient.name}
-                              </p>
-                              <p className="mt-0.5 text-xs font-bold text-white/35">
-                                {ingredient.current_quantity ?? 0} {ingredient.unit}
-                              </p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              {isLinked && (
-                                <span className="rounded-full border border-emerald-400/35 bg-emerald-400/10 px-2 py-1 text-[11px] font-black uppercase text-emerald-300">
-                                  Linked
-                                </span>
-                              )}
-                              {isSelected && <Check size={17} className="text-[#FFD166]" />}
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="cashier-scroll max-h-[min(52vh,26rem)] overflow-y-auto p-2">
+                      {filteredIngredients.length ? (
+                        filteredIngredients.map((ingredient) => {
+                          const isSelected =
+                            String(ingredient.id) ===
+                            String(selectedIngredientId);
+                          const isLinked = recipeIngredientIds.has(
+                            String(ingredient.id),
+                          );
+
+                          return (
+                            <button
+                              key={ingredient.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedIngredientId(ingredient.id);
+                                setIsIngredientPickerOpen(false);
+                                setIngredientPickerSearch("");
+                              }}
+                              className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3.5 text-left transition ${
+                                isSelected
+                                  ? "bg-[#FFD166]/14 text-[#FFD166]"
+                                  : "text-white hover:bg-white/[0.06]"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-black">
+                                  {ingredient.name}
+                                </p>
+                                <p className="mt-0.5 text-xs font-bold text-white/35">
+                                  {ingredient.current_quantity ?? 0}{" "}
+                                  {ingredient.unit}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                {isLinked && (
+                                  <span className="rounded-full border border-emerald-400/35 bg-emerald-400/10 px-2 py-1 text-[11px] font-black uppercase text-emerald-300">
+                                    Linked
+                                  </span>
+                                )}
+                                {isSelected && (
+                                  <Check size={17} className="text-[#FFD166]" />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="px-3 py-8 text-center text-sm font-bold text-white/40">
+                          No ingredients found
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -477,7 +550,9 @@ export default function Ingredients() {
                 step="0.01"
                 value={recipeQuantity}
                 onChange={(event) =>
-                  setRecipeQuantity(toNonNegativeNumberValue(event.target.value))
+                  setRecipeQuantity(
+                    toNonNegativeNumberValue(event.target.value),
+                  )
                 }
                 disabled={!selectedFoodId || !canManageRecipes}
                 className={`${fieldClass} disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-white/30`}
@@ -546,7 +621,9 @@ export default function Ingredients() {
                           <Link size={24} />
                         </div>
                         <h3 className="mt-4 text-2xl font-black text-white">
-                          {selectedFoodId ? "No ingredients linked" : "Select a food"}
+                          {selectedFoodId
+                            ? "No ingredients linked"
+                            : "Select a food"}
                         </h3>
                         <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/50">
                           {selectedFoodId
@@ -577,19 +654,24 @@ export default function Ingredients() {
                 ) : (
                   foodIngredients.map((ingredient) => {
                     const ingredientId = getFoodIngredientId(ingredient);
-                    const currentQuantity = getFoodIngredientQuantity(ingredient);
+                    const currentQuantity =
+                      getFoodIngredientQuantity(ingredient);
                     const pendingQuantity = pendingQuantityEdits[ingredientId];
                     const shownQuantity =
-                      pendingQuantity === undefined ? currentQuantity : pendingQuantity;
+                      pendingQuantity === undefined
+                        ? currentQuantity
+                        : pendingQuantity;
                     const hasPendingQuantityEdit =
                       pendingQuantity !== undefined &&
                       String(pendingQuantity) !== String(currentQuantity);
                     const isDeletePending =
-                      String(pendingDeleteIngredientId) === String(ingredientId);
+                      String(pendingDeleteIngredientId) ===
+                      String(ingredientId);
                     const unit =
                       ingredient.unit ??
-                      ingredients.find((item) => String(item.id) === String(ingredientId))
-                        ?.unit ??
+                      ingredients.find(
+                        (item) => String(item.id) === String(ingredientId),
+                      )?.unit ??
                       "-";
 
                     return (
@@ -615,7 +697,7 @@ export default function Ingredients() {
                               setPendingQuantityEdits((current) => ({
                                 ...current,
                                 [ingredientId]: toNonNegativeNumberValue(
-                                  event.target.value
+                                  event.target.value,
                                 ),
                               }))
                             }
@@ -636,7 +718,10 @@ export default function Ingredients() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  handleEditRecipeQuantity(ingredientId, pendingQuantity)
+                                  handleEditRecipeQuantity(
+                                    ingredientId,
+                                    pendingQuantity,
+                                  )
                                 }
                                 disabled={!canManageRecipes}
                                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-400/12 px-3 text-xs font-black text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-35"
@@ -649,7 +734,9 @@ export default function Ingredients() {
                               <>
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteRecipeIngredient(ingredientId)}
+                                  onClick={() =>
+                                    handleDeleteRecipeIngredient(ingredientId)
+                                  }
                                   disabled={!canManageRecipes}
                                   className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#FF6B6B]/45 bg-[#7F1D1D]/24 px-3 text-xs font-black text-[#FFB3B3] transition hover:bg-[#7F1D1D]/38 disabled:cursor-not-allowed disabled:opacity-35"
                                 >
@@ -658,7 +745,9 @@ export default function Ingredients() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => setPendingDeleteIngredientId("")}
+                                  onClick={() =>
+                                    setPendingDeleteIngredientId("")
+                                  }
                                   className="h-10 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-xs font-black text-white/65 transition hover:bg-white/10 hover:text-white"
                                 >
                                   Cancel
@@ -668,7 +757,11 @@ export default function Ingredients() {
                               <button
                                 type="button"
                                 title="Remove from food"
-                                onClick={() => setPendingDeleteIngredientId(String(ingredientId))}
+                                onClick={() =>
+                                  setPendingDeleteIngredientId(
+                                    String(ingredientId),
+                                  )
+                                }
                                 disabled={!canManageRecipes}
                                 className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/10 text-[#7F1D1D] transition duration-200 hover:scale-110 hover:border-[#7F1D1D]/65 hover:bg-[#7F1D1D]/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:scale-100"
                               >
