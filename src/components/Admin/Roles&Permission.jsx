@@ -53,6 +53,10 @@ const getLoginIdentifier = (user) =>
   user?.email || user?.username || user?.login || user?.phone || user?.name || "";
 
 const LOCKED_PERMISSION_KEYS = ["manage_roles", "manage_permissions"];
+const ADMIN_SHIFT_PERMISSION_KEYS = [
+  "manage_employee_shifts",
+  "manage_global_employee_shifts",
+];
 
 const getUniquePermissions = (roles = []) => {
   const seen = new Set();
@@ -85,6 +89,13 @@ const isAdminRoleName = (name) =>
   String(name ?? "")
     .trim()
     .toLowerCase() === "admin";
+
+const normalizePermissionKey = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 
 export default function RolesPermission() {
   const { isLight } = useTheme();
@@ -534,6 +545,11 @@ export default function RolesPermission() {
     const isLockedPermission = LOCKED_PERMISSION_KEYS.includes(
       selectedPermissionKey
     );
+    const isAdminShiftPermission =
+      isAdminRole(selectedRole) &&
+      ADMIN_SHIFT_PERMISSION_KEYS.includes(
+        normalizePermissionKey(selectedPermissionKey)
+      );
 
     if (hasPermission && isLockedPermission) {
       setPermissionError(
@@ -546,6 +562,49 @@ export default function RolesPermission() {
     setUpdatingPermissionId(permissionId);
 
     try {
+      if (isAdminShiftPermission) {
+        const shiftPermissions = ADMIN_SHIFT_PERMISSION_KEYS.map((key) =>
+          permissionCatalog.find(
+            (item) => normalizePermissionKey(getPermissionKey(item)) === key
+          )
+        ).filter(Boolean);
+
+        if (shiftPermissions.length !== ADMIN_SHIFT_PERMISSION_KEYS.length) {
+          setPermissionError("Could not find both employee shift permissions.");
+          return;
+        }
+
+        if (hasPermission) {
+          await Promise.all(
+            shiftPermissions
+              .filter((item) => rolePermissions.includes(String(item.id)))
+              .map((item) =>
+                api.delete(`/admin/roles/${selectedRole.id}/permissions`, {
+                  data: { permission_id: item.id },
+                })
+              )
+          );
+        } else {
+          await Promise.all(
+            shiftPermissions
+              .filter((item) => !rolePermissions.includes(String(item.id)))
+              .map((item) => {
+                const formData = new FormData();
+                formData.append("permission_id", item.id);
+
+                return api.post(
+                  `/admin/roles/${selectedRole.id}/permissions`,
+                  formData
+                );
+              })
+          );
+        }
+
+        await refreshCurrentUserPermissions();
+        await fetchRoles();
+        return;
+      }
+
       if (hasPermission) {
       if (
         selectedPermissionKey === "monitor_inventory" &&

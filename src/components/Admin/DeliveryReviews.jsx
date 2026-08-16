@@ -162,31 +162,9 @@ function DeliveryReviews() {
         setErrorMessage("");
 
         try {
-            const [staffResponse, rolesResponse] = await Promise.allSettled([
-                api.get("/admin/staff-users"),
-                api.get("/admin/roles"),
-            ]);
-            const roles =
-                rolesResponse.status === "fulfilled"
-                    ? getList(rolesResponse.value.data, "roles")
-                    : [];
-            const roleById = new Map(
-                roles.map((role) => [String(role.id), role.name || role.key || ""])
-            );
-            const staff =
-                staffResponse.status === "fulfilled"
-                    ? getList(staffResponse.value.data, "users")
-                    : [];
+            const response = await api.get("/delivery-reviews/drivers");
             const currentUser = getStoredUser();
-            const deliveryDrivers = staff
-                .map((user) => ({
-                    ...user,
-                    role: user.role || {
-                        id: user.role_id,
-                        name: roleById.get(String(user.role_id)),
-                    },
-                }))
-                .filter(isDeliveryDriver);
+            const deliveryDrivers = getList(response.data, "drivers");
             const currentUserIsDriver =
                 currentUser && isDeliveryDriver(currentUser)
                     ? [currentUser]

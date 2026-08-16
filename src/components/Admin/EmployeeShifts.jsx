@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
+import { canAny } from "../../utils/permissions";
 import { ensureCurrentRestaurantId } from "../../utils/restaurant";
 
 const WEEK_DAYS = [
@@ -87,6 +88,15 @@ function getRoleName(employee) {
     return employee?.role?.name || employee?.role_name || "Staff";
 }
 
+function getRestaurantOptionName(restaurant) {
+    return (
+        restaurant?.name ||
+        restaurant?.restaurant_name ||
+        restaurant?.restaurantName ||
+        `Restaurant #${restaurant?.id ?? ""}`
+    );
+}
+
 function getEmployeeRestaurantId(employee) {
     return (
         employee?.restaurant_id ??
@@ -107,6 +117,21 @@ function getEmployeeApiId(employee) {
         employee?.employee?.id ??
         employee?.staff?.id ??
         employee?.id
+    );
+}
+
+function filterEmployeesByRestaurant(employees = [], restaurantId) {
+    return employees.filter(
+        (employee) =>
+            String(getEmployeeRestaurantId(employee)) === String(restaurantId)
+    );
+}
+
+function employeeIncludesShifts(employee) {
+    return (
+        Object.prototype.hasOwnProperty.call(employee ?? {}, "shifts") ||
+        Object.prototype.hasOwnProperty.call(employee ?? {}, "employee_shifts") ||
+        Object.prototype.hasOwnProperty.call(employee ?? {}, "employeeShifts")
     );
 }
 
@@ -167,6 +192,11 @@ function EmployeeShifts() {
 
         return Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
     });
+    const [hasGlobalShiftAccess] = useState(() =>
+        canAny(["manage_global_employee_shifts", "Manage Global Employee Shifts"])
+    );
+    const [restaurants, setRestaurants] = useState([]);
+    const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
     const [employees, setEmployees] = useState([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
     const [selectedDays, setSelectedDays] = useState(["monday"]);
@@ -227,54 +257,80 @@ function EmployeeShifts() {
         );
     }, [employees, searchQuery]);
 
+    const loadEmployees = async () => {
+        setIsLoading(true);
+        setErrorMessage("");
+        setSelectedEmployeeId("");
+        setEmployeeShifts([]);
+
+        try {
+            if (hasGlobalShiftAccess) {
+                const response = await api.get(
+                    "/employee-shifts/global-employees-with-shifts"
+                );
+
+                setEmployees(getList(response.data, "data"));
+                return;
+            }
+
+            const restaurantId = isAdmin
+                ? selectedRestaurantId
+                : await ensureCurrentRestaurantId();
+
+            if (!restaurantId) {
+                setEmployees([]);
+                if (!isAdmin) {
+                    setErrorMessage("This account is not linked to a restaurant.");
+                }
+                return;
+            }
+
+            const response = await api.get(
+                isAdmin
+                    ? "/employee-shifts/global-employees-with-shifts"
+                    : "/employee-shifts/employees-with-shifts"
+            );
+            const employeeList = getList(response.data, "data");
+
+            setEmployees(
+                isAdmin
+                    ? filterEmployeesByRestaurant(employeeList, restaurantId)
+                    : employeeList
+            );
+        } catch (error) {
+            setErrorMessage(
+                error.response?.data?.message || "Could not load employees."
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         document.querySelector(".app-content")?.scrollTo({ top: 0, left: 0 });
     }, []);
 
     useEffect(() => {
-        const fetchEmployees = async () => {
-            setIsLoading(true);
-            setErrorMessage("");
+        if (!isAdmin || hasGlobalShiftAccess) return;
 
+        const loadRestaurants = async () => {
             try {
-                if (isAdmin) {
-                    const response = await api.get("/admin/staff-users");
-                    setEmployees(getList(response.data, "users"));
-                    return;
-                }
+                const response = await api.get("/restaurants");
 
-                const restaurantId = await ensureCurrentRestaurantId();
-
-                if (!restaurantId) {
-                    setEmployees([]);
-                    setErrorMessage("This manager account is not linked to a restaurant.");
-                    return;
-                }
-
-                const response = await api.get(`/restaurants/${restaurantId}/staff`);
-                const staffList = getList(response.data, "staff");
-                const hasRestaurantScope = staffList.some(
-                    (employee) => getEmployeeRestaurantId(employee) != null
-                );
-                const scopedStaff = hasRestaurantScope
-                    ? staffList.filter(
-                          (employee) =>
-                              String(getEmployeeRestaurantId(employee)) === String(restaurantId)
-                      )
-                    : staffList;
-
-                setEmployees(scopedStaff);
+                setRestaurants(getList(response.data, "restaurants"));
             } catch (error) {
                 setErrorMessage(
-                    error.response?.data?.message || "Could not load employees."
+                    error.response?.data?.message || "Could not load restaurants."
                 );
-            } finally {
-                setIsLoading(false);
             }
         };
 
-        fetchEmployees();
-    }, [isAdmin]);
+        loadRestaurants();
+    }, [hasGlobalShiftAccess, isAdmin]);
+
+    useEffect(() => {
+        loadEmployees();
+    }, [hasGlobalShiftAccess, isAdmin, selectedRestaurantId]);
 
     const getShiftList = (data) => {
         const collectShiftLists = (node, depth = 0) => {
@@ -290,11 +346,15 @@ function EmployeeShifts() {
             const found = [];
 
             for (const [key, value] of Object.entries(node)) {
-                const normalizedKey = key.toLowerCase();
+                const normalizedKey = key
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "_")
+                    .replace(/^_+|_+$/g, "");
 
                 if (
                     normalizedKey === "shifts" ||
-                    normalizedKey === "employee_shifts"
+                    normalizedKey === "employee_shifts" ||
+                    normalizedKey === "employeeshifts"
                 ) {
                     found.push(...toShiftArray(value));
                     continue;
@@ -312,10 +372,11 @@ function EmployeeShifts() {
         return [
             ...toShiftArray(getList(data, "shifts")),
             ...toShiftArray(getList(data, "employee_shifts")),
+            ...toShiftArray(getList(data, "employeeShifts")),
         ];
     };
 
-    const fetchEmployeeShifts = async (employeeId) => {
+    const fetchEmployeeShifts = async (employeeId, { preferEmbedded = true } = {}) => {
         if (!employeeId) {
             setEmployeeShifts([]);
             return;
@@ -325,6 +386,23 @@ function EmployeeShifts() {
         setEmployeeShifts([]);
 
         try {
+            const employee = employees.find(
+                (item) => String(getEmployeeApiId(item)) === String(employeeId)
+            );
+
+            if (preferEmbedded && employeeIncludesShifts(employee)) {
+                const shifts = getShiftList(employee);
+                const shiftDays = new Set(
+                    shifts.map((shift) => normalizeDay(getShiftDay(shift))).filter(Boolean)
+                );
+
+                setEmployeeShifts(shifts);
+                setSelectedDays((currentDays) =>
+                    currentDays.filter((day) => !shiftDays.has(day))
+                );
+                return;
+            }
+
             const response = await api.get(`/employees/${employeeId}/shifts`);
             const shifts = getShiftList(response.data);
             const shiftDays = new Set(
@@ -387,7 +465,7 @@ function EmployeeShifts() {
             await api.post(`/employees/${selectedEmployeeId}/shifts/${shiftId}`, formData);
             setSuccessMessage(`${getShiftDay(shift)} shift updated.`);
             cancelEditShift();
-            fetchEmployeeShifts(selectedEmployeeId);
+            fetchEmployeeShifts(selectedEmployeeId, { preferEmbedded: false });
         } catch (error) {
             setErrorMessage(getErrorMessage(error));
         } finally {
@@ -423,7 +501,7 @@ function EmployeeShifts() {
             await api.delete(`/employees/${selectedEmployeeId}/shifts/${shiftId}`);
             setSuccessMessage(`${getShiftDay(shift)} shift deleted.`);
             setPendingDeleteShiftId("");
-            fetchEmployeeShifts(selectedEmployeeId);
+            fetchEmployeeShifts(selectedEmployeeId, { preferEmbedded: false });
         } catch (error) {
             setErrorMessage(getErrorMessage(error));
         } finally {
@@ -518,7 +596,7 @@ function EmployeeShifts() {
             setSuccessMessage(
                 `${selectedDays.length} shift${selectedDays.length > 1 ? "s" : ""} created for ${getEmployeeName(selectedEmployee)}.`
             );
-            fetchEmployeeShifts(selectedEmployeeId);
+            fetchEmployeeShifts(selectedEmployeeId, { preferEmbedded: false });
         } catch (error) {
             setErrorMessage(getErrorMessage(error));
         } finally {
@@ -567,6 +645,7 @@ function EmployeeShifts() {
         ? "bg-[#8C1D18] shadow-[0_16px_34px_rgba(140,29,24,0.24)] hover:bg-[#731A17]"
         : "border border-red-300/24 bg-red-300/[0.16] shadow-[0_16px_34px_rgba(248,113,113,0.12)] hover:bg-red-300/[0.24]";
     const dangerTopBorderColor = isLight ? "#8C1D18" : "#FCA5A5";
+    const shouldShowRestaurantFilter = isAdmin && !hasGlobalShiftAccess;
 
     return (
         <div className={`min-h-full space-y-6 p-4 sm:p-6 lg:p-8 ${pageSurface}`}>
@@ -631,6 +710,21 @@ function EmployeeShifts() {
                                 className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
                             />
                         </div>
+
+                        {shouldShowRestaurantFilter && (
+                            <select
+                                value={selectedRestaurantId}
+                                onChange={(event) => setSelectedRestaurantId(event.target.value)}
+                                className={`mt-3 w-full rounded-2xl border px-3 py-2.5 text-sm font-black outline-none shadow-inner ${inputSurface}`}
+                            >
+                                <option value="">Choose restaurant</option>
+                                {restaurants.map((restaurant) => (
+                                    <option key={restaurant.id} value={restaurant.id}>
+                                        {getRestaurantOptionName(restaurant)}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <div className="admin-dashboard-scroll min-h-[420px] max-h-[520px] space-y-2 overflow-y-auto p-3">
@@ -702,7 +796,9 @@ function EmployeeShifts() {
                             })
                         ) : (
                             <div className={`rounded-2xl border border-dashed p-6 text-center text-sm font-semibold ${emptySurface}`}>
-                                No employees found.
+                                {shouldShowRestaurantFilter && !selectedRestaurantId
+                                    ? "Choose a restaurant first."
+                                    : "No employees found."}
                             </div>
                         )}
                     </div>

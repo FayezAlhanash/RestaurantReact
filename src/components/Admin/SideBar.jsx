@@ -56,13 +56,31 @@ function getRestaurantLabel(user) {
 }
 
 function getRestaurantId(user) {
-    return (
+    const directRestaurantId =
         user?.restaurant_id ??
         user?.restaurant?.id ??
         user?.manager?.restaurant_id ??
         user?.manager?.restaurant?.id ??
         user?.employee?.restaurant_id ??
-        user?.employee?.restaurant?.id ??
+        user?.employee?.restaurant?.id;
+
+    if (directRestaurantId) return directRestaurantId;
+
+    const permissionRestaurant = [
+        ...(Array.isArray(user?.user_permissions) ? user.user_permissions : []),
+        ...(Array.isArray(user?.userPermissions) ? user.userPermissions : []),
+        ...(Array.isArray(user?.permissions) ? user.permissions : []),
+    ].find(
+        (permission) =>
+            permission?.pivot?.restaurant_id ||
+            permission?.restaurant_id ||
+            permission?.restaurant?.id
+    );
+
+    return (
+        permissionRestaurant?.pivot?.restaurant_id ??
+        permissionRestaurant?.restaurant_id ??
+        permissionRestaurant?.restaurant?.id ??
         null
     );
 }
@@ -89,6 +107,7 @@ function SideBar({
     );
     const isAdmin = Number(sessionUser?.role_id ?? sessionUser?.role?.id) === ROLE_IDS.ADMIN;
     const isManager = Number(sessionUser?.role_id ?? sessionUser?.role?.id) === ROLE_IDS.MANAGER;
+    const restaurantId = getRestaurantId(sessionUser);
     const roleName = sessionUser?.role?.name || "Workspace";
     const restaurantLabel = restaurantName || getRestaurantLabel(sessionUser);
     const workspaceLabel = restaurantLabel
@@ -156,7 +175,10 @@ function SideBar({
                 "Manage Employee Shifts",
                 "manage_global_employee_shifts",
                 "Manage Global Employee Shifts",
-                "manage_users",
+            ],
+            restaurantScopedPermissions: [
+                "manage_employee_shifts",
+                "Manage Employee Shifts",
             ],
         },
         {
@@ -360,10 +382,26 @@ function SideBar({
         requiredPermissions.some((permission) =>
             hasPermission(assignedPermissions, permission)
         );
-    const canShowMenuItem = (item) =>
-        (!item.adminOnly || isAdmin) &&
-        (!item.managerOnly || isManager) &&
-        (canShow(item.permissions) || isAssigned(item.permissions));
+    const canShowMenuItem = (item) => {
+        const restaurantScopedPermissions = item.restaurantScopedPermissions || [];
+        const availablePermissions = restaurantId || isAdmin
+            ? item.permissions
+            : item.permissions?.filter(
+                  (permission) =>
+                      !restaurantScopedPermissions.some(
+                          (scopedPermission) =>
+                              normalizePermissionKey(scopedPermission) ===
+                              normalizePermissionKey(permission)
+                      )
+              );
+
+        return (
+            (!item.adminOnly || isAdmin) &&
+            (!item.managerOnly || isManager) &&
+            (!item.requiresRestaurant || restaurantId) &&
+            (canShow(availablePermissions) || isAssigned(availablePermissions))
+        );
+    };
     const isBlockedByAdmin = (item) =>
         item.permissions?.length &&
         !canShow(item.permissions) &&

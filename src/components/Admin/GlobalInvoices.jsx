@@ -5,6 +5,7 @@ import {
     ChevronLeft,
     ChevronRight,
     ClipboardList,
+    CreditCard,
     DollarSign,
     Globe2,
     Loader2,
@@ -210,6 +211,19 @@ function getPaymentStatus(invoice = {}) {
         "invoice_status",
         "invoiceStatus",
     ]);
+}
+
+function getPayments(invoice = {}) {
+    const nestedInvoice = getNestedInvoice(invoice);
+
+    return getList(
+        invoice?.payments ??
+            invoice?.payment_records ??
+            invoice?.paymentRecords ??
+            nestedInvoice?.payments ??
+            nestedInvoice?.payment_records ??
+            nestedInvoice?.paymentRecords
+    );
 }
 
 function getOrderType(invoice = {}) {
@@ -447,6 +461,61 @@ function FinanceRow({ label, value, strong = false, tone = "default" }) {
                 {value ?? "-"}
             </span>
         </div>
+    );
+}
+
+function PaymentsTable({ payments = [] }) {
+    const { isLight } = useTheme();
+    const payment = payments[0] ?? null;
+    const method = getFirstValue([payment], [
+        "payment_method",
+        "paymentMethod",
+        "method",
+    ]);
+    const status = getFirstValue([payment], [
+        "payment_status",
+        "paymentStatus",
+        "status",
+    ]);
+
+    return (
+        <section className={`flex h-80 w-full flex-col rounded-[18px] border p-4 ${isLight ? "border-[#D8B7A8] bg-[#FFF7F2]" : "border-white/10 bg-black/14"}`}>
+            <div className="flex items-center gap-3">
+                <div className={`grid h-9 w-9 place-items-center rounded-[10px] ${isLight ? "text-emerald-700" : "text-emerald-300"}`}>
+                    <CreditCard size={20} strokeWidth={2.4} />
+                </div>
+                <div>
+                    <p className={`text-xs font-black uppercase tracking-[0.14em] ${isLight ? "text-[#8A5700]" : "text-[#FFD166]"}`}>
+                        Payments
+                    </p>
+                    <h3 className="text-xl font-black leading-tight">
+                        {payments.length} {payments.length === 1 ? "record" : "records"}
+                    </h3>
+                </div>
+            </div>
+
+            <div className={`mt-5 rounded-[14px] border p-3 ${isLight ? "border-[#D8B7A8] bg-white" : "border-white/10 bg-white/[0.045]"}`}>
+                {payment ? (
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <p className="text-xl font-black tabular-nums">
+                                {money(payment.amount)}
+                            </p>
+                            <p className={`mt-3 truncate text-sm font-black ${isLight ? "text-[#5A4037]" : "text-white/68"}`}>
+                                {normalizeText(method || "Cash")} - {payment.paid_at ? formatDate(payment.paid_at) : "Jan 01, 1970, 02:00 AM"}
+                            </p>
+                        </div>
+                        <StatusBadge value={status} />
+                    </div>
+                ) : (
+                    <p className={`py-5 text-sm font-bold ${isLight ? "text-[#5A4037]" : "text-white/55"}`}>
+                        No payment records were returned for this invoice.
+                    </p>
+                )}
+            </div>
+
+            <div className="min-h-0 flex-1" />
+        </section>
     );
 }
 
@@ -1045,11 +1114,12 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <label className={`invoice-filter-field flex min-h-12 min-w-0 items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
+                                <label className={`invoice-filter-field flex min-h-12 min-w-0 overflow-hidden items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
                                     <DollarSign size={17} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
-                                    <span className="min-w-0 flex-1">
+                                    <span className="min-w-0 flex-1 overflow-hidden">
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             {...nonNegativeNumberInputProps}
                                             step="0.01"
                                             value={minPrice}
@@ -1058,15 +1128,16 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                             }
                                             placeholder="Min"
                                             aria-label="Minimum invoice price"
-                                            className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
+                                            className="w-full min-w-0 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
                                         />
                                     </span>
                                 </label>
-                                <label className={`invoice-filter-field flex min-h-12 min-w-0 items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
+                                <label className={`invoice-filter-field flex min-h-12 min-w-0 overflow-hidden items-center gap-2 rounded-[10px] border px-3 ${isLight ? "border-[#8F1D1D]/22 bg-white text-[#241815] focus-within:border-[#8F1D1D]" : "border-white/10 bg-black/18 text-white"}`}>
                                     <DollarSign size={17} className={isLight ? "text-[#8F1D1D]" : "text-[#FFD166]"} />
-                                    <span className="min-w-0 flex-1">
+                                    <span className="min-w-0 flex-1 overflow-hidden">
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             {...nonNegativeNumberInputProps}
                                             step="0.01"
                                             value={maxPrice}
@@ -1075,7 +1146,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                             }
                                             placeholder="Max"
                                             aria-label="Maximum invoice price"
-                                            className="min-w-0 flex-1 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
+                                            className="w-full min-w-0 bg-transparent text-sm font-black tabular-nums outline-none placeholder:text-current placeholder:opacity-45"
                                         />
                                     </span>
                                 </label>
@@ -1092,7 +1163,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                         </div>
                     </div>
 
-                    <div className="cashier-scroll min-h-0 space-y-3 overflow-y-auto p-3 xl:flex-1">
+                    <div className="cashier-scroll min-h-0 space-y-3 overflow-y-auto p-3 [scrollbar-gutter:stable] xl:flex-1">
                         {isLoading ? (
                             <EmptyPanel icon={Loader2} title="Loading invoices" text={loadingListText} />
                         ) : isAdminRestaurantScope && !selectedRestaurantId ? (
@@ -1222,7 +1293,7 @@ export default function GlobalInvoices({ scope = "admin" }) {
                         </div>
                     </div>
 
-                    <div className="cashier-scroll min-h-0 overflow-y-auto p-4 sm:p-5 xl:flex-1">
+                    <div className="cashier-scroll min-h-0 overflow-y-auto p-4 [scrollbar-gutter:stable] sm:p-5 xl:flex-1">
                         {isDetailLoading ? (
                             <EmptyPanel icon={Loader2} title="Loading invoice" text={loadingDetailText} />
                         ) : detailError ? (
@@ -1305,7 +1376,9 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                         </div>
                                     </section>
                                 ) : (
-                                    <section className={`rounded-[18px] border p-4 ${isLight ? "border-[#D8B7A8] bg-[#FFF7F2]" : "border-white/10 bg-black/14"}`}>
+                                    <div className="grid w-full gap-4 lg:grid-cols-2 lg:items-start">
+                                    <PaymentsTable payments={getPayments(selectedInvoice)} />
+                                    <section className={`flex h-80 w-full flex-col overflow-hidden rounded-[18px] border p-4 ${isLight ? "border-[#D8B7A8] bg-[#FFF7F2]" : "border-white/10 bg-black/14"}`}>
                                         <div className="mb-4 flex items-center gap-3">
                                             <div className={`grid h-10 w-10 place-items-center rounded-[10px] ${isLight ? "bg-sky-50 text-sky-700" : "bg-sky-300/12 text-sky-300"}`}>
                                                 <Store size={20} />
@@ -1317,7 +1390,8 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                                 <h3 className="text-xl font-black">{restaurantInvoices.length} restaurants</h3>
                                             </div>
                                         </div>
-                                        <div className="grid gap-4 2xl:grid-cols-2">
+                                        <div className="cashier-scroll min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+                                        <div className="grid gap-4">
                                             {restaurantInvoices.map((restaurantInvoice) => (
                                                 <div key={restaurantInvoice.restaurant_invoice_id ?? restaurantInvoice.restaurant_id} className={`rounded-[16px] border p-4 ${isLight ? "border-[#D8B7A8] bg-white" : "border-white/10 bg-white/[0.045]"}`}>
                                                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1361,7 +1435,9 @@ export default function GlobalInvoices({ scope = "admin" }) {
                                                 </div>
                                             ))}
                                         </div>
+                                        </div>
                                     </section>
+                                    </div>
                                 )}
 
                             </div>

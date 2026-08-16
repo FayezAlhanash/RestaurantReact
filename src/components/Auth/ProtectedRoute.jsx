@@ -1,10 +1,13 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { getHomePath, getStoredToken, getStoredUser } from "../../utils/auth";
-import { canAny } from "../../utils/permissions";
+import { canAny, normalizePermissionKey } from "../../utils/permissions";
+import { getCurrentRestaurantId } from "../../utils/restaurant";
 
 export default function ProtectedRoute({
   allowedRoles = [],
   allowedPermissions = [],
+  requiresRestaurant = false,
+  restaurantScopedPermissions = [],
 }) {
   const token = getStoredToken();
   const user = getStoredUser();
@@ -32,6 +35,22 @@ export default function ProtectedRoute({
 
   if (!isAllowed) {
     return <Navigate to={getHomePath(roleId, user) || "/"} replace />;
+  }
+
+  if (requiresRestaurant && !getCurrentRestaurantId()) {
+    return <Navigate to={getHomePath(roleId, user) || "/"} replace />;
+  }
+
+  if (restaurantScopedPermissions.length && roleId !== 1 && !getCurrentRestaurantId()) {
+    const scopedPermissionKeys = restaurantScopedPermissions.map(normalizePermissionKey);
+    const unrestrictedPermissions = allowedPermissions.filter(
+      (permission) =>
+        !scopedPermissionKeys.includes(normalizePermissionKey(permission))
+    );
+
+    if (!unrestrictedPermissions.length || !canAny(unrestrictedPermissions)) {
+      return <Navigate to={getHomePath(roleId, user) || "/"} replace />;
+    }
   }
 
   return <Outlet />;

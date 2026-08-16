@@ -25,6 +25,10 @@ const RESTAURANT_ROLE_ALLOWED_ADMIN_KEYS = [
     "manage_tables",
 ];
 
+const RESTAURANT_REQUIRED_PERMISSION_KEYS = [
+    "manage_employee_shifts",
+];
+
 function getPermissionKey(permission = {}) {
     return permission.key ?? permission.slug ?? permission.code ?? permission.name;
 }
@@ -110,6 +114,9 @@ function userHasRestaurantId(user = {}) {
 function permissionNeedsRestaurant(permission = {}) {
     return (
         normalizePermissionKey(permission.scope) === "restaurant" ||
+        RESTAURANT_REQUIRED_PERMISSION_KEYS.includes(
+            normalizePermissionKey(getPermissionKey(permission))
+        ) ||
         Boolean(getPermissionRestaurantId(permission))
     );
 }
