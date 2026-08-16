@@ -128,6 +128,14 @@ function getReviewDate(review = {}) {
     });
 }
 
+function isCannotHandleDeliveriesError(error) {
+    const message = String(
+        error.response?.data?.message || error.response?.data?.error || ""
+    ).toLowerCase();
+
+    return message.includes("cannot handle deliveries");
+}
+
 function RatingStars({ value }) {
     const rating = Math.max(0, Math.min(5, Math.round(Number(value || 0))));
 
@@ -252,6 +260,10 @@ function DeliveryReviews() {
             setReviews(getList(response.data, "reviews"));
         } catch (error) {
             setReviews([]);
+            if (isCannotHandleDeliveriesError(error)) {
+                return;
+            }
+
             setErrorMessage(
                 error.response?.data?.message || "Delivery reviews could not be loaded."
             );
