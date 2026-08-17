@@ -417,15 +417,57 @@ export default function AddMenu() {
     }
   };
   const fetchIngredients = async () => {
-    try {
-      const restaurantId = await ensureManagerRestaurantId();
-      const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
+  try {
+    const restaurantId = await ensureManagerRestaurantId();
 
-      setIngredients(getResponseList(res.data, ["ingredients"]));
-    } catch (error) {
-      console.error(error.response?.data || error);
+    // Manager: عنده مطعم محدد
+    if (restaurantId) {
+      const res = await api.get(
+        `/restaurants/${restaurantId}/ingredients`
+      );
+
+      setIngredients(
+        getResponseList(res.data, ["ingredients"])
+      );
+
+      return;
     }
-  };
+
+    // إذا مش Admin وما في restaurant
+    if (!isAdmin) {
+      setIngredients([]);
+      return;
+    }
+
+    // Admin: جيب المطاعم كلها
+    const restaurants = await fetchRestaurantsForAdmin();
+
+    const responses = await Promise.allSettled(
+      restaurants.map((restaurant) =>
+        api.get(`/restaurants/${restaurant.id}/ingredients`)
+      )
+    );
+
+    const allIngredients = responses.flatMap((result, index) => {
+      if (result.status !== "fulfilled") {
+        console.error(
+          result.reason?.response?.data || result.reason
+        );
+        return [];
+      }
+
+      return withRestaurantContext(
+        getResponseList(result.value.data, ["ingredients"]),
+        restaurants[index]
+      );
+    });
+
+    setIngredients(allIngredients);
+  } catch (error) {
+    console.error(error.response?.data || error);
+    setIngredients([]);
+  }
+};
   const fetchModifierOptions = async () => {
     try {
       setModifierOptions(
