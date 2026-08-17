@@ -4,9 +4,8 @@ function getImageUrl(path) {
     if (!path) return "";
 
     if (path.startsWith("http")) {
-        return path.replace("https://", "http://");
+        return path;
     }
-
     return `http://46.101.112.67:8000/storage/${path}`;
 }
 
