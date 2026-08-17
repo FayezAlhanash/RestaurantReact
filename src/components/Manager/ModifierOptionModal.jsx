@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import { ListTree, Save, X } from "lucide-react";
 
-function ModifierOptionModal({ isOpen, onClose, onSave, option, groups, isSaving = false }) {
+function ModifierOptionModal({
+  isOpen,
+  onClose,
+  onSave,
+  option,
+  groups,
+  ingredients = [],
+  isSaving = false,
+}) {
   const [form, setForm] = useState({
     modifier_group_id: "",
     name: "",
+    ingredient_id: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const saving = isSaving || isSubmitting;
@@ -15,7 +24,11 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups, isSaving
       setForm({
         modifier_group_id:
           option?.modifier_group_id ?? option?.modifier_group?.id ?? "",
+
         name: option?.name ?? "",
+
+        ingredient_id:
+          option?.ingredient_id ?? option?.ingredient?.id ?? "",
       });
     }
   }, [isOpen, option]);
@@ -30,7 +43,10 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups, isSaving
     setIsSubmitting(true);
 
     try {
-      await onSave(form);
+      await onSave({
+        ...form,
+        ingredient_id: form.ingredient_id || null,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -111,7 +127,35 @@ function ModifierOptionModal({ isOpen, onClose, onSave, option, groups, isSaving
               disabled={saving}
             />
           </div>
+          <div>
+            <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+              Ingredient
+            </label>
 
+            <select
+              value={form.ingredient_id}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  ingredient_id: e.target.value,
+                }))
+              }
+              className={fieldClass}
+              disabled={saving}
+            >
+              <option value="">No ingredient</option>
+
+              {ingredients.map((ingredient) => (
+                <option key={ingredient.id} value={ingredient.id}>
+                  {ingredient.name}
+                </option>
+              ))}
+            </select>
+
+            <p className="mt-2 text-xs font-semibold text-white/35">
+              Optional. Link this option to an inventory ingredient.
+            </p>
+          </div>
           <div className="flex justify-end gap-3 border-t border-white/[0.08] pt-5">
             <button
               type="button"

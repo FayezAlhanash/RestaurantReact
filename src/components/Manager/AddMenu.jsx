@@ -175,22 +175,19 @@ function DeleteConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
-      <div className={`modal-panel-enter w-full max-w-md overflow-hidden rounded-3xl border shadow-[0_28px_70px_rgba(0,0,0,0.42)] ring-1 ${
-        isLight
+      <div className={`modal-panel-enter w-full max-w-md overflow-hidden rounded-3xl border shadow-[0_28px_70px_rgba(0,0,0,0.42)] ring-1 ${isLight
           ? "border-[#D8B7A8] bg-[#FFF9F2] text-[#241815] ring-white/70"
           : "border-white/10 bg-[#0D1214] text-white ring-white/5"
-      }`}>
-        <div className={`border-b px-6 py-5 ${
-          isLight
+        }`}>
+        <div className={`border-b px-6 py-5 ${isLight
             ? "border-[#DEC2B5] bg-[#F2DDD4]"
             : "border-white/10 bg-[#172124]"
-        }`}>
+          }`}>
           <div className="flex items-center gap-4">
-            <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl border ${
-              isLight
+            <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl border ${isLight
                 ? "border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
                 : "border-[#EF4444]/30 bg-[#7F1D1D]/20 text-[#FCA5A5]"
-            }`}>
+              }`}>
               <AlertTriangle size={23} strokeWidth={2.5} />
             </div>
             <div className="min-w-0">
@@ -211,30 +208,27 @@ function DeleteConfirmModal({
           </p>
 
           {errorMessage && (
-            <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-bold leading-5 ${
-              isLight
+            <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-bold leading-5 ${isLight
                 ? "border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
                 : "border-[#EF4444]/35 bg-[#7F1D1D]/18 text-[#FCA5A5]"
-            }`}>
+              }`}>
               {errorMessage}
             </div>
           )}
         </div>
 
-        <div className={`flex flex-col-reverse gap-3 border-t px-6 py-5 sm:flex-row sm:justify-end ${
-          isLight
+        <div className={`flex flex-col-reverse gap-3 border-t px-6 py-5 sm:flex-row sm:justify-end ${isLight
             ? "border-[#DEC2B5] bg-[#FFF1E8]"
             : "border-white/10 bg-[#11191C]"
-        }`}>
+          }`}>
           <button
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className={`h-12 rounded-2xl border px-5 text-sm font-black transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
-              isLight
+            className={`h-12 rounded-2xl border px-5 text-sm font-black transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${isLight
                 ? "border-[#D8B7A8] bg-white text-[#4F403A] hover:bg-[#F8EFE7]"
                 : "border-white/12 bg-[#172124] text-white/78 hover:border-white/20 hover:bg-[#1D2A2E]"
-            }`}
+              }`}
           >
             Cancel
           </button>
@@ -345,7 +339,7 @@ export default function AddMenu() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const [ingredients, setIngredients] = useState([]);
   const fetchRestaurantsForAdmin = async () => {
     if (!isAdmin) return [];
 
@@ -422,7 +416,16 @@ export default function AddMenu() {
       console.error(err.response?.data || err);
     }
   };
+  const fetchIngredients = async () => {
+    try {
+      const restaurantId = await ensureManagerRestaurantId();
+      const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
 
+      setIngredients(getResponseList(res.data, ["ingredients"]));
+    } catch (error) {
+      console.error(error.response?.data || error);
+    }
+  };
   const fetchModifierOptions = async () => {
     try {
       setModifierOptions(
@@ -759,6 +762,7 @@ export default function AddMenu() {
     fetchModifierGroups();
     fetchModifierOptions();
     fetchFoods();
+    fetchIngredients();
   }, []);
 
   useEffect(() => {
@@ -812,38 +816,38 @@ export default function AddMenu() {
     <div className="space-y-6 p-4 text-white sm:p-6">
       <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm">
         <div className="grid gap-4 lg:grid-cols-[1fr_300px] lg:items-center">
-        <div>
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FFD166]">
-            Menu Builder
-          </p>
-          <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-            Shape the restaurant menu
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
-            Manage categories, modifier groups, and the foods each group belongs
-            to from one workspace.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[#166534]/35 bg-[#166534]/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/60">
-          <p className="text-sm font-black uppercase tracking-[0.14em] text-[#166534]">Live setup</p>
-          <div className="mt-3 flex items-end justify-between">
-            <strong className="text-4xl font-black text-white">
-              {activeTab === "groups"
-                ? modifierGroups.length
-                : activeTab === "options"
-                  ? modifierOptions.length
-                  : categories.length}
-            </strong>
-            <span className="rounded-full border border-[#166534]/35 bg-[#166534]/10 px-3 py-1 text-xs font-black text-[#166534]">
-              {activeTab === "groups"
-                ? `${attachedFoodCount} food links`
-                : activeTab === "options"
-                  ? `${modifierGroups.length} groups`
-                  : "Active setup"}
-            </span>
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FFD166]">
+              Menu Builder
+            </p>
+            <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">
+              Shape the restaurant menu
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
+              Manage categories, modifier groups, and the foods each group belongs
+              to from one workspace.
+            </p>
           </div>
-        </div>
+
+          <div className="rounded-2xl border border-[#166534]/35 bg-[#166534]/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/60">
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#166534]">Live setup</p>
+            <div className="mt-3 flex items-end justify-between">
+              <strong className="text-4xl font-black text-white">
+                {activeTab === "groups"
+                  ? modifierGroups.length
+                  : activeTab === "options"
+                    ? modifierOptions.length
+                    : categories.length}
+              </strong>
+              <span className="rounded-full border border-[#166534]/35 bg-[#166534]/10 px-3 py-1 text-xs font-black text-[#166534]">
+                {activeTab === "groups"
+                  ? `${attachedFoodCount} food links`
+                  : activeTab === "options"
+                    ? `${modifierGroups.length} groups`
+                    : "Active setup"}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -857,22 +861,20 @@ export default function AddMenu() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`group relative overflow-hidden rounded-[24px] border p-4 text-left transition duration-200 hover:-translate-y-1 active:scale-[0.99] ${
-                isActive
+              className={`group relative overflow-hidden rounded-[24px] border p-4 text-left transition duration-200 hover:-translate-y-1 active:scale-[0.99] ${isActive
                   ? "border-[#7F1D1D]/70 bg-[linear-gradient(145deg,rgba(127,29,29,0.20),rgba(32,43,47,0.96)_58%,rgba(22,31,34,0.98))] text-white shadow-[0_18px_38px_rgba(127,29,29,0.20)] ring-2 ring-[#7F1D1D]/22"
                   : "border-white/10 bg-[#202B2F] text-white/72 shadow-[0_14px_32px_rgba(0,0,0,0.18)] hover:border-white/18 hover:bg-[#253236]"
-              }`}
+                }`}
             >
               {isActive && (
                 <span className="absolute inset-x-0 top-0 h-1.5 bg-[linear-gradient(90deg,#7F1D1D,#FFD166,#7F1D1D)]" />
               )}
               <div className="mb-4 flex items-center justify-between gap-3">
                 <span
-                  className={`grid h-10 w-10 place-items-center rounded-2xl border transition duration-200 group-hover:scale-105 ${
-                    isActive
+                  className={`grid h-10 w-10 place-items-center rounded-2xl border transition duration-200 group-hover:scale-105 ${isActive
                       ? "border-[#7F1D1D]/25 bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.24)]"
                       : "border-white/10 bg-white/[0.04] text-white/55"
-                  }`}
+                    }`}
                 >
                   <Icon size={20} className="transition duration-200 group-hover:-rotate-6" />
                 </span>
@@ -887,9 +889,8 @@ export default function AddMenu() {
                 {tab.label}
               </h2>
               <p
-                className={`mt-2 text-sm leading-5 ${
-                  isActive ? "text-white/68" : "text-white/48"
-                }`}
+                className={`mt-2 text-sm leading-5 ${isActive ? "text-white/68" : "text-white/48"
+                  }`}
               >
                 {tab.description}
               </p>
@@ -999,15 +1000,14 @@ export default function AddMenu() {
 
                       <td className="px-5 py-5">
                         <span
-                          className={`inline-flex rounded-full px-4 py-1.5 text-sm font-black ${
-                            category.is_active
+                          className={`inline-flex rounded-full px-4 py-1.5 text-sm font-black ${category.is_active
                               ? isLight
                                 ? "border border-[#0F8B5F]/30 bg-[#D9F2E5] text-[#08764D] shadow-[0_10px_22px_rgba(15,139,95,0.12)]"
                                 : "border border-[#10B981]/65 bg-[#064E3B] text-[#D1FAE5] shadow-[0_10px_22px_rgba(6,78,59,0.28)]"
                               : isLight
                                 ? "border border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
                                 : "border border-[#EF4444]/45 bg-[#DC2626]/14 text-[#FCA5A5]"
-                          }`}
+                            }`}
                         >
                           {category.is_active ? "Active" : "Inactive"}
                         </span>
@@ -1018,36 +1018,32 @@ export default function AddMenu() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditCategory(category)}
-                            className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition duration-200 hover:scale-110 active:scale-95 ${
-                              isLight
+                            className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition duration-200 hover:scale-110 active:scale-95 ${isLight
                                 ? "border-[#D8A22D]/30 bg-[#FFF4D6] text-[#9A6400] hover:bg-[#FFE8A3]"
                                 : "border-[#FFD166]/30 bg-[#172124] text-[#FFD166] hover:bg-[#FFD166]/12"
-                            }`}
+                              }`}
                           >
                             <Edit3 size={16} className="transition duration-200 group-hover:-rotate-6" />
-                            <span className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md px-2 py-1 text-xs font-bold opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 ${
-                              isLight
+                            <span className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md px-2 py-1 text-xs font-bold opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 ${isLight
                                 ? "border border-[#D8A22D]/25 bg-[#FFF4D6] text-[#9A6400]"
                                 : "bg-stone-950 text-white"
-                            }`}>
+                              }`}>
                               Edit
                             </span>
                           </button>
                           <button
                             type="button"
                             onClick={() => openDeleteModal("category", category)}
-                            className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition duration-200 hover:scale-110 active:scale-95 ${
-                              isLight
+                            className={`group relative grid h-10 w-10 place-items-center rounded-xl border transition duration-200 hover:scale-110 active:scale-95 ${isLight
                                 ? "border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D] hover:border-[#8F1D1D]/45 hover:bg-[#EBC8C8]"
                                 : "border-[#EF4444]/45 bg-[#2A1719] text-[#F87171] hover:border-[#FCA5A5]/70 hover:bg-[#DC2626]/20 hover:text-[#FCA5A5]"
-                            }`}
+                              }`}
                           >
                             <Trash2 size={16} className="transition duration-200 group-hover:rotate-6" />
-                            <span className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md px-2 py-1 text-xs font-bold opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 ${
-                              isLight
+                            <span className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md px-2 py-1 text-xs font-bold opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 ${isLight
                                 ? "border border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
                                 : "bg-stone-950 text-white"
-                            }`}>
+                              }`}>
                               Delete
                             </span>
                           </button>
@@ -1194,9 +1190,8 @@ export default function AddMenu() {
                                   </span>
                                   <ChevronDown
                                     size={18}
-                                    className={`shrink-0 text-[#FFD166] transition duration-200 ${
-                                      openFoodPickerGroupId === group.id ? "rotate-180" : ""
-                                    }`}
+                                    className={`shrink-0 text-[#FFD166] transition duration-200 ${openFoodPickerGroupId === group.id ? "rotate-180" : ""
+                                      }`}
                                   />
                                 </button>
 
@@ -1222,22 +1217,20 @@ export default function AddMenu() {
                                                 );
                                                 setOpenFoodPickerGroupId(null);
                                               }}
-                                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-black transition duration-150 ${
-                                                isSelected
+                                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-black transition duration-150 ${isSelected
                                                   ? "bg-[#7F1D1D] text-white shadow-sm"
                                                   : "text-[#241815] hover:bg-[#F1E2DA]"
-                                              }`}
+                                                }`}
                                             >
                                               <span className="min-w-0 truncate">
                                                 {food.name}
                                               </span>
                                               {isLinked && (
                                                 <span
-                                                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
-                                                    isSelected
+                                                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${isSelected
                                                       ? "bg-white/18 text-white"
                                                       : "bg-[#166534]/10 text-[#166534]"
-                                                  }`}
+                                                    }`}
                                                 >
                                                   Linked
                                                 </span>
@@ -1282,43 +1275,43 @@ export default function AddMenu() {
                             )}
 
                             {!isVariantGroup(group) && (
-                            <div className="grid grid-cols-[1fr_120px] gap-2">
-                              <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white/70">
+                              <div className="grid grid-cols-[1fr_120px] gap-2">
+                                <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white/70">
+                                  <input
+                                    type="checkbox"
+                                    checked={groupAttachSettings.required}
+                                    onChange={(e) =>
+                                      setAttachSettings((prev) => ({
+                                        ...prev,
+                                        [group.id]: {
+                                          ...getAttachSettings(prev, group.id, groupOptions.length),
+                                          required: e.target.checked,
+                                        },
+                                      }))
+                                    }
+                                    className="h-4 w-4 accent-[#7F1D1D]"
+                                  />
+                                  Required
+                                </label>
                                 <input
-                                  type="checkbox"
-                                  checked={groupAttachSettings.required}
+                                  type="number"
+                                  {...nonNegativeNumberInputProps}
+                                  min="1"
+                                  max={Math.max(groupOptions.length, 1)}
+                                  value={groupAttachSettings.max_select}
                                   onChange={(e) =>
                                     setAttachSettings((prev) => ({
                                       ...prev,
                                       [group.id]: {
                                         ...getAttachSettings(prev, group.id, groupOptions.length),
-                                        required: e.target.checked,
+                                        max_select: toNonNegativeNumberValue(e.target.value),
                                       },
                                     }))
                                   }
-                                className="h-4 w-4 accent-[#7F1D1D]"
+                                  className="rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                  title="Max select"
                                 />
-                                Required
-                              </label>
-                              <input
-                                type="number"
-                                {...nonNegativeNumberInputProps}
-                                min="1"
-                                max={Math.max(groupOptions.length, 1)}
-                                value={groupAttachSettings.max_select}
-                                onChange={(e) =>
-                                  setAttachSettings((prev) => ({
-                                    ...prev,
-                                    [group.id]: {
-                                      ...getAttachSettings(prev, group.id, groupOptions.length),
-                                      max_select: toNonNegativeNumberValue(e.target.value),
-                                    },
-                                  }))
-                                }
-                                className="rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                                title="Max select"
-                              />
-                            </div>
+                              </div>
                             )}
 
                             {isVariantGroup(group) && (
@@ -1514,6 +1507,7 @@ export default function AddMenu() {
         onSave={handleSaveOption}
         option={editingOption}
         groups={modifierGroups}
+        ingredients={ingredients}
         isSaving={savingOption}
       />
       <DeleteConfirmModal
