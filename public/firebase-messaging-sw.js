@@ -75,24 +75,7 @@ function getNotificationTargetUrl(data = {}) {
     return target.href;
 }
 
-messaging.onBackgroundMessage((payload) => {
-    const notification = payload.notification || {};
-    const data = payload.data || {};
-    const title = notification.title || data.title || "Big-4";
-    const notificationData = {
-        ...data,
-        title,
-        body: notification.body || data.body,
-    };
-    const options = {
-        body: notification.body || data.body || "You have a new notification.",
-        icon: "/favicon.svg",
-        badge: "/favicon.svg",
-        data: notificationData,
-    };
 
-    self.registration.showNotification(title, options);
-});
 
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
