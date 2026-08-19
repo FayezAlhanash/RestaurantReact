@@ -15,9 +15,18 @@ import {
     removeStoredTableDeviceKey,
     saveStoredTableDeviceKey,
 } from "../../utils/tableDeviceKeys";
+import { getAppLanguage } from "../../utils/language";
 
 const tableDeviceApi = axios.create({
     baseURL: "https://big4.me/api",
+});
+
+tableDeviceApi.interceptors.request.use((config) => {
+    config.headers = config.headers || {};
+    config.headers.Accept = config.headers.Accept || "application/json";
+    config.headers["Accept-Language"] = config.headers["Accept-Language"] || getAppLanguage();
+
+    return config;
 });
 
 const normalizeDeviceKey = (value) => String(value || "").trim();

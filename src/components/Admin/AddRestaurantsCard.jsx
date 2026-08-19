@@ -1,6 +1,8 @@
 import { ImagePlus, Plus, Store } from "lucide-react";
+import { useTranslation } from "../../utils/i18n";
 
 function AddRestaurantCard({ onClick }) {
+    const { t } = useTranslation();
     return (
         <button
             type="button"
@@ -13,7 +15,7 @@ function AddRestaurantCard({ onClick }) {
                         <Plus size={22} />
                     </div>
                     <span className="rounded-full border border-[#FFD166]/30 bg-[#FFD166]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#FFD166]">
-                        New branch
+                        فرع جديد
                     </span>
                 </div>
 
@@ -28,11 +30,10 @@ function AddRestaurantCard({ onClick }) {
 
                 <div>
                     <h2 className="text-2xl font-black text-white">
-                        Add Restaurant
+                        {t("addRestaurant")}
                     </h2>
                     <p className="mt-2 text-sm font-semibold leading-6 text-white/50">
-                        Create another restaurant with logo images, description,
-                        and tax settings.
+                        {t("addRestaurantDescription")}
                     </p>
                 </div>
             </div>

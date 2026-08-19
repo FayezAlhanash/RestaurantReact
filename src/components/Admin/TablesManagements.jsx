@@ -22,6 +22,7 @@ import AddTableModal from "./AddTableModal";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { removeStoredTableDeviceKey } from "../../utils/tableDeviceKeys";
+import { useTranslation } from "../../utils/i18n";
 
 const normalizeActiveValue = (value) =>
     value === true ||
@@ -116,6 +117,7 @@ function StatCard({ icon: Icon, label, value, helper, tone, isLight }) {
 }
 
 function TableDeviceModal({ isOpen, table, onClose }) {
+    const { t } = useTranslation();
     const [isVisible, setIsVisible] = useState(false);
     const [deviceName, setDeviceName] = useState("");
     const [deviceKey, setDeviceKey] = useState("");
@@ -148,7 +150,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
 
         setDeviceName(
             initialDevice?.device_name ||
-                `Table ${table.table_number} Screen`
+                `${t("table")} ${table.table_number} Screen`
         );
         setDeviceKey(initialDeviceKey);
         setError("");
@@ -173,7 +175,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
         const normalizedDeviceName = deviceName.trim();
 
         if (!normalizedDeviceName) {
-            setError("Device name is required.");
+            setError(`${t("deviceName")} ${t("required")}.`);
             return;
         }
 
@@ -202,11 +204,11 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             } catch {
                 // The admin browser does not need to keep the table device key.
             }
-            setMessage(response.data?.message || "Device key generated. Pair it on the table tablet.");
+            setMessage(response.data?.message || t("deviceKeyGenerated"));
         } catch (error) {
             setError(
                 error.response?.data?.message ||
-                    "Table device could not be registered."
+                    t("tableDeviceRegisterError")
             );
             console.log(error.response?.data || error);
         } finally {
@@ -236,7 +238,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             }
             setMessage(response.data?.message || "Table device revoked successfully.");
         } catch (error) {
-            setError(error.response?.data?.message || "Table device could not be revoked.");
+            setError(error.response?.data?.message || t("tableDeviceRevokeError"));
             console.log(error.response?.data || error);
         } finally {
             setIsSaving(false);
@@ -251,7 +253,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setIsCopied(true);
             window.setTimeout(() => setIsCopied(false), 1600);
         } catch {
-            setError("Device key is ready, but the browser blocked copying.");
+            setError(t("deviceKeyCopyBlocked"));
         }
     };
 
@@ -277,7 +279,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
             setIsSetupCopied(true);
             window.setTimeout(() => setIsSetupCopied(false), 1600);
         } catch {
-            setError("Setup link is ready, but the browser blocked copying.");
+            setError(t("setupLinkCopyBlocked"));
         }
     };
 
@@ -303,10 +305,10 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                         </div>
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                Table device
+                                {t("tableDevice")}
                             </p>
                             <h2 className="text-2xl font-black text-white">
-                                Table {table.table_number}
+                                {t("table")} {table.table_number}
                             </h2>
                         </div>
                     </div>
@@ -334,7 +336,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
 
                         <label className="block">
                             <span className="mb-2 block text-sm font-black text-white/65">
-                                Device Name
+                                {t("deviceName")}
                             </span>
                             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-2.5 shadow-inner transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
                                 <Smartphone size={19} className="shrink-0 text-[#FFD166]" />
@@ -350,7 +352,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                         <div className="mt-4 rounded-2xl border border-white/10 bg-[#0D1214] p-4">
                             <div className="flex items-center gap-2 text-sm font-black text-white/65">
                                 <KeyRound size={17} className="text-[#FFD166]" />
-                                Device Key
+                                {t("deviceKey")}
                             </div>
                             {deviceKey ? (
                                 <div className="mt-3 flex items-stretch gap-2">
@@ -368,7 +370,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 </div>
                             ) : (
                                 <p className="mt-3 text-sm font-semibold leading-6 text-white/42">
-                                    Register this table display to generate its stable device key.
+                                    سجل شاشة هذه الطاولة لإنشاء مفتاح جهاز ثابت.
                                 </p>
                             )}
                         </div>
@@ -378,7 +380,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3">
                                     <div className="flex items-center gap-2 text-sm font-black text-white/65">
                                         <QrCode size={17} className="text-[#FFD166]" />
-                                        Setup QR
+                                        {t("setupQr")}
                                     </div>
                                     <button
                                         type="button"
@@ -399,14 +401,14 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                     </div>
                                     <div className="min-w-0 text-center sm:text-left">
                                         <p className="text-lg font-black leading-tight text-white">
-                                            Scan on the table tablet
+                                            {t("scanOnTableTablet")}
                                         </p>
                                         <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
-                                            This QR pairs Table {table.table_number} with the display device.
+                                            هذا الرمز يربط {t("table")} {table.table_number} مع جهاز العرض.
                                         </p>
                                         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
                                             <QrCode size={14} />
-                                            QR only
+                                            رمز فقط
                                         </div>
                                     </div>
                                 </div>
@@ -419,7 +421,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 onClick={closeSmoothly}
                                 className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition hover:bg-white/[0.05] hover:text-white"
                             >
-                                Close
+                                إغلاق
                             </button>
 
                             <button
@@ -433,7 +435,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 ) : (
                                     <Trash2 size={18} />
                                 )}
-                                Revoke Device
+                                إلغاء الجهاز
                             </button>
 
                             <button
@@ -447,7 +449,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 ) : (
                                     <RotateCw size={18} />
                                 )}
-                                Register / Replace
+                                تسجيل / استبدال
                             </button>
                         </div>
                 </div>
@@ -458,6 +460,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
 
 function TablesManagements() {
     const { isLight } = useTheme();
+    const { t } = useTranslation();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState(null);
@@ -529,14 +532,13 @@ function TablesManagements() {
                         </div>
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                Floor plan
+                                {t("floorPlan")}
                             </p>
                             <h1 className={`mt-1 text-4xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
-                                Tables Management
+                                {t("tablesManagement")}
                             </h1>
                             <p className={`mt-2 max-w-2xl text-sm font-medium leading-6 ${isLight ? "text-[#6B5A52]" : "text-white/58"}`}>
-                                Manage restaurant tables, availability, and floor-plan visibility
-                                from one polished workspace.
+                                {t("tablesManagementDescription")}
                             </p>
                         </div>
                     </div>
@@ -547,32 +549,32 @@ function TablesManagements() {
                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#9B2C2C_0%,#7F1D1D_48%,#4E1515_100%)] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.26)] transition hover:-translate-y-0.5 hover:brightness-110"
                     >
                         <Plus size={18} />
-                        Add Table
+                        {t("addTable")}
                     </button>
                 </div>
 
                 <div className="grid gap-4 p-5 lg:grid-cols-3">
                     <StatCard
                         icon={Table2}
-                        label="Total"
+                        label={t("total")}
                         value={tables.length}
-                        helper="Restaurant tables"
+                        helper={t("tables")}
                         tone="total"
                         isLight={isLight}
                     />
                     <StatCard
                         icon={TriangleAlert}
-                        label="Not Active"
+                        label="غير نشط"
                         value={inactiveTables}
-                        helper="Hidden or unavailable"
+                        helper={t("unavailable")}
                         tone="pending"
                         isLight={isLight}
                     />
                     <StatCard
                         icon={CheckCircle2}
-                        label="Available"
+                        label={t("available")}
                         value={activeTables}
-                        helper="Active on floor plan"
+                        helper="نشط على مخطط الصالة"
                         tone="active"
                         isLight={isLight}
                     />
@@ -583,10 +585,10 @@ function TablesManagements() {
                 <div className={`flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between ${isLight ? "border-[#E4CFC3] bg-[#FFFDF9]" : "border-white/[0.08] bg-white/[0.025]"}`}>
                     <div>
                         <p className="text-sm font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                            Floor Plan Visualizer
+                            {t("floorPlanVisualizer")}
                         </p>
                         <h2 className={`mt-1 text-3xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
-                            {filteredTables.length} table{filteredTables.length === 1 ? "" : "s"}
+                            {filteredTables.length} {t("tablesCount")}
                         </h2>
                     </div>
 
@@ -595,7 +597,7 @@ function TablesManagements() {
                         <input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search tables..."
+                            placeholder="ابحث في الطاولات..."
                             className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${isLight ? "text-[#241815] placeholder:text-[#8A7972]" : "text-white placeholder:text-white/35"}`}
                         />
                     </div>
@@ -629,7 +631,7 @@ function TablesManagements() {
                                             : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                                     }`}
                                 >
-                                    {isActive ? "Active" : "Not Active"}
+                                    {isActive ? t("active") : "غير نشط"}
                                 </span>
 
                                 <div className="mt-8 flex justify-center">
@@ -645,7 +647,7 @@ function TablesManagements() {
                                 </div>
 
                                 <h3 className={`mt-6 text-center text-3xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>
-                                    Table {table.table_number}
+                                    {t("table")} {table.table_number}
                                 </h3>
                                 <p className={`mt-2 text-center text-sm font-semibold ${isLight ? "text-[#8A7972]" : "text-white/42"}`}>
                                     ID #{table.id}
@@ -659,7 +661,7 @@ function TablesManagements() {
                                                 setSelectedTable(table);
                                                 setIsViewOpen(true);
                                             }}
-                                            title="View table"
+                                            title={t("viewTable")}
                                             className="grid h-10 w-10 place-items-center rounded-xl border border-sky-400/30 bg-sky-400/10 text-sky-300 transition hover:scale-110 hover:bg-sky-400/18"
                                         >
                                             <Eye size={18} />
@@ -671,7 +673,7 @@ function TablesManagements() {
                                                 setDeviceTable(table);
                                                 setIsDeviceOpen(true);
                                             }}
-                                            title="Register table device"
+                                            title={t("tableDevice")}
                                             className="grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:scale-110 hover:bg-[#FFD166]/18"
                                         >
                                             <Smartphone size={18} />
@@ -683,7 +685,7 @@ function TablesManagements() {
                                                 setEditTable(table);
                                                 setIsEditOpen(true);
                                             }}
-                                            title="Edit table"
+                                            title={t("updateTable")}
                                             className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:scale-110 hover:bg-white/[0.08] hover:text-white"
                                         >
                                             <Pencil size={18} />
@@ -692,7 +694,7 @@ function TablesManagements() {
                                         <button
                                             type="button"
                                             onClick={() => deleteTable(table.id)}
-                                            title="Delete table"
+                                            title="حذف الطاولة"
                                             className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D] transition hover:scale-110 hover:bg-[#7F1D1D]/18"
                                         >
                                             <Trash2 size={18} />
@@ -712,9 +714,9 @@ function TablesManagements() {
                             <div className="grid h-20 w-20 place-items-center rounded-[26px] border border-dashed border-[#FFD166]/40 bg-[#FFD166]/10 text-[#FFD166] transition group-hover:scale-105 group-hover:border-[#FFD166]">
                                 <Plus size={32} />
                             </div>
-                            <p className={`mt-6 text-xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>New Table</p>
+                            <p className={`mt-6 text-xl font-black ${isLight ? "text-[#241815]" : "text-white"}`}>{t("addNewTable")}</p>
                             <p className={`mt-2 text-sm font-semibold ${isLight ? "text-[#8A7972]" : "text-white/45"}`}>
-                                Add another floor-plan spot
+                                {t("addAnotherFloorSpot")}
                             </p>
                         </div>
                     </button>
@@ -747,10 +749,10 @@ function TablesManagements() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                    Table details
+                                    {t("tableDetails")}
                                 </p>
                                 <h2 className="mt-1 text-2xl font-black text-white">
-                                    Table {selectedTable.table_number}
+                                    {t("table")} {selectedTable.table_number}
                                 </h2>
                             </div>
                             <button
@@ -764,13 +766,13 @@ function TablesManagements() {
 
                         <div className="mt-5 rounded-2xl border border-white/10 bg-[#0D1214] p-4">
                             <div className="flex justify-between text-sm font-bold text-white/55">
-                                <span>Number</span>
+                                <span>{t("tableNumber")}</span>
                                 <span className="text-white">
                                     {selectedTable.table_number}
                                 </span>
                             </div>
                             <div className="mt-3 flex justify-between text-sm font-bold text-white/55">
-                                <span>Status</span>
+                                <span>{t("status")}</span>
                                 <span
                                     className={
                                         Number(selectedTable.is_active) === 1
@@ -778,7 +780,7 @@ function TablesManagements() {
                                             : "text-[#7F1D1D]"
                                     }
                                 >
-                                    {Number(selectedTable.is_active) === 1 ? "Active" : "Not Active"}
+                                    {Number(selectedTable.is_active) === 1 ? t("active") : "غير نشط"}
                                 </span>
                             </div>
                         </div>

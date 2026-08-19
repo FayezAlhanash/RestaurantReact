@@ -36,11 +36,14 @@ import useFoodAvailabilityRealtime from "../../hooks/useFoodAvailabilityRealtime
 import {
     FOOD_NOT_ORDERABLE_MESSAGE,
     FOOD_UNAVAILABLE_MESSAGE,
+    MODIFIER_UNAVAILABLE_MESSAGE,
+    applyModifierAvailabilityUpdates,
     applyFoodAvailabilityUpdates,
     getFoodKey,
     hasUnavailableCartItems,
     isFoodOrderable,
     normalizeFoodAvailability,
+    removeUnavailableModifierSelections,
 } from "../../utils/foodAvailability";
 
 const getList = (data) => {
@@ -2943,6 +2946,35 @@ function DineInOrder() {
         tableId,
     ]);
 
+    const refreshMenuItems = useCallback(async () => {
+        if (restaurants.length) {
+            const detailResponses = await Promise.allSettled(
+                restaurants.map((restaurant) =>
+                    fetchRestaurantMenu(restaurant, { includeDetails: true }),
+                ),
+            );
+            const detailedMenuItems = detailResponses.flatMap((result) =>
+                result.status === "fulfilled" ? result.value : [],
+            );
+
+            if (detailedMenuItems.length) {
+                setMenuItems(detailedMenuItems);
+            }
+
+            return;
+        }
+
+        const foodsResponse = await api.get("/food");
+        const foods = getList(foodsResponse.data).map(normalizeFoodItem);
+        const detailResponses = await Promise.allSettled(foods.map(fetchFoodDetails));
+
+        setMenuItems(
+            detailResponses.map((result, index) =>
+                result.status === "fulfilled" ? result.value : foods[index],
+            ),
+        );
+    }, [restaurants]);
+
     useEffect(() => {
         if (!orderTimings.length || !sessionToken) {
             return undefined;
@@ -3096,7 +3128,55 @@ function DineInOrder() {
         return Array.from(new Set(restaurantIds.map(String).filter(Boolean)));
     }, [activeRestaurant, menuItems, restaurants]);
 
-    const handleFoodAvailabilityUpdate = useCallback((event) => {
+    const handleMenuAvailabilityUpdate = useCallback((event) => {
+        if (event?.type === "modifier_availability_updated") {
+            const modifierOptions = Array.isArray(event?.modifier_options)
+                ? event.modifier_options
+                : [];
+
+            if (!modifierOptions.length) return;
+
+            const unavailableOptionIds = new Set(
+                modifierOptions
+                    .filter((option) => option?.can_order === false)
+                    .map((option) =>
+                        String(
+                            option.modifier_option_id ??
+                                option.modifierOptionId ??
+                                option.id
+                        )
+                    )
+            );
+            const cartHadUnavailableModifier = cartItemsRef.current.some((item) =>
+                (item.selectedModifierOptions ?? []).some((option) =>
+                    unavailableOptionIds.has(
+                        String(option.modifier_option_id ?? option.id)
+                    )
+                )
+            );
+
+            setMenuItems((currentItems) =>
+                applyModifierAvailabilityUpdates(currentItems, modifierOptions),
+            );
+            setSelectedItem((currentItem) =>
+                currentItem
+                    ? applyModifierAvailabilityUpdates([currentItem], modifierOptions)[0]
+                    : currentItem,
+            );
+            setCartItems((currentItems) =>
+                removeUnavailableModifierSelections(
+                    applyModifierAvailabilityUpdates(currentItems, modifierOptions),
+                ),
+            );
+
+            if (cartHadUnavailableModifier) {
+                setSuccessMessage("");
+                setErrorMessage(MODIFIER_UNAVAILABLE_MESSAGE);
+            }
+
+            return;
+        }
+
         const updatedFoods = Array.isArray(event?.foods) ? event.foods : [];
 
         if (!updatedFoods.length) return;
@@ -3131,7 +3211,7 @@ function DineInOrder() {
 
     useFoodAvailabilityRealtime(
         availabilityRestaurantIds,
-        handleFoodAvailabilityUpdate,
+        handleMenuAvailabilityUpdate,
     );
 
     useEffect(() => {
@@ -3420,6 +3500,12 @@ function DineInOrder() {
             const sessionExpired =
                 error.response?.status === 422 &&
                 responseMessage.toLowerCase().includes("session");
+
+            if (error.response?.status === 422) {
+                refreshMenuItems().catch((refreshError) => {
+                    console.error(refreshError.response?.data || refreshError);
+                });
+            }
 
             if (sessionExpired) {
                 sessionStorage.removeItem(sessionTokenStorageKey);

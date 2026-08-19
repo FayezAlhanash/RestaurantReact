@@ -1,6 +1,7 @@
 import api from "../../API/axios";
 import { useState, useEffect } from "react";
 import { CheckCircle2, Hash, Loader2, Save, Table2, XCircle } from "lucide-react";
+import { useTranslation } from "../../utils/i18n";
 
 const normalizeActiveValue = (value) =>
     value === true ||
@@ -18,6 +19,7 @@ const getCreatedTable = (data) =>
     null;
 
 function AddTableModal({ isOpen, onClose, refresh, editData }) {
+    const { t } = useTranslation();
     const [isVisible, setIsVisible] = useState(false);
     const [tableNumber, setTableNumber] = useState("");
     const [isActive, setIsActive] = useState(true);
@@ -59,7 +61,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
 
         try {
             if (!tableNumber.trim()) {
-                setError("Table number is required.");
+                setError(t("tableNumberRequired"));
                 return;
             }
 
@@ -104,7 +106,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
             window.setTimeout(onClose, 160);
 
         } catch (error) {
-            setError(error.response?.data?.message || "Table could not be saved.");
+            setError(error.response?.data?.message || t("tableCouldNotSave"));
             console.log("ERROR:", error.response?.data || error);
         } finally {
             setIsSaving(false);
@@ -133,10 +135,10 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                         </div>
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                Floor plan
+                                {t("floorPlan")}
                             </p>
                             <h2 className="text-2xl font-black text-white">
-                                {editData ? "Edit Table" : "Add New Table"}
+                                {editData ? t("updateTable") : t("addNewTable")}
                             </h2>
                         </div>
                     </div>
@@ -160,7 +162,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
                                     : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                             }`}>
-                                {isActive ? "Active" : "Not Active"}
+                                {isActive ? t("active") : "غير نشط"}
                             </span>
 
                             <div className={`grid h-20 w-20 place-items-center rounded-[24px] border ${
@@ -171,10 +173,10 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 <Table2 size={38} />
                             </div>
                             <p className="mt-6 text-3xl font-black text-white">
-                                Table {tableNumber || "--"}
+                                {t("table")} {tableNumber || "--"}
                             </p>
                             <p className="mt-2 text-sm font-semibold text-white/42">
-                                Live preview
+                                معاينة مباشرة
                             </p>
                         </div>
                     </div>
@@ -188,7 +190,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
 
                         <label className="block">
                             <span className="mb-2 block text-sm font-black text-white/65">
-                                Table Number
+                                {t("tableNumber")}
                             </span>
                             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 shadow-inner transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
                                 <Hash size={19} className="shrink-0 text-[#FFD166]" />
@@ -196,14 +198,14 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     value={tableNumber}
                                     onChange={(e) => setTableNumber(e.target.value)}
                                     className="min-w-0 flex-1 bg-transparent text-base font-bold text-white outline-none placeholder:text-white/30"
-                                    placeholder="Example: 12"
+                                    placeholder="مثال: 12"
                                 />
                             </div>
                         </label>
 
                         <div className="mt-5">
                             <p className="mb-2 text-sm font-black text-white/65">
-                                Table Status
+                                {t("tableStatus")}
                             </p>
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <button
@@ -217,9 +219,9 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 >
                                     <CheckCircle2 size={22} />
                                     <span>
-                                        <span className="block text-sm font-black">Active</span>
+                                        <span className="block text-sm font-black">{t("active")}</span>
                                         <span className="text-xs font-semibold opacity-70">
-                                            Available on floor plan
+                                            نشط على مخطط الصالة
                                         </span>
                                     </span>
                                 </button>
@@ -235,9 +237,9 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 >
                                     <XCircle size={22} />
                                     <span>
-                                        <span className="block text-sm font-black">Not Active</span>
+                                        <span className="block text-sm font-black">غير نشط</span>
                                         <span className="text-xs font-semibold opacity-70">
-                                            Hidden or unavailable
+                                            {t("unavailable")}
                                         </span>
                                     </span>
                                 </button>
@@ -250,7 +252,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 onClick={closeSmoothly}
                                 className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition hover:bg-white/[0.05] hover:text-white"
                             >
-                                Cancel
+                                {t("cancel")}
                             </button>
 
                             <button
@@ -264,7 +266,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 ) : (
                                     <Save size={18} />
                                 )}
-                                {editData ? "Update Table" : "Save Table"}
+                                {editData ? t("updateTable") : t("saveTable")}
                             </button>
                         </div>
                     </div>

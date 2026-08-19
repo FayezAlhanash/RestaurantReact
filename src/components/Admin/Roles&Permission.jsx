@@ -1031,7 +1031,10 @@ export default function RolesPermission() {
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className="line-clamp-2 text-[clamp(0.82rem,0.72rem+0.22vw,0.95rem)] font-black capitalize leading-tight">
+                    <span
+                      data-no-translate
+                      className="line-clamp-2 text-[clamp(0.82rem,0.72rem+0.22vw,0.95rem)] font-black capitalize leading-tight"
+                    >
                       {role.name}
                     </span>
                     <span
@@ -1069,9 +1072,18 @@ export default function RolesPermission() {
                 <p className={`text-xs font-black uppercase tracking-[0.16em] ${goldTextSoft}`}>
                   Permissions
                 </p>
-                <h2 className={`mt-1 text-3xl font-black ${titleText}`}>
-                  {selectedRole ? selectedRole.name : "Select a role"}
-                </h2>
+                {selectedRole ? (
+                  <h2
+                    data-no-translate
+                    className={`mt-1 text-3xl font-black ${titleText}`}
+                  >
+                    {selectedRole.name}
+                  </h2>
+                ) : (
+                  <h2 className={`mt-1 text-3xl font-black ${titleText}`}>
+                    Select a role
+                  </h2>
+                )}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -1298,7 +1310,7 @@ export default function RolesPermission() {
                     Confirm delete
                   </p>
                   <h2 className="text-xl font-black text-white">
-                    Delete {roleToDelete.name}
+                    Delete <span data-no-translate>{roleToDelete.name}</span>
                   </h2>
                 </div>
               </div>

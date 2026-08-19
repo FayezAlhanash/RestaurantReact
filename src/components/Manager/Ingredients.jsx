@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   Package,
   Save,
   Search,
+  Store,
   Unlink,
   UtensilsCrossed,
 } from "lucide-react";
@@ -19,6 +20,8 @@ import {
   nonNegativeNumberInputProps,
   toNonNegativeNumberValue,
 } from "../../utils/nonNegativeNumberInput";
+import { useTranslation } from "../../utils/i18n";
+import { getRoleId, getStoredUser, ROLE_IDS } from "../../utils/auth";
 
 const getFoodIngredientId = (item) =>
   item?.ingredient_id ?? item?.pivot?.ingredient_id ?? item?.id;
@@ -30,10 +33,26 @@ const getFoodIngredientQuantity = (item) =>
   item?.foodIngredient?.quantity ??
   "";
 
+const getEntityId = (entity) =>
+  entity?.id ?? entity?.restaurant_id ?? entity?.restaurantId ?? null;
+
+const getRestaurantName = (restaurant) =>
+  restaurant?.name ||
+  restaurant?.name_ar ||
+  restaurant?.name_en ||
+  `Restaurant #${getEntityId(restaurant)}`;
+
 export default function Ingredients() {
+  const { language, t } = useTranslation();
   const { search = "" } = useOutletContext() ?? {};
+  const isArabic = language === "ar";
+  const isAdmin = getRoleId(getStoredUser()) === ROLE_IDS.ADMIN;
   const permissions = getUserPermissions();
   const canManageRecipes = permissions.includes("manage_recipes");
+  const restaurantPickerRef = useRef(null);
+  const [restaurants, setRestaurants] = useState([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+  const [isRestaurantPickerOpen, setIsRestaurantPickerOpen] = useState(false);
   const [ingredients, setIngredients] = useState([]);
   const [foods, setFoods] = useState([]);
   const [foodIngredients, setFoodIngredients] = useState([]);
@@ -49,9 +68,48 @@ export default function Ingredients() {
   const [pendingDeleteIngredientId, setPendingDeleteIngredientId] =
     useState("");
 
+  const getScopedRestaurantId = async () => {
+    if (isAdmin) return selectedRestaurantId || "";
+
+    return ensureManagerRestaurantId();
+  };
+
+  const fetchAdminRestaurants = async () => {
+    if (!isAdmin) return;
+
+    try {
+      const response = await api.get("/restaurants");
+      const restaurantList = getResponseList(response.data, ["restaurants"]);
+
+      setRestaurants(restaurantList);
+      setSelectedRestaurantId((currentRestaurantId) => {
+        if (
+          currentRestaurantId &&
+          restaurantList.some(
+            (restaurant) =>
+              String(getEntityId(restaurant)) === String(currentRestaurantId),
+          )
+        ) {
+          return currentRestaurantId;
+        }
+
+        return restaurantList[0] ? String(getEntityId(restaurantList[0])) : "";
+      });
+    } catch (error) {
+      console.error(error.response?.data || error);
+      setRestaurants([]);
+      setSelectedRestaurantId("");
+    }
+  };
+
   const fetchIngredients = async () => {
     try {
-      const restaurantId = await ensureManagerRestaurantId();
+      const restaurantId = await getScopedRestaurantId();
+      if (!restaurantId) {
+        setIngredients([]);
+        return;
+      }
+
       const res = await api.get(`/restaurants/${restaurantId}/ingredients`);
 
       setIngredients(getResponseList(res.data, ["ingredients"]));
@@ -62,8 +120,13 @@ export default function Ingredients() {
 
   const fetchFoods = async () => {
     try {
-      const restaurantId = await ensureManagerRestaurantId();
-      const res = await api.get("/food", {
+      const restaurantId = await getScopedRestaurantId();
+      if (!restaurantId) {
+        setFoods([]);
+        return;
+      }
+
+      const res = await api.get("/employee/food", {
         params: { restaurant_id: restaurantId },
       });
 
@@ -81,7 +144,12 @@ export default function Ingredients() {
 
     try {
       setLoadingRecipe(true);
-      const restaurantId = await ensureManagerRestaurantId();
+      const restaurantId = await getScopedRestaurantId();
+      if (!restaurantId) {
+        setFoodIngredients([]);
+        return;
+      }
+
       const res = await api.get(
         `/restaurants/${restaurantId}/foods/${foodId}/ingredients`,
       );
@@ -96,10 +164,51 @@ export default function Ingredients() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isAdmin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchAdminRestaurants();
+      return;
+    }
+
     fetchIngredients();
     fetchFoods();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (!selectedRestaurantId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIngredients([]);
+      setFoods([]);
+      setFoodIngredients([]);
+      return;
+    }
+
+    setSelectedFoodId("");
+    setSelectedIngredientId("");
+    setIngredientPickerSearch("");
+    setRecipeQuantity("");
+    setPendingQuantityEdits({});
+    setPendingDeleteIngredientId("");
+    fetchIngredients();
+    fetchFoods();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, selectedRestaurantId]);
+
+  useEffect(() => {
+    if (!isRestaurantPickerOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!restaurantPickerRef.current?.contains(event.target)) {
+        setIsRestaurantPickerOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isRestaurantPickerOpen]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -126,7 +235,9 @@ export default function Ingredients() {
 
     try {
       setIsSavingRecipe(true);
-      const restaurantId = await ensureManagerRestaurantId();
+      const restaurantId = await getScopedRestaurantId();
+      if (!restaurantId) return;
+
       const isLinked = foodIngredients.some(
         (item) =>
           String(getFoodIngredientId(item)) === String(selectedIngredientId),
@@ -165,7 +276,8 @@ export default function Ingredients() {
     if (!canManageRecipes) return;
 
     try {
-      const restaurantId = await ensureManagerRestaurantId();
+      const restaurantId = await getScopedRestaurantId();
+      if (!restaurantId) return;
 
       await api.patch(
         `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${ingredientId}`,
@@ -186,7 +298,8 @@ export default function Ingredients() {
     if (!canManageRecipes) return;
 
     try {
-      const restaurantId = await ensureManagerRestaurantId();
+      const restaurantId = await getScopedRestaurantId();
+      if (!restaurantId) return;
 
       await api.delete(
         `/restaurants/${restaurantId}/foods/${selectedFoodId}/ingredients/${ingredientId}`,
@@ -245,33 +358,114 @@ export default function Ingredients() {
     "w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3.5 text-sm font-bold text-white outline-none transition duration-200 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10";
   const pickerButtonClass =
     "flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3.5 text-left transition duration-200 hover:border-[#FFD166]/35 focus:outline-none focus:ring-4 focus:ring-[#FFD166]/10";
+  const selectedRestaurant = restaurants.find(
+    (restaurant) => String(getEntityId(restaurant)) === String(selectedRestaurantId),
+  );
+  const selectedRestaurantName = selectedRestaurant
+    ? getRestaurantName(selectedRestaurant)
+    : restaurants.length
+      ? t("chooseRestaurant")
+      : t("loadingRestaurants");
+  const requiresRestaurantSelection = isAdmin && !selectedRestaurantId;
 
   return (
     <div className="space-y-6 p-4 text-white sm:p-6">
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm">
+      <section className="relative z-30 overflow-visible rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(27,37,40,0.92)_0%,rgba(21,29,32,0.84)_55%,rgba(44,25,31,0.78)_100%)] p-5 shadow-[0_22px_55px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/12 text-[#7F1D1D] shadow-[0_14px_30px_rgba(127,29,29,0.12)]">
               <Link size={22} />
             </div>
-            <div>
+            <div
+              dir={isArabic ? "rtl" : "ltr"}
+              className={isArabic ? "text-right" : "text-left"}
+            >
               <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                Food Ingredients
+                {t("foodIngredients")}
               </p>
               <h1 className="mt-1 text-3xl font-black text-white sm:text-4xl">
-                Link ingredients to foods
+                {t("linkIngredientsToFoods")}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-                Select a food item to view its ingredients. Recipe changes
-                require manage_recipes permission.
+                {t("recipePageDescription")}
               </p>
+              {isAdmin && (
+                <div
+                  ref={restaurantPickerRef}
+                  className={`relative z-40 mt-4 w-full max-w-md ${
+                    isArabic ? "ml-auto" : ""
+                  }`}
+                >
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
+                    {t("restaurant")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      restaurants.length &&
+                      setIsRestaurantPickerOpen((current) => !current)
+                    }
+                    className={`flex h-12 w-full items-center justify-between gap-3 rounded-2xl border border-[#FFD166]/35 bg-[#0D1214] px-4 text-sm font-black text-white shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition hover:border-[#FFD166]/70 focus:outline-none focus:ring-4 focus:ring-[#FFD166]/10 ${
+                      isArabic ? "text-right" : "text-left"
+                    }`}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Store size={17} className="shrink-0 text-[#FFD166]" />
+                      <span className="min-w-0 truncate">{selectedRestaurantName}</span>
+                    </span>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 text-[#FFD166] transition ${
+                        isRestaurantPickerOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isRestaurantPickerOpen && (
+                    <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[500] w-full overflow-hidden rounded-2xl border border-[#FFD166]/25 bg-[#0D1214] p-1.5 shadow-[0_24px_58px_rgba(0,0,0,0.45)] ring-1 ring-white/5">
+                      {restaurants.length ? (
+                        restaurants.map((restaurant) => {
+                          const restaurantId = String(getEntityId(restaurant));
+                          const isSelected =
+                            restaurantId === String(selectedRestaurantId);
+
+                          return (
+                            <button
+                              key={restaurantId}
+                              type="button"
+                              onClick={() => {
+                                setSelectedRestaurantId(restaurantId);
+                                setIsRestaurantPickerOpen(false);
+                              }}
+                              className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm font-black transition ${
+                                isSelected
+                                  ? "bg-[#FFD166] text-[#1B1510]"
+                                  : "text-white/75 hover:bg-white/[0.07] hover:text-white"
+                              }`}
+                            >
+                              <span className="min-w-0 truncate">
+                                {getRestaurantName(restaurant)}
+                              </span>
+                              {isSelected && <Check size={16} />}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="px-3 py-3 text-sm font-black text-white/45">
+                          {t("noRestaurantsAvailable")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
             <div className="rounded-2xl border border-sky-400/35 bg-sky-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">
-                Foods
+                {t("foods")}
               </p>
               <strong className="mt-2 block text-3xl font-black text-white">
                 {foods.length}
@@ -279,7 +473,7 @@ export default function Ingredients() {
             </div>
             <div className="rounded-2xl border border-emerald-400/35 bg-emerald-400/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
-                Ingredients
+                {t("foodIngredients")}
               </p>
               <strong className="mt-2 block text-3xl font-black text-white">
                 {ingredients.length}
@@ -297,9 +491,9 @@ export default function Ingredients() {
                 <UtensilsCrossed size={21} />
               </div>
               <div>
-                <p className="text-sm font-bold text-white/45">Recipe setup</p>
+                <p className="text-sm font-bold text-white/45">{t("recipeSetup")}</p>
                 <h2 className="text-xl font-black text-white">
-                  Attach existing ingredient
+                  {t("attachExistingIngredient")}
                 </h2>
               </div>
             </div>
@@ -314,11 +508,10 @@ export default function Ingredients() {
                   </span>
                   <div>
                     <p className="text-lg font-black text-[#FFD166]">
-                      View only mode
+                      {t("viewOnlyMode")}
                     </p>
                     <p className="mt-1.5 text-sm font-extrabold leading-6 text-white/70">
-                      You can view recipes, but you do not have permission to
-                      add or update ingredients.
+                      {t("recipeViewOnlyHelp")}
                     </p>
                   </div>
                 </div>
@@ -328,37 +521,38 @@ export default function Ingredients() {
             {normalizedSearch && (
               <div className="flex items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm font-bold text-sky-200">
                 <Search size={16} />
-                {filteredFoods.length} food result
-                {filteredFoods.length === 1 ? "" : "s"}
+                {filteredFoods.length} {t("results")}
               </div>
             )}
 
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Food
+                {t("foodItem")}
               </span>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => {
+                    if (requiresRestaurantSelection) return;
                     setIsIngredientPickerOpen(false);
                     setIsFoodPickerOpen((value) => !value);
                   }}
+                  disabled={requiresRestaurantSelection}
                   className={`${pickerButtonClass} ${
                     isFoodPickerOpen
                       ? "border-[#FFD166]/65 ring-4 ring-[#FFD166]/10"
                       : ""
-                  }`}
+                  } disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-white/30`}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-white">
                       {selectedFood?.name ||
                         (filteredFoods.length
-                          ? "Select food"
-                          : "No foods found")}
+                          ? t("selectFood")
+                          : t("noFoodsFound"))}
                     </p>
                     <p className="mt-1 text-xs font-bold text-white/35">
-                      {filteredFoods.length} foods available
+                      {filteredFoods.length} {t("foods")}
                     </p>
                   </div>
                   <ChevronDown
@@ -412,7 +606,7 @@ export default function Ingredients() {
                         })
                       ) : (
                         <p className="px-3 py-8 text-center text-sm font-bold text-white/40">
-                          No foods found
+                          {t("noFoodsFound")}
                         </p>
                       )}
                     </div>
@@ -423,17 +617,27 @@ export default function Ingredients() {
 
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Ingredient
+                {t("foodIngredients")}
               </span>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => {
-                    if (!selectedFoodId || !canManageRecipes) return;
+                    if (
+                      requiresRestaurantSelection ||
+                      !selectedFoodId ||
+                      !canManageRecipes
+                    ) {
+                      return;
+                    }
                     setIsFoodPickerOpen(false);
                     setIsIngredientPickerOpen((value) => !value);
                   }}
-                  disabled={!selectedFoodId || !canManageRecipes}
+                  disabled={
+                    requiresRestaurantSelection ||
+                    !selectedFoodId ||
+                    !canManageRecipes
+                  }
                   className={`${pickerButtonClass} disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-white/30 ${
                     isIngredientPickerOpen
                       ? "border-[#FFD166]/65 ring-4 ring-[#FFD166]/10"
@@ -444,13 +648,13 @@ export default function Ingredients() {
                     <p className="truncate text-sm font-black text-white disabled:text-white/30">
                       {selectedIngredient?.name ||
                         (!selectedFoodId
-                          ? "Select food first"
+                          ? t("selectFoodFirst")
                           : canManageRecipes
-                            ? "Select ingredient"
-                            : "No permission to edit")}
+                            ? t("selectIngredient")
+                            : t("noPermissionEdit"))}
                     </p>
                     <p className="mt-1 text-xs font-bold text-white/35">
-                      {ingredients.length} ingredients available
+                      {ingredients.length} {t("foodIngredients")}
                     </p>
                   </div>
                   <ChevronDown
@@ -472,13 +676,13 @@ export default function Ingredients() {
                           onChange={(event) =>
                             setIngredientPickerSearch(event.target.value)
                           }
-                          placeholder="Search ingredients"
+                          placeholder={t("searchIngredients")}
                           className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/32"
                         />
                       </div>
                       <div className="mt-2 flex items-center justify-between px-1 text-xs font-black uppercase tracking-[0.12em] text-white/38">
-                        <span>{filteredIngredients.length} shown</span>
-                        <span>{ingredients.length} total</span>
+                        <span>{filteredIngredients.length} {t("shown")}</span>
+                        <span>{ingredients.length} {t("total")}</span>
                       </div>
                     </div>
 
@@ -519,7 +723,7 @@ export default function Ingredients() {
                               <div className="flex shrink-0 items-center gap-2">
                                 {isLinked && (
                                   <span className="rounded-full border border-emerald-400/35 bg-emerald-400/10 px-2 py-1 text-[11px] font-black uppercase text-emerald-300">
-                                    Linked
+                                  {t("linked")}
                                   </span>
                                 )}
                                 {isSelected && (
@@ -531,7 +735,7 @@ export default function Ingredients() {
                         })
                       ) : (
                         <p className="px-3 py-8 text-center text-sm font-bold text-white/40">
-                          No ingredients found
+                          {t("noIngredientsFound")}
                         </p>
                       )}
                     </div>
@@ -542,7 +746,7 @@ export default function Ingredients() {
 
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Quantity
+                {t("quantity")}
               </span>
               <input
                 type="number"
@@ -564,6 +768,7 @@ export default function Ingredients() {
               type="button"
               onClick={handleSaveRecipeIngredient}
               disabled={
+                requiresRestaurantSelection ||
                 !selectedFoodId ||
                 !selectedIngredientId ||
                 !recipeQuantity ||
@@ -577,7 +782,7 @@ export default function Ingredients() {
               ) : (
                 <Save size={17} />
               )}
-              {canManageRecipes ? "Confirm Add" : "View only"}
+              {canManageRecipes ? t("confirmAdd") : t("viewOnly")}
             </button>
           </div>
         </div>
@@ -590,10 +795,10 @@ export default function Ingredients() {
               </div>
               <div>
                 <p className="text-sm font-bold text-white/45">
-                  {selectedFood ? selectedFood.name : "No food selected"}
+                  {selectedFood ? selectedFood.name : t("noFoodSelected")}
                 </p>
                 <h2 className="text-2xl font-black text-white">
-                  Linked Ingredients
+                  {t("linkedIngredients")}
                 </h2>
               </div>
             </div>
@@ -606,10 +811,10 @@ export default function Ingredients() {
             <table className="w-full min-w-[640px]">
               <thead className="bg-[#0D1214]/80 text-sm font-black uppercase tracking-[0.14em] text-white/55">
                 <tr>
-                  <th className="px-5 py-4 text-left">Ingredient</th>
-                  <th className="px-5 py-4 text-left">Quantity</th>
-                  <th className="px-5 py-4 text-left">Unit</th>
-                  <th className="px-5 py-4 text-right">Actions</th>
+                  <th className="px-5 py-4 text-left">{t("foodIngredients")}</th>
+                  <th className="px-5 py-4 text-left">{t("quantity")}</th>
+                  <th className="px-5 py-4 text-left">{t("unit")}</th>
+                  <th className="px-5 py-4 text-right">{t("actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.07]">
@@ -622,18 +827,18 @@ export default function Ingredients() {
                         </div>
                         <h3 className="mt-4 text-2xl font-black text-white">
                           {selectedFoodId
-                            ? "No ingredients linked"
-                            : "Select a food"}
+                            ? t("noIngredientsLinked")
+                            : t("selectFood")}
                         </h3>
                         <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/50">
                           {selectedFoodId
-                            ? "This recipe is empty. Pick an ingredient from the left panel and set the amount used."
-                            : "Choose a food from the left panel to view its recipe ingredients here."}
+                            ? t("recipeEmptyHelp")
+                            : t("chooseFoodRecipeHelp")}
                         </p>
                         <div className="mt-5 grid gap-2 sm:grid-cols-2">
                           <div className="rounded-2xl border border-sky-400/20 bg-sky-400/8 px-3 py-3 text-left">
                             <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">
-                              Foods
+                              {t("foods")}
                             </p>
                             <p className="mt-1 text-lg font-black text-white">
                               {foods.length}
@@ -641,7 +846,7 @@ export default function Ingredients() {
                           </div>
                           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/8 px-3 py-3 text-left">
                             <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
-                              Ingredients
+                              {t("foodIngredients")}
                             </p>
                             <p className="mt-1 text-lg font-black text-white">
                               {ingredients.length}
@@ -727,7 +932,7 @@ export default function Ingredients() {
                                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-400/12 px-3 text-xs font-black text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-35"
                               >
                                 <Check size={15} />
-                                Confirm
+                                {t("confirm")}
                               </button>
                             )}
                             {isDeletePending ? (
@@ -741,7 +946,7 @@ export default function Ingredients() {
                                   className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#FF6B6B]/45 bg-[#7F1D1D]/24 px-3 text-xs font-black text-[#FFB3B3] transition hover:bg-[#7F1D1D]/38 disabled:cursor-not-allowed disabled:opacity-35"
                                 >
                                   <Check size={15} />
-                                  Confirm delete
+                                  {t("confirmDelete")}
                                 </button>
                                 <button
                                   type="button"
@@ -750,13 +955,13 @@ export default function Ingredients() {
                                   }
                                   className="h-10 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-xs font-black text-white/65 transition hover:bg-white/10 hover:text-white"
                                 >
-                                  Cancel
+                                  {t("cancel")}
                                 </button>
                               </>
                             ) : (
                               <button
                                 type="button"
-                                title="Remove from food"
+                                title={t("removeFromFood")}
                                 onClick={() =>
                                   setPendingDeleteIngredientId(
                                     String(ingredientId),

@@ -26,9 +26,13 @@ import {
 } from "../../utils/nonNegativeNumberInput";
 import {
   ensureManagerRestaurantId,
-  filterCategoriesByRestaurant,
   getResponseList,
 } from "./managerHelpers";
+import {
+  appendIfFilled,
+  appendTranslationFields,
+} from "../../utils/translationPayload";
+import { useTranslation } from "../../utils/i18n";
 
 const tabs = [
   {
@@ -131,6 +135,10 @@ const getRelationPrice = (option) =>
   option?.price;
 
 const getApiErrorMessage = (error, fallback) => {
+  if (error.response?.status === 503) {
+    return "Automatic translation is temporarily unavailable. Please try again.";
+  }
+
   const data = error.response?.data;
   const firstError = Object.values(data?.errors ?? {})
     .flat()
@@ -171,6 +179,7 @@ function DeleteConfirmModal({
   onClose,
   onConfirm,
 }) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -192,10 +201,10 @@ function DeleteConfirmModal({
             </div>
             <div className="min-w-0">
               <h3 className={`text-xl font-black leading-6 ${isLight ? "text-[#241815]" : "text-white"}`}>
-                Delete {itemType}
+                {t("delete")} {itemType}
               </h3>
               <p className={`mt-1 text-sm font-bold ${isLight ? "text-[#6D5147]" : "text-white/50"}`}>
-                This action cannot be undone.
+                لا يمكن التراجع عن هذا الإجراء.
               </p>
             </div>
           </div>
@@ -203,7 +212,7 @@ function DeleteConfirmModal({
 
         <div className={`px-6 py-5 ${isLight ? "bg-[#FFFDF8]" : "bg-[#0D1214]"}`}>
           <p className={`text-base font-bold leading-7 ${isLight ? "text-[#4F403A]" : "text-white/78"}`}>
-            Are you sure you want to delete{" "}
+            هل أنت متأكد أنك تريد حذف{" "}
             <span className={`font-black ${isLight ? "text-[#8F1D1D]" : "text-[#FCA5A5]"}`}>"{itemName}"</span>?
           </p>
 
@@ -230,7 +239,7 @@ function DeleteConfirmModal({
                 : "border-white/12 bg-[#172124] text-white/78 hover:border-white/20 hover:bg-[#1D2A2E]"
               }`}
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
@@ -239,7 +248,7 @@ function DeleteConfirmModal({
             className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:bg-[#681718] disabled:cursor-wait disabled:opacity-75"
           >
             {isDeleting && <Loader2 size={17} className="animate-spin" />}
-            {isDeleting ? "Deleting..." : "Delete"}
+            {isDeleting ? "يتم الحذف..." : t("delete")}
           </button>
         </div>
       </div>
@@ -312,6 +321,7 @@ const saveModifierPriceDraft = (foodId, groupId, settings) => {
 };
 
 export default function AddMenu() {
+  const { t } = useTranslation();
   const { search = "" } = useOutletContext() ?? {};
   const { isLight } = useTheme();
   const user = getStoredUser();
@@ -382,13 +392,9 @@ export default function AddMenu() {
 
   const fetchCategories = async () => {
     try {
-      const restaurantId = await ensureManagerRestaurantId();
-      const res = await api.get("/categories", {
-        params: restaurantId ? { restaurant_id: restaurantId } : undefined,
-      });
-      const categoryList = getResponseList(res.data, ["categories"]);
-
-      setCategories(filterCategoriesByRestaurant(categoryList, restaurantId));
+      setCategories(
+        await fetchRestaurantScopedList("/employee/categories", ["categories"])
+      );
     } catch (err) {
       console.error(err.response?.data || err);
     }
@@ -411,7 +417,7 @@ export default function AddMenu() {
 
   const fetchFoods = async () => {
     try {
-      setFoods(await fetchRestaurantScopedList("/food", ["food", "foods"]));
+      setFoods(await fetchRestaurantScopedList("/employee/food", ["food", "foods"]));
     } catch (err) {
       console.error(err.response?.data || err);
     }
@@ -486,7 +492,9 @@ export default function AddMenu() {
   const handleSaveCategory = async (data) => {
     if (savingCategory) return;
 
-    const normalizedName = data.name.trim().toLowerCase();
+    const normalizedName = String(data.name || data.name_ar || data.name_en || "")
+      .trim()
+      .toLowerCase();
     const duplicateCategory = categories.find(
       (category) =>
         String(category.id) !== String(editingCategory?.id ?? "") &&
@@ -510,7 +518,7 @@ export default function AddMenu() {
       const formData = new FormData();
 
       formData.append("restaurant_id", restaurantId);
-      formData.append("name", data.name.trim());
+      appendTranslationFields(formData, data, ["name"]);
       formData.append("is_active", data.is_active);
 
       if (editingCategory) {
@@ -603,7 +611,7 @@ export default function AddMenu() {
       const formData = new FormData();
 
       formData.append("restaurant_id", restaurantId);
-      formData.append("name", data.name);
+      appendTranslationFields(formData, data, ["name"]);
       formData.append("is_variant", data.is_variant ? 1 : 0);
 
       if (editingGroup) {
@@ -734,7 +742,7 @@ export default function AddMenu() {
     }
 
     try {
-      const response = await api.get(`/food/${foodId}`);
+      const response = await api.get(`/employee/food/${foodId}`);
       const [detailsFromList] = getResponseList(response.data, ["food", "foods"]);
       const foodDetails = detailsFromList || response.data?.food || response.data?.data || response.data;
       const detailGroup = findModifierGroupInFood(foodDetails, group.id);
@@ -771,7 +779,8 @@ export default function AddMenu() {
       const formData = new FormData();
 
       formData.append("modifier_group_id", data.modifier_group_id);
-      formData.append("name", data.name);
+      appendTranslationFields(formData, data, ["name"]);
+      appendIfFilled(formData, "ingredient_id", data.ingredient_id);
 
       if (editingOption) {
         await api.post(`/modifier-options/${editingOption.id}`, formData);
@@ -826,7 +835,22 @@ export default function AddMenu() {
     );
   }, [attachSettings]);
 
-  const activeTabData = tabs.find((tab) => tab.id === activeTab);
+  const translatedTabs = tabs.map((tab) => ({
+    ...tab,
+    label:
+      tab.id === "categories"
+        ? t("categories")
+        : tab.id === "groups"
+          ? t("modifierGroups")
+          : t("modifierOptions"),
+    description:
+      tab.id === "categories"
+        ? t("categorySectionsDescription")
+        : tab.id === "groups"
+          ? t("modifierGroupsDescription")
+          : t("modifierOptionsDescription"),
+  }));
+  const activeTabData = translatedTabs.find((tab) => tab.id === activeTab);
   const normalizedSearch = search.trim().toLowerCase();
   const filteredCategories = categories.filter((category) => {
     if (!normalizedSearch) return true;
@@ -860,19 +884,18 @@ export default function AddMenu() {
         <div className="grid gap-4 lg:grid-cols-[1fr_300px] lg:items-center">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FFD166]">
-              Menu Builder
+              {t("menuBuilder")}
             </p>
             <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-              Shape the restaurant menu
+              {t("shapeMenu")}
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
-              Manage categories, modifier groups, and the foods each group belongs
-              to from one workspace.
+              {t("menuBuilderDescription")}
             </p>
           </div>
 
           <div className="rounded-2xl border border-[#166534]/35 bg-[#166534]/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/60">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#166534]">Live setup</p>
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#166534]">إعداد مباشر</p>
             <div className="mt-3 flex items-end justify-between">
               <strong className="text-4xl font-black text-white">
                 {activeTab === "groups"
@@ -883,10 +906,10 @@ export default function AddMenu() {
               </strong>
               <span className="rounded-full border border-[#166534]/35 bg-[#166534]/10 px-3 py-1 text-xs font-black text-[#166534]">
                 {activeTab === "groups"
-                  ? `${attachedFoodCount} food links`
+                  ? `${attachedFoodCount} روابط طعام`
                   : activeTab === "options"
-                    ? `${modifierGroups.length} groups`
-                    : "Active setup"}
+                    ? `${modifierGroups.length} ${t("groups")}`
+                    : t("activeSetup")}
               </span>
             </div>
           </div>
@@ -894,7 +917,7 @@ export default function AddMenu() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        {tabs.map((tab) => {
+        {translatedTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
 
@@ -923,7 +946,7 @@ export default function AddMenu() {
                 {isActive && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FFD166]/30 bg-[#7F1D1D] px-3 py-1 text-xs font-black uppercase tracking-[0.10em] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)]">
                     <CheckCircle2 size={14} />
-                    Selected
+                    محدد
                   </span>
                 )}
               </div>
@@ -969,7 +992,7 @@ export default function AddMenu() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
-              Add Category
+              إضافة تصنيف
             </button>
           )}
 
@@ -982,7 +1005,7 @@ export default function AddMenu() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
-              Add Group
+              إضافة مجموعة
             </button>
           )}
 
@@ -995,7 +1018,7 @@ export default function AddMenu() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
-              Add Option
+              إضافة خيار
             </button>
           )}
         </div>
@@ -1005,9 +1028,9 @@ export default function AddMenu() {
             <table className="w-full min-w-[680px]">
               <thead className="bg-[#172124] text-sm font-black uppercase tracking-[0.14em] text-white/55">
                 <tr>
-                  <th className="px-5 py-4 text-left">Name</th>
-                  <th className="px-5 py-4 text-left">Status</th>
-                  <th className="px-5 py-4 text-right">Actions</th>
+                  <th className="px-5 py-4 text-left">{t("name")}</th>
+                  <th className="px-5 py-4 text-left">{t("status")}</th>
+                  <th className="px-5 py-4 text-right">{t("actions")}</th>
                 </tr>
               </thead>
 
@@ -1019,12 +1042,12 @@ export default function AddMenu() {
                         <Tags size={24} />
                       </div>
                       <h3 className="mt-4 text-xl font-black text-white">
-                        {normalizedSearch ? "No matching categories" : "No categories yet"}
+                        {normalizedSearch ? t("noMatchingCategories") : t("noCategoriesYet")}
                       </h3>
                       <p className="mt-2 text-sm text-white/50">
                         {normalizedSearch
-                          ? "Try another category name or status."
-                          : "Start with the sections your cashier will use every day."}
+                          ? "جرّب اسم تصنيف أو حالة أخرى."
+                          : "ابدأ بالأقسام التي سيستخدمها الكاشير يومياً."}
                       </p>
                     </td>
                   </tr>
@@ -1051,7 +1074,7 @@ export default function AddMenu() {
                                 : "border border-[#EF4444]/45 bg-[#DC2626]/14 text-[#FCA5A5]"
                             }`}
                         >
-                          {category.is_active ? "Active" : "Inactive"}
+                          {category.is_active ? t("active") : "غير نشط"}
                         </span>
                       </td>
 
@@ -1070,7 +1093,7 @@ export default function AddMenu() {
                                 ? "border border-[#D8A22D]/25 bg-[#FFF4D6] text-[#9A6400]"
                                 : "bg-stone-950 text-white"
                               }`}>
-                              Edit
+                              {t("edit")}
                             </span>
                           </button>
                           <button
@@ -1086,7 +1109,7 @@ export default function AddMenu() {
                                 ? "border border-[#8F1D1D]/25 bg-[#F3DCDC] text-[#8F1D1D]"
                                 : "bg-stone-950 text-white"
                               }`}>
-                              Delete
+                              {t("delete")}
                             </span>
                           </button>
                         </div>
@@ -1104,10 +1127,10 @@ export default function AddMenu() {
             <table className="w-full min-w-[900px]">
               <thead className="bg-[#172124] text-sm font-black uppercase tracking-[0.14em] text-white/55">
                 <tr>
-                  <th className="px-5 py-4 text-left">Group</th>
-                  <th className="px-5 py-4 text-left">Linked foods</th>
-                  <th className="px-5 py-4 text-left">Attach to food</th>
-                  <th className="px-5 py-4 text-right">Actions</th>
+                  <th className="px-5 py-4 text-left">{t("group")}</th>
+                  <th className="px-5 py-4 text-left">{t("linkedFoods")}</th>
+                  <th className="px-5 py-4 text-left">{t("attachToFood")}</th>
+                  <th className="px-5 py-4 text-right">{t("actions")}</th>
                 </tr>
               </thead>
 
@@ -1119,12 +1142,12 @@ export default function AddMenu() {
                         <Layers3 size={24} />
                       </div>
                       <h3 className="mt-4 text-xl font-black text-white">
-                        {normalizedSearch ? "No matching groups" : "No modifier groups yet"}
+                        {normalizedSearch ? t("noMatchingGroups") : t("noGroupsYet")}
                       </h3>
                       <p className="mt-2 text-sm text-white/50">
                         {normalizedSearch
-                          ? "Try another group or food name."
-                          : "Add groups like size, sauce, bread type, or toppings."}
+                          ? "جرّب مجموعة أو اسم طعام آخر."
+                          : "أضف مجموعات مثل الحجم، الصوص، نوع الخبز، أو الإضافات."}
                       </p>
                     </td>
                   </tr>
@@ -1158,7 +1181,7 @@ export default function AddMenu() {
                               </p>
                               {isVariantGroup(group) && (
                                 <span className="mt-2 inline-flex rounded-full border border-[#FFD166]/30 bg-[#FFD166]/10 px-3 py-1 text-xs font-black text-[#FFD166]">
-                                  Size add-ons
+                                  إضافات الحجم
                                 </span>
                               )}
                             </div>
@@ -1175,7 +1198,7 @@ export default function AddMenu() {
                                 >
                                   <button
                                     type="button"
-                                    title="Load linked food prices"
+                                    title="تحميل أسعار الطعام المرتبط"
                                     onClick={() =>
                                       handleFoodSelectionChange(
                                         group,
@@ -1188,7 +1211,7 @@ export default function AddMenu() {
                                   </button>
                                   <button
                                     type="button"
-                                    title="Remove from food"
+                                    title={t("removeFromFood")}
                                     onClick={() =>
                                       handleRemoveGroupFromFood(
                                         group.id,
@@ -1204,7 +1227,7 @@ export default function AddMenu() {
                             </div>
                           ) : (
                             <span className="text-base font-semibold text-white/35">
-                              Not attached yet
+                              غير مرتبط بعد
                             </span>
                           )}
                         </td>
@@ -1228,7 +1251,7 @@ export default function AddMenu() {
                                         String(getFoodId(food)) ===
                                         String(foodSelections[group.id] ?? "")
                                     )?.name ||
-                                      (foods.length ? "Choose food" : "No foods yet")}
+                                      (foods.length ? t("chooseFood") : t("noFoodsYet"))}
                                   </span>
                                   <ChevronDown
                                     size={18}
@@ -1274,7 +1297,7 @@ export default function AddMenu() {
                                                       : "bg-[#166534]/10 text-[#166534]"
                                                     }`}
                                                 >
-                                                  Linked
+                                                  مرتبط
                                                 </span>
                                               )}
                                             </button>
@@ -1282,7 +1305,7 @@ export default function AddMenu() {
                                         })
                                       ) : (
                                         <p className="px-3 py-6 text-center text-sm font-black text-[#8D7B74]">
-                                          No foods yet
+                                          {t("noFoodsYet")}
                                         </p>
                                       )}
                                     </div>
@@ -1300,7 +1323,7 @@ export default function AddMenu() {
                                   Boolean(attachingGroupId)
                                 }
                                 className="grid h-12 w-12 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_16px_34px_rgba(127,29,29,0.24)] transition duration-200 hover:scale-105 hover:bg-[#681718] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-                                title={attachingGroupId === group.id ? "Please wait..." : "Attach to food"}
+                                title={attachingGroupId === group.id ? `${t("pleaseWait")}...` : t("attachToFood")}
                               >
                                 {attachingGroupId === group.id ? (
                                   <Loader2 size={17} className="animate-spin" />
@@ -1333,7 +1356,7 @@ export default function AddMenu() {
                                     }
                                     className="h-4 w-4 accent-[#7F1D1D]"
                                   />
-                                  Required
+                                  {t("required")}
                                 </label>
                                 <input
                                   type="number"
@@ -1351,14 +1374,14 @@ export default function AddMenu() {
                                     }))
                                   }
                                   className="rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                                  title="Max select"
+                                  title="الحد الأقصى للاختيار"
                                 />
                               </div>
                             )}
 
                             {isVariantGroup(group) && (
                               <p className="rounded-2xl border border-[#FFD166]/18 bg-[#FFD166]/10 px-3 py-2 text-sm font-bold leading-5 text-[#FFD166]">
-                                Small uses the food price. Enter only the extra amount for bigger sizes; customers see the final price.
+                                الحجم الصغير يستخدم سعر الطعام. أدخل فقط المبلغ الإضافي للأحجام الأكبر؛ سيشاهد العميل السعر النهائي.
                               </p>
                             )}
 
@@ -1376,7 +1399,7 @@ export default function AddMenu() {
                                       type="number"
                                       {...nonNegativeNumberInputProps}
                                       step="0.01"
-                                      placeholder={isVariantGroup(group) ? "Extra" : "Price"}
+                                      placeholder={isVariantGroup(group) ? "إضافة" : t("price")}
                                       value={groupAttachSettings.prices?.[option.id] ?? ""}
                                       onChange={(e) =>
                                         setAttachSettings((prev) => {
@@ -1401,14 +1424,14 @@ export default function AddMenu() {
                                         })
                                       }
                                       className="rounded-xl border border-[#FFD166]/20 bg-[#0D1214] px-2 py-1.5 text-sm font-bold text-[#FFD166] outline-none focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
-                                      title={isVariantGroup(group) ? "Extra above food price" : "Extra price"}
+                                      title={isVariantGroup(group) ? "إضافة فوق سعر الطعام" : "سعر إضافي"}
                                     />
                                   </div>
                                 ))}
                               </div>
                             ) : (
                               <p className="rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/10 px-3 py-2 text-sm font-bold text-[#7F1D1D]">
-                                Add options to this group first.
+                                أضف خيارات لهذه المجموعة أولاً.
                               </p>
                             )}
                           </div>
@@ -1420,7 +1443,7 @@ export default function AddMenu() {
                               type="button"
                               onClick={() => handleOpenEditGroup(group)}
                               className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#172124] text-[#FFD166] transition duration-200 hover:scale-110 hover:bg-[#FFD166]/12 active:scale-95"
-                              title="Edit group"
+                              title={t("editGroup")}
                             >
                               <Edit3 size={16} />
                             </button>
@@ -1428,7 +1451,7 @@ export default function AddMenu() {
                               type="button"
                               onClick={() => openDeleteModal("modifier group", group)}
                               className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
-                              title="Delete group"
+                              title="حذف المجموعة"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -1448,10 +1471,10 @@ export default function AddMenu() {
             <table className="w-full min-w-[760px]">
               <thead className="bg-[#172124] text-sm font-black uppercase tracking-[0.14em] text-white/55">
                 <tr>
-                  <th className="px-5 py-4 text-left">Option</th>
-                  <th className="px-5 py-4 text-left">Group</th>
-                  <th className="px-5 py-4 text-left">Option ID</th>
-                  <th className="px-5 py-4 text-right">Actions</th>
+                  <th className="px-5 py-4 text-left">الخيار</th>
+                  <th className="px-5 py-4 text-left">{t("group")}</th>
+                  <th className="px-5 py-4 text-left">معرّف الخيار</th>
+                  <th className="px-5 py-4 text-right">{t("actions")}</th>
                 </tr>
               </thead>
 
@@ -1463,12 +1486,12 @@ export default function AddMenu() {
                         <ListTree size={24} />
                       </div>
                       <h3 className="mt-4 text-xl font-black text-white">
-                        {normalizedSearch ? "No matching options" : "No modifier options yet"}
+                        {normalizedSearch ? t("noMatchingOptions") : t("noOptionsYet")}
                       </h3>
                       <p className="mt-2 text-sm text-white/50">
                         {modifierGroups.length
-                          ? "Add choices inside a modifier group."
-                          : "Create a modifier group first, then add its choices."}
+                          ? "أضف خيارات داخل مجموعة معدّلات."
+                          : "أنشئ مجموعة معدّلات أولاً، ثم أضف خياراتها."}
                       </p>
                     </td>
                   </tr>
@@ -1504,7 +1527,7 @@ export default function AddMenu() {
                             type="button"
                             onClick={() => handleOpenEditOption(option)}
                             className="group relative grid h-10 w-10 place-items-center rounded-xl border border-fuchsia-300/30 bg-[#172124] text-fuchsia-300 transition duration-200 hover:scale-110 hover:bg-fuchsia-400/12 active:scale-95"
-                            title="Edit option"
+                            title={t("editOption")}
                           >
                             <Edit3 size={16} />
                           </button>
@@ -1512,7 +1535,7 @@ export default function AddMenu() {
                             type="button"
                             onClick={() => openDeleteModal("modifier option", option)}
                             className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
-                            title="Delete option"
+                            title="حذف الخيار"
                           >
                             <Trash2 size={16} />
                           </button>

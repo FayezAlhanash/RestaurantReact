@@ -2,6 +2,7 @@ import { CalendarDays, Menu, PanelLeftClose, PanelLeftOpen, Sparkles } from "luc
 import EmployeeProfileButton from "../Shared/EmployeeProfileButton";
 import NotificationsButton from "../Shared/NotificationsButton";
 import { getStoredUser } from "../../utils/auth";
+import { useTranslation } from "../../utils/i18n";
 
 function getFirstName(user) {
     const fullName =
@@ -16,10 +17,11 @@ function getFirstName(user) {
 }
 
 function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
+    const { language, t } = useTranslation();
     const user = getStoredUser();
     const firstName = getFirstName(user);
     const roleName = user?.role?.name || "Team";
-    const today = new Date().toLocaleDateString([], {
+    const today = new Date().toLocaleDateString(language === "ar" ? "ar-SY" : undefined, {
         weekday: "short",
         month: "short",
         day: "numeric",
@@ -54,9 +56,12 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
                 </div>
 
                 <div className="topbar-welcome flex h-14 min-w-0 items-center justify-center overflow-hidden px-4 text-center">
-                    <div className="flex min-w-0 items-baseline justify-center gap-3">
+                    <div
+                        dir={language === "ar" ? "rtl" : "ltr"}
+                        className="flex min-w-0 items-baseline justify-center gap-3"
+                    >
                         <span className="topbar-welcome-word text-2xl font-black uppercase tracking-[0.12em] text-[#D7B52F] sm:text-3xl lg:text-4xl">
-                            Welcome
+                            {t("welcome")}
                         </span>
                         <span className="topbar-welcome-name min-w-0 truncate text-3xl font-black text-white sm:text-4xl lg:text-5xl">
                             {firstName}

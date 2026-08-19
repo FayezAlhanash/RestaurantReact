@@ -43,3 +43,25 @@ export async function ensureCurrentRestaurantId() {
 
     return getCurrentRestaurantId();
 }
+
+export function getStorageImageUrl(path, cacheKey = "") {
+    if (!path) return "";
+
+    const cleanPath = String(path).replace(/^\/+/, "");
+    const normalizedPath = cleanPath
+        .replace(/^https?:\/\/46\.101\.112\.67:8000\/storage\//, "https://big4.me/storage/")
+        .replace(/^https?:\/\/big4\.me\/storage\//, "https://big4.me/storage/");
+
+    let url = normalizedPath;
+
+    if (!normalizedPath.startsWith("http://") && !normalizedPath.startsWith("https://")) {
+        url = normalizedPath.startsWith("storage/")
+            ? `https://big4.me/${normalizedPath}`
+            : `https://big4.me/storage/${normalizedPath}`;
+    }
+
+    if (!cacheKey) return url;
+
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}v=${encodeURIComponent(cacheKey)}`;
+}

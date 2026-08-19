@@ -1,5 +1,6 @@
 import axios from "axios";
 import { clearSession, getStoredToken, getStoredUser } from "../utils/auth";
+import { getAppLanguage } from "../utils/language";
 
 const api = axios.create({
     baseURL: "https://big4.me/api",
@@ -7,6 +8,7 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use((config) => {
+    config.headers = config.headers || {};
     const shouldSkipUserContext = config.headers["X-Skip-User-Context"];
 
     if (shouldSkipUserContext) {
@@ -17,6 +19,14 @@ api.interceptors.request.use((config) => {
 
     if (token && !shouldSkipUserContext && !config.headers.Authorization) {
         config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (!config.headers["Accept-Language"]) {
+        config.headers["Accept-Language"] = getAppLanguage();
+    }
+
+    if (!config.headers.Accept) {
+        config.headers.Accept = "application/json";
     }
 
     // Add user context for backend permission checks.

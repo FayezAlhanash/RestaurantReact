@@ -15,8 +15,10 @@ function getCategoryRestaurantId(category) {
 export function getResponseList(data, keys = []) {
   for (const key of keys) {
     if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.[key]?.data)) return data[key].data;
   }
 
+  if (Array.isArray(data?.data?.data)) return data.data.data;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data)) return data;
 

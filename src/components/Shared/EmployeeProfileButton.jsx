@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, storeUser } from "../../utils/auth";
+import LanguageToggle from "./LanguageToggle";
 
 function getProfileRecord(data) {
     return data?.user ?? data?.data?.user ?? data?.data ?? data ?? {};
@@ -485,10 +486,13 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 </p>
                             </div>
                             {activePanel === "profile" && (
-                                <ThemeSwitch
-                                    isLight={isLight}
-                                    onToggle={toggleTheme}
-                                />
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <ThemeSwitch
+                                        isLight={isLight}
+                                        onToggle={toggleTheme}
+                                    />
+                                    <LanguageToggle compact />
+                                </div>
                             )}
                         </div>
                         <button

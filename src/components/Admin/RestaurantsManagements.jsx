@@ -5,6 +5,7 @@ import { getStoredUser } from "../../utils/auth";
 import RestaurantModal from "./RestaurantsModal";
 import AddRestaurantsCard from "./AddRestaurantsCard";
 import RestaurantsCard from "./RestaurantCard";
+import { useTranslation } from "../../utils/i18n";
 
 function getLoginIdentifier(user) {
     return (
@@ -26,6 +27,7 @@ function DeletePasswordModal({
     onClose,
     onConfirm,
 }) {
+    const { t } = useTranslation();
     if (!restaurant) return null;
 
     return (
@@ -41,10 +43,10 @@ function DeletePasswordModal({
                         </div>
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                                Confirm delete
+                                {t("confirmDelete")}
                             </p>
                             <h2 className="text-xl font-black text-white">
-                                Delete {restaurant.name}
+                                {t("delete")} {restaurant.name}
                             </h2>
                         </div>
                     </div>
@@ -62,13 +64,12 @@ function DeletePasswordModal({
 
                 <div className="space-y-4 p-5">
                     <p className="text-sm font-semibold leading-6 text-white/58">
-                        Enter your account password to delete this restaurant. This
-                        keeps accidental clicks from removing a branch.
+                        {t("deleteRestaurantPasswordHelp")}
                     </p>
 
                     <label className="block">
                         <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                            Account password
+                            {t("accountPassword")}
                         </span>
                         <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 transition focus-within:border-[#FFD166]/70 focus-within:ring-4 focus-within:ring-[#FFD166]/10">
                             <Lock size={18} className="shrink-0 text-white/35" />
@@ -77,7 +78,7 @@ function DeletePasswordModal({
                                 value={password}
                                 onChange={(event) => setPassword(event.target.value)}
                                 autoComplete="current-password"
-                                placeholder="Enter password"
+                                placeholder="أدخل كلمة المرور"
                                 className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30"
                                 autoFocus
                             />
@@ -98,7 +99,7 @@ function DeletePasswordModal({
                         disabled={isDeleting}
                         className="h-11 rounded-2xl border border-white/10 px-6 text-sm font-black text-white/65 transition hover:scale-[1.03] hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
                     >
-                        Cancel
+                        {t("cancel")}
                     </button>
 
                     <button
@@ -107,7 +108,7 @@ function DeletePasswordModal({
                         className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#DC2626_0%,#B91C1C_52%,#991B1B_100%)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgba(185,28,28,0.28)] transition hover:scale-[1.03] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isDeleting && <Loader2 size={17} className="animate-spin" />}
-                        Delete Restaurant
+                        {t("deleteRestaurant")}
                     </button>
                 </div>
             </form>
@@ -116,6 +117,7 @@ function DeletePasswordModal({
 }
 
 function RestaurantsManagements() {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [restaurants, setRestaurants] = useState([]);
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -125,6 +127,7 @@ function RestaurantsManagements() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [imageCacheKey, setImageCacheKey] = useState(() => Date.now());
 
     const getRestaurants = async () => {
         setIsLoading(true);
@@ -133,9 +136,10 @@ function RestaurantsManagements() {
         try {
             const response = await api.get("/restaurants");
             setRestaurants(response.data.restaurants || []);
+            setImageCacheKey(Date.now());
         } catch (error) {
             setErrorMessage(
-                error.response?.data?.message || "Could not load restaurants."
+                error.response?.data?.message || t("restaurantsLoadError")
             );
         } finally {
             setIsLoading(false);
@@ -159,6 +163,20 @@ function RestaurantsManagements() {
         setDeleteErrorMessage("");
     };
 
+    const handleOpenEdit = async (restaurant) => {
+        try {
+            const response = await api.get(`/employee/restaurants/${restaurant.id}`);
+            const editableRestaurant =
+                response.data?.restaurant || response.data?.data || response.data;
+
+            setSelectedRestaurant(editableRestaurant || restaurant);
+        } catch {
+            setSelectedRestaurant(restaurant);
+        } finally {
+            setIsOpen(true);
+        }
+    };
+
     const handleCloseDelete = () => {
         if (isDeleting) return;
 
@@ -176,12 +194,12 @@ function RestaurantsManagements() {
         const login = getLoginIdentifier(user);
 
         if (!login) {
-            setDeleteErrorMessage("Could not identify the current account.");
+            setDeleteErrorMessage("تعذر تحديد الحساب الحالي.");
             return;
         }
 
         if (!deletePassword.trim()) {
-            setDeleteErrorMessage("Password is required.");
+            setDeleteErrorMessage("كلمة المرور مطلوبة.");
             return;
         }
 
@@ -205,7 +223,7 @@ function RestaurantsManagements() {
         } catch (error) {
             setDeleteErrorMessage(
                 error.response?.data?.message ||
-                    "Password is incorrect or restaurant could not be deleted."
+                    "كلمة المرور غير صحيحة أو تعذر حذف المطعم."
             );
         } finally {
             setIsDeleting(false);
@@ -230,14 +248,13 @@ function RestaurantsManagements() {
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FFD166]">
-                                Restaurant network
+                                {t("restaurantNetwork")}
                             </p>
                             <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-                                Restaurants
+                                {t("restaurants")}
                             </h1>
                             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/55">
-                                Create and manage every restaurant branch in one place.
-                                There is no fixed limit on how many restaurants you can add.
+                                {t("restaurantBranchesDescription")}
                             </p>
                         </div>
 
@@ -247,7 +264,7 @@ function RestaurantsManagements() {
                             className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#B91C1C] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(185,28,28,0.30)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-[#DC2626] hover:shadow-[0_20px_40px_rgba(220,38,38,0.34)] active:scale-[0.99]"
                         >
                             <Plus size={18} />
-                            Add Restaurant
+                            {t("addRestaurant")}
                         </button>
                     </div>
 
@@ -263,7 +280,7 @@ function RestaurantsManagements() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">
-                                    Restaurants
+                                    {t("restaurants")}
                                 </p>
                                 <strong className="mt-3 block text-3xl font-black">
                                     {restaurants.length}
@@ -279,7 +296,7 @@ function RestaurantsManagements() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[#EF4444]">
-                                    Average tax
+                                    متوسط الضريبة
                                 </p>
                                 <strong className="mt-3 block text-3xl font-black">
                                     {averageTax.toFixed(2)}%
@@ -295,10 +312,10 @@ function RestaurantsManagements() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[#FFD166]">
-                                    Capacity
+                                    السعة
                                 </p>
                                 <strong className="mt-3 block text-3xl font-black">
-                                    Open
+                                    مفتوح
                                 </strong>
                             </div>
                             <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/10 text-[#FFD166]">
@@ -311,7 +328,7 @@ function RestaurantsManagements() {
                 <section className="grid grid-cols-1 gap-5 xl:grid-cols-2 xl:gap-8">
                     {isLoading ? (
                         <div className="col-span-full rounded-[24px] border border-white/10 bg-[#202B2F] p-10 text-center text-sm font-black text-white/45 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
-                            Loading restaurants...
+                            {t("loadingRestaurants")}
                         </div>
                     ) : (
                         <>
@@ -320,10 +337,8 @@ function RestaurantsManagements() {
                                     key={restaurant.id}
                                     restaurant={restaurant}
                                     onDelete={() => handleOpenDelete(restaurant)}
-                                    onEdit={(currentRestaurant) => {
-                                        setSelectedRestaurant(currentRestaurant);
-                                        setIsOpen(true);
-                                    }}
+                                    onEdit={handleOpenEdit}
+                                    cacheKey={imageCacheKey}
                                 />
                             ))}
 
@@ -340,6 +355,7 @@ function RestaurantsManagements() {
                         setSelectedRestaurant(null);
                     }}
                     onSave={(updatedRestaurant) => {
+                        setImageCacheKey(Date.now());
                         setRestaurants((prev) => {
                             const exists = prev.some(
                                 (restaurant) => restaurant.id === updatedRestaurant.id

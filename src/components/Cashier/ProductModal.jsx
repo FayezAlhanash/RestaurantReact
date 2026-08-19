@@ -13,9 +13,26 @@ import {
     X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { isFoodOrderable } from "../../utils/foodAvailability";
+import {
+    MODIFIER_UNAVAILABLE_MESSAGE,
+    isFoodOrderable,
+    isModifierOptionOrderable,
+} from "../../utils/foodAvailability";
 
 const SAVED_MODIFIER_PRICES_STORAGE_KEY = "manager_menu_modifier_prices";
+
+const getAnyModifierOptionId = (option) =>
+    option?.id ??
+    option?.modifier_option_id ??
+    option?.modifierOptionId ??
+    option?.option_id ??
+    option?.optionId;
+
+const getAnyModifierGroups = (item) =>
+    item?.modifierGroups ?? item?.modifier_groups ?? item?.groups ?? [];
+
+const getAnyModifierOptions = (group) =>
+    group?.options ?? group?.modifier_options ?? group?.modifierOptions ?? [];
 
 function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [selectedSize, setSelectedSize] = useState("small");
@@ -25,6 +42,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [isClosing, setIsClosing] = useState(false);
     const [isAdded, setIsAdded] = useState(false);
     const [expandedModifierGroups, setExpandedModifierGroups] = useState({});
+    const [modifierAvailabilityMessage, setModifierAvailabilityMessage] = useState("");
     const closeTimerRef = useRef(null);
     const addTimerRef = useRef(null);
 
@@ -34,6 +52,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         setSelectedSize("small");
         setSelectedModifiers({});
         setExpandedModifierGroups({});
+        setModifierAvailabilityMessage("");
         setNotes("");
     }, [item]);
 
@@ -88,6 +107,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             setSelectedSize("small");
             setSelectedModifiers({});
             setExpandedModifierGroups({});
+            setModifierAvailabilityMessage("");
             setNotes("");
             setIsAdded(false);
             setIsClosing(false);
@@ -95,6 +115,58 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             onClose();
         }, 220);
     };
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const availabilityByOptionId = new Map(
+            getAnyModifierGroups(item)
+                .flatMap(getAnyModifierOptions)
+                .map((option) => [String(getAnyModifierOptionId(option)), option])
+        );
+
+        if (!availabilityByOptionId.size) return;
+
+        const cleanupTimer = window.setTimeout(() => {
+            setSelectedModifiers((current) => {
+                let removedUnavailableOption = false;
+                const nextModifiers = {};
+
+                Object.entries(current).forEach(([groupId, value]) => {
+                    const optionIds = Array.isArray(value)
+                        ? value
+                        : [value].filter(Boolean);
+                    const availableOptionIds = optionIds.filter((optionId) => {
+                        const option = availabilityByOptionId.get(String(optionId));
+                        const canOrder = isModifierOptionOrderable(option);
+
+                        if (!canOrder) removedUnavailableOption = true;
+                        return canOrder;
+                    });
+
+                    if (Array.isArray(value)) {
+                        if (availableOptionIds.length) {
+                            nextModifiers[groupId] = availableOptionIds;
+                        }
+                        return;
+                    }
+
+                    if (availableOptionIds[0]) {
+                        nextModifiers[groupId] = availableOptionIds[0];
+                    }
+                });
+
+                if (removedUnavailableOption) {
+                    setModifierAvailabilityMessage(MODIFIER_UNAVAILABLE_MESSAGE);
+                    return nextModifiers;
+                }
+
+                return current;
+            });
+        }, 0);
+
+        return () => window.clearTimeout(cleanupTimer);
+    }, [isOpen, item]);
 
     if (!isOpen) return null;
 
@@ -306,6 +378,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                   name: option.name,
                                   price: getModifierOptionPrice(option, group, { basePrice }),
                                   isVariant: isVariantGroup(group),
+                                  can_order:
+                                      option.can_order === undefined
+                                          ? true
+                                          : Boolean(option.can_order),
+                                  unavailable_reason: option.unavailable_reason ?? null,
                               }
                             : null;
                     })
@@ -341,10 +418,18 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             if (!isGroupRequired(group)) return true;
 
             const selectedOptionIds = selectedModifiers[getModifierGroupId(group)];
+            const availableSelectedOptionIds = (Array.isArray(selectedOptionIds)
+                ? selectedOptionIds
+                : [selectedOptionIds].filter(Boolean)
+            ).filter((optionId) =>
+                group.options.some(
+                    (option) =>
+                        String(getOptionId(option)) === String(optionId) &&
+                        isModifierOptionOrderable(option)
+                )
+            );
 
-            return Array.isArray(selectedOptionIds)
-                ? selectedOptionIds.length > 0
-                : Boolean(selectedOptionIds);
+            return availableSelectedOptionIds.length > 0;
             }));
     const modifierNotes = modifierGroups
         .flatMap((group) => {
@@ -590,6 +675,16 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </p>
                             )}
 
+                            {modifierAvailabilityMessage && (
+                                <p className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-black ${
+                                    isDineInDark
+                                        ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/24 text-[#FFD6D6]"
+                                        : "border-[#F3B0B0] bg-[#FFF0F0] text-[#7F1D1D]"
+                                }`}>
+                                    {modifierAvailabilityMessage}
+                                </p>
+                            )}
+
                             {isLoadingDetails ? (
                                 <div className={`mt-5 rounded-[20px] border p-4 text-sm font-extrabold ${
                                     isDineInDark
@@ -716,7 +811,10 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             const optionPrice = getModifierOptionPrice(option, group, { basePrice });
                                                             const isVariant = isVariantGroup(group);
                                                             const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
-                                                            const isDisabled = !isVariant && !canSelectNonVariantModifiers;
+                                                            const isUnavailable = !isModifierOptionOrderable(option);
+                                                            const isDisabled =
+                                                                isUnavailable ||
+                                                                (!isVariant && !canSelectNonVariantModifiers);
 
                                                             return (
                                                                 <button
@@ -785,6 +883,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                                     : "bg-white text-[#7F1D1D]"
                                                                         }`}>
                                                                             {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                                        </span>
+                                                                    )}
+                                                                    {isUnavailable && (
+                                                                        <span className="basis-full text-[11px] font-black text-[#FCA5A5]">
+                                                                            غير متوفر حالياً
                                                                         </span>
                                                                     )}
                                                                 </button>
@@ -962,6 +1065,16 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         </p>
                     )}
 
+                    {modifierAvailabilityMessage && (
+                        <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-black ${
+                            isDark
+                                ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/24 text-[#FFD6D6]"
+                                : "border-[#F3B0B0] bg-[#FFF0F0] text-[#7F1D1D]"
+                        }`}>
+                            {modifierAvailabilityMessage}
+                        </p>
+                    )}
+
                     {isLoadingDetails ? (
                         <div className={`mt-5 rounded-2xl border p-4 text-sm font-extrabold ${
                             isDark
@@ -1083,7 +1196,10 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                     );
                                                     const optionPrice = getModifierOptionPrice(option, group, { basePrice });
                                                     const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
-                                                    const isDisabled = !isVariant && !canSelectNonVariantModifiers;
+                                                    const isUnavailable = !isModifierOptionOrderable(option);
+                                                    const isDisabled =
+                                                        isUnavailable ||
+                                                        (!isVariant && !canSelectNonVariantModifiers);
 
                                                     return (
                                                         <button
@@ -1165,6 +1281,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             {(isVariant || optionPrice > 0) && (
                                                                 <span className={`mt-2 block text-2xl font-black leading-none ${isDark ? "text-[#FFD166]" : "text-[#B78312]"}`}>
                                                                     {isVariant ? `$${displayPrice.toFixed(2)}` : `+ $${optionPrice.toFixed(2)}`}
+                                                                </span>
+                                                            )}
+                                                            {isUnavailable && (
+                                                                <span className="mt-2 block text-xs font-black text-[#B91C1C]">
+                                                                    غير متوفر حالياً
                                                                 </span>
                                                             )}
                                                         </button>

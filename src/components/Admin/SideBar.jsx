@@ -30,6 +30,7 @@ import BrandLogo from "../Shared/BrandLogo";
 import PermissionToast from "../Shared/PermissionToast";
 import { useTheme } from "../../context/ThemeContext";
 import { ROLE_IDS, clearSession, getStoredUser, storeUser } from "../../utils/auth";
+import { useTranslation } from "../../utils/i18n";
 import {
     getAssignedPermissionKeys,
     normalizePermissionKey,
@@ -94,6 +95,7 @@ function SideBar({
     onResizeStart,
     onResizeReset,
 }) {
+    const { t } = useTranslation();
     const { isLight } = useTheme();
     const navigate = useNavigate();
     const [sessionUser, setSessionUser] = useState(() => getStoredUser());
@@ -125,50 +127,50 @@ function SideBar({
     const menu = [
         {
             icon: LayoutDashboard,
-            title: "Dashboard",
+            title: t("dashboard"),
             path: "/dashboard",
             adminOnly: true,
         },
         {
             icon: FolderPlus,
-            title: "Menu Builder",
+            title: t("menuBuilder"),
             path: "/add-menu",
             permissions: ["manage_menu"],
         },
         {
             icon: UtensilsCrossed,
-            title: "Food Library",
+            title: t("foodLibrary"),
             path: "/add-food",
             permissions: ["manage_menu"],
         },
         {
             icon: Package,
-            title: "Recipes",
+            title: t("recipes"),
             path: "/ingredients",
             permissions: ["view_recipes", "manage_recipes"],
         },
         {
             icon: Store,
-            title: "Restaurants",
+            title: t("restaurants"),
             path: "/restaurants",
             permissions: ["manage_restaurants"],
             adminOnly: true,
         },
         {
             icon: Users,
-            title: "Employees",
+            title: t("employees"),
             path: "/employee",
             permissions: ["manage_users"],
         },
         {
             icon: UsersRound,
-            title: "Restaurant Staff",
+            title: t("restaurantStaff"),
             path: "/restaurant-staff",
             permissions: restaurantStaffPermissions,
         },
         {
             icon: CalendarDays,
-            title: "Manage Employee Shifts",
+            title: t("employeeShifts"),
             path: "/employee-shifts",
             permissions: [
                 "manage_employee_shifts",
@@ -183,49 +185,49 @@ function SideBar({
         },
         {
             icon: UserCog,
-            title: "User Permissions",
+            title: t("userPermissions"),
             path: "/user-permissions",
             permissions: ["manage_permissions"],
         },
         {
             icon: ShieldCheck,
-            title: "Roles",
+            title: t("roles"),
             path: "/roles",
             permissions: ["manage_roles", "manage_permissions"],
         },
         {
             icon: Table,
-            title: "Tables",
+            title: t("tables"),
             path: "/tables",
             permissions: ["manage_tables"],
         },
         {
             icon: Package,
-            title: "Inventory",
+            title: t("inventory"),
             path: "/inventory",
             permissions: ["monitor_inventory", "manage_inventory"],
         },
         {
             icon: ClipboardList,
-            title: "Stock Actions",
+            title: t("stockActions"),
             path: "/stock-actions",
             permissions: ["monitor_inventory", "manage_inventory"],
         },
         {
             icon: TriangleAlert,
-            title: "Low Stock",
+            title: t("lowStock"),
             path: "/low-stock",
             permissions: ["monitor_inventory", "manage_inventory"],
         },
         {
             icon: ReceiptText,
-            title: "Cashier Dashboard",
+            title: t("dashboard"),
             path: "/takeaway-orders",
             permissions: ["manage_takeaway_orders"],
         },
         {
             icon: ChefHat,
-            title: "Kitchen Orders",
+            title: t("kitchenOrders"),
             path: "/kitchen-orders",
             permissions: ["manage_kitchen_orders"],
         },
@@ -237,13 +239,13 @@ function SideBar({
         },
         {
             icon: LayoutDashboard,
-            title: "Reports",
+            title: t("reports"),
             path: "/reports",
             permissions: ["view_reports", "view_global_reports"],
         },
         {
             icon: ReceiptText,
-            title: isAdmin ? "Global Invoices" : "View Global Invoice",
+            title: isAdmin ? t("globalInvoices") : t("viewGlobalInvoice"),
             path: isAdmin ? "/global-invoices" : "/manager/global-invoices",
             permissions: [
                 "view_global_invoices",
@@ -256,7 +258,7 @@ function SideBar({
         },
         {
             icon: ReceiptText,
-            title: "View Invoices",
+            title: t("viewInvoices"),
             path: isAdmin ? "/invoices" : "/manager/invoices",
             permissions: [
                 "view_invoices",
@@ -268,20 +270,20 @@ function SideBar({
         },
         {
             icon: MessageSquareText,
-            title: "Delivery Reviews",
+            title: t("deliveryReviews"),
             path: "/delivery-reviews",
             permissions: ["view_delivery_review", "view_delivery_reviews", "view_deivery_review"],
         },
         {
             icon: Globe2,
-            title: "Global Loyalty Settings",
+            title: t("globalLoyaltySettings"),
             path: "/global-loyalty-settings",
             permissions: ["manage_global_loyalty_settings"],
             adminOnly: true,
         },
         {
             icon: BadgePercent,
-            title: "Loyalty Settings",
+            title: t("loyaltySettings"),
             path: "/loyalty-settings",
             permissions: ["manage_loyalty_settings"],
         },
@@ -413,7 +415,7 @@ function SideBar({
         }
 
         event.preventDefault();
-        setPermissionMessage("An admin removed this task from your account.");
+        setPermissionMessage(t("thisTaskRemoved"));
         onClose?.();
     };
     const visibleMenu = menu.filter((item) =>
@@ -526,7 +528,7 @@ function SideBar({
                                     isLight ? "text-[#7A6A64]" : "text-white/45"
                                 }`}
                             >
-                                {visibleMenu.length} sections
+                                {visibleMenu.length} {t("sections")}
                             </p>
                         </div>
                     </div>
@@ -535,7 +537,7 @@ function SideBar({
                 <nav className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-8">
                     <div className={`mb-4 flex items-center justify-between px-0 ${isCollapsed ? "lg:hidden" : ""}`}>
                         <p className="text-[12px] font-semibold uppercase tracking-[0.34em] text-[#81786d]">
-                            Workspace
+                            {t("workspace")}
                         </p>
                         <span className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[11px] font-black text-[#d7b52f] shadow-sm">
                             {visibleMenu.length}
@@ -601,10 +603,10 @@ function SideBar({
                                     <ShieldCheck size={20} />
                                 </div>
                                 <p className="mt-3 text-sm font-black text-white">
-                                    No tasks yet
+                                    {t("noTasksYet")}
                                 </p>
                                 <p className="mt-1 text-xs font-semibold leading-5 text-white/50">
-                                    Assigned permissions will appear here automatically.
+                                    {t("permissionsWillAppear")}
                                 </p>
                             </div>
                         )}
@@ -616,10 +618,10 @@ function SideBar({
                         type="button"
                         onClick={handleLogout}
                         className={`admin-logout-button flex h-14 w-full items-center justify-center gap-3 rounded-[8px] border border-[#7F1D1D] bg-[#7F1D1D] text-sm font-black tracking-[0.12em] !text-white shadow-[0_12px_26px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 hover:bg-[#681718] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? "lg:px-0" : ""}`}
-                        title={isCollapsed ? "Logout" : undefined}
+                        title={isCollapsed ? t("logout") : undefined}
                     >
                         <LogOut size={18} className="!text-white" />
-                        <span className={`${isCollapsed ? "lg:hidden" : ""} !text-white`}>Logout</span>
+                        <span className={`${isCollapsed ? "lg:hidden" : ""} !text-white`}>{t("logout")}</span>
                     </button>
                 </div>
             </aside>

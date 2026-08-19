@@ -5,18 +5,22 @@ import {
     nonNegativeNumberInputProps,
     toNonNegativeNumberValue,
 } from "../../utils/nonNegativeNumberInput";
+import { getStorageImageUrl } from "../../utils/restaurant";
+import {
+    TRANSLATION_MODE_AUTOMATIC,
+    TRANSLATION_MODE_MANUAL,
+    appendTranslationFields,
+    getApiErrorMessage,
+    getInitialTranslationMode,
+} from "../../utils/translationPayload";
+import { useTranslation } from "../../utils/i18n";
 
-function getImageUrl(path) {
-    if (!path) return "";
-    if (path.startsWith("http")) return path.replace("https://", "http://");
-    return `http://46.101.112.67:8000/storage/${path}`;
-}
-
-function UploadBox({ label, file, existingImage, onChange }) {
+function UploadBox({ label, file, existingImage, cacheKey, onChange }) {
+    const { t } = useTranslation();
     const previewUrl = useMemo(() => {
         if (file) return URL.createObjectURL(file);
-        return getImageUrl(existingImage);
-    }, [existingImage, file]);
+        return getStorageImageUrl(existingImage, cacheKey);
+    }, [cacheKey, existingImage, file]);
 
     useEffect(() => {
         return () => {
@@ -48,7 +52,7 @@ function UploadBox({ label, file, existingImage, onChange }) {
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-3">
                     <p className="text-sm font-black text-white">{label}</p>
                     <p className="truncate text-xs font-bold text-white/75">
-                        {file ? file.name : "Click to upload image"}
+                        {file ? file.name : t("clickUploadImage")}
                     </p>
                 </div>
             </div>
@@ -57,10 +61,16 @@ function UploadBox({ label, file, existingImage, onChange }) {
 }
 
 function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
+    const { t } = useTranslation();
     const formKey = `${restaurant?.id ?? "new"}-${isOpen ? "open" : "closed"}`;
     const [isVisible, setIsVisible] = useState(false);
     const [name, setName] = useState("");
+    const [nameAr, setNameAr] = useState("");
+    const [nameEn, setNameEn] = useState("");
     const [description, setDescription] = useState("");
+    const [descriptionAr, setDescriptionAr] = useState("");
+    const [descriptionEn, setDescriptionEn] = useState("");
+    const [translationMode, setTranslationMode] = useState(TRANSLATION_MODE_AUTOMATIC);
     const [tax, setTax] = useState("");
     const [frontImage, setFrontImage] = useState(null);
     const [backImage, setBackImage] = useState(null);
@@ -70,8 +80,14 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
     useEffect(() => {
         if (!isOpen) return undefined;
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTranslationMode(getInitialTranslationMode(restaurant, ["name", "description"]));
         setName(restaurant?.name || "");
+        setNameAr(restaurant?.name_ar || "");
+        setNameEn(restaurant?.name_en || "");
         setDescription(restaurant?.description || "");
+        setDescriptionAr(restaurant?.description_ar || "");
+        setDescriptionEn(restaurant?.description_en || "");
         setTax(restaurant?.tax_percentage ?? "");
         setFrontImage(null);
         setBackImage(null);
@@ -91,7 +107,11 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
         setIsVisible(false);
         window.setTimeout(() => {
             setName("");
+            setNameAr("");
+            setNameEn("");
             setDescription("");
+            setDescriptionAr("");
+            setDescriptionEn("");
             setTax("");
             setFrontImage(null);
             setBackImage(null);
@@ -100,21 +120,28 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
         }, 160);
     };
 
-    const getErrorMessage = (error) => {
-        const errors = error.response?.data?.errors;
-
-        if (errors && typeof errors === "object") {
-            return Object.values(errors).flat().filter(Boolean).join(" ");
-        }
-
-        return error.response?.data?.message || "Could not save restaurant.";
-    };
-
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        if (!name.trim()) {
-            setErrorMessage("Restaurant name is required.");
+        if (translationMode === TRANSLATION_MODE_AUTOMATIC && !name.trim()) {
+            setErrorMessage(t("restaurantNameRequired"));
+            return;
+        }
+
+        if (
+            translationMode === TRANSLATION_MODE_MANUAL &&
+            (!nameAr.trim() || !nameEn.trim())
+        ) {
+            setErrorMessage(t("restaurantNamesRequired"));
+            return;
+        }
+
+        if (
+            translationMode === TRANSLATION_MODE_MANUAL &&
+            ((descriptionAr.trim() && !descriptionEn.trim()) ||
+                (!descriptionAr.trim() && descriptionEn.trim()))
+        ) {
+            setErrorMessage("يجب تعبئة الوصف بالعربية والإنكليزية معاً.");
             return;
         }
 
@@ -124,8 +151,19 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
         try {
             const formData = new FormData();
 
-            formData.append("name", name.trim());
-            formData.append("description", description.trim());
+            appendTranslationFields(
+                formData,
+                {
+                    translation_mode: translationMode,
+                    name,
+                    name_ar: nameAr,
+                    name_en: nameEn,
+                    description,
+                    description_ar: descriptionAr,
+                    description_en: descriptionEn,
+                },
+                ["name", "description"]
+            );
             formData.append("delivery_time", 30);
             formData.append("tax_percentage", tax || 0);
 
@@ -139,7 +177,7 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
             onSave(response.data.restaurant);
             resetAndClose();
         } catch (error) {
-            setErrorMessage(getErrorMessage(error));
+            setErrorMessage(getApiErrorMessage(error, t("restaurantSaveError")));
         } finally {
             setIsSaving(false);
         }
@@ -167,10 +205,10 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
                             </div>
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                                    {restaurant ? "Edit branch" : "New branch"}
+                                    {restaurant ? "تعديل فرع" : "فرع جديد"}
                                 </p>
                                 <h2 className="text-xl font-black text-white">
-                                    {restaurant ? "Update Restaurant" : "Add Restaurant"}
+                                    {restaurant ? t("updateRestaurant") : t("addRestaurant")}
                                 </h2>
                             </div>
                         </div>
@@ -189,49 +227,138 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
                 <div className="grid gap-6 p-5 lg:grid-cols-[1fr_1.1fr]">
                     <section className="space-y-4">
                         <UploadBox
-                            label="Front image"
+                            label={t("frontImage")}
                             file={frontImage}
                             existingImage={restaurant?.front_image}
+                            cacheKey={
+                                restaurant?.updated_at ||
+                                restaurant?.front_image_updated_at ||
+                                restaurant?.id
+                            }
                             onChange={setFrontImage}
                         />
                         <UploadBox
-                            label="Back image"
+                            label={t("backImage")}
                             file={backImage}
                             existingImage={restaurant?.back_image}
+                            cacheKey={
+                                restaurant?.updated_at ||
+                                restaurant?.back_image_updated_at ||
+                                restaurant?.id
+                            }
                             onChange={setBackImage}
                         />
                     </section>
 
                     <section className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-[#0D1214] p-1">
+                            {[
+                                [TRANSLATION_MODE_AUTOMATIC, t("autoTranslate")],
+                                [TRANSLATION_MODE_MANUAL, t("arabicEnglish")],
+                            ].map(([mode, label]) => (
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    onClick={() => {
+                                        setTranslationMode(mode);
+                                        setErrorMessage("");
+                                    }}
+                                    className={`h-10 rounded-xl text-xs font-black transition ${
+                                        translationMode === mode
+                                            ? "bg-[#FFD166] text-[#1B1510]"
+                                            : "text-white/55 hover:bg-white/[0.05] hover:text-white"
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {translationMode === TRANSLATION_MODE_AUTOMATIC ? (
                         <label className="block">
                             <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                                Restaurant Name
+                                {t("restaurantName")}
                             </span>
                             <input
                                 type="text"
-                                placeholder="Italian Corner"
+                                placeholder="الركن الإيطالي"
                                 value={name}
                                 onChange={(event) => setName(event.target.value)}
                                 className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                             />
                         </label>
+                        ) : (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <label className="block">
+                                    <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                                        {t("arabicName")}
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={nameAr}
+                                        onChange={(event) => setNameAr(event.target.value)}
+                                        className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                        required
+                                    />
+                                </label>
+                                <label className="block">
+                                    <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                                        {t("englishName")}
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={nameEn}
+                                        onChange={(event) => setNameEn(event.target.value)}
+                                        className="w-full rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                        required
+                                    />
+                                </label>
+                            </div>
+                        )}
 
+                        {translationMode === TRANSLATION_MODE_AUTOMATIC ? (
                         <label className="block">
                             <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                                Description
+                                {t("description")}
                             </span>
                             <textarea
                                 value={description}
                                 onChange={(event) => setDescription(event.target.value)}
-                                placeholder="Short description for this restaurant..."
+                                placeholder={t("restaurantShortDescriptionPlaceholder")}
                                 rows={5}
                                 className="w-full resize-none rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
                             />
                         </label>
+                        ) : (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <label className="block">
+                                    <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                                        {t("arabicDescription")}
+                                    </span>
+                                    <textarea
+                                        value={descriptionAr}
+                                        onChange={(event) => setDescriptionAr(event.target.value)}
+                                        rows={5}
+                                        className="w-full resize-none rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                    />
+                                </label>
+                                <label className="block">
+                                    <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                                        {t("englishDescription")}
+                                    </span>
+                                    <textarea
+                                        value={descriptionEn}
+                                        onChange={(event) => setDescriptionEn(event.target.value)}
+                                        rows={5}
+                                        className="w-full resize-none rounded-2xl border border-white/10 bg-[#0D1214] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-white/30 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                                    />
+                                </label>
+                            </div>
+                        )}
 
                         <label className="block">
                             <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                                Tax (%)
+                                {t("tax")} (%)
                             </span>
                             <input
                                 type="number"
@@ -260,7 +387,7 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
                         onClick={resetAndClose}
                         className="h-11 rounded-2xl border border-white/10 px-6 text-sm font-black text-white/65 transition hover:bg-white/[0.05] hover:text-white"
                     >
-                        Cancel
+                        {t("cancel")}
                     </button>
 
                     <button
@@ -269,7 +396,7 @@ function RestaurantModal({ isOpen, onClose, onSave, restaurant }) {
                         className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         {isSaving && <Loader2 size={17} className="animate-spin" />}
-                        {restaurant ? "Update Restaurant" : "Create Restaurant"}
+                        {restaurant ? t("updateRestaurant") : t("createRestaurant")}
                     </button>
                 </div>
             </form>

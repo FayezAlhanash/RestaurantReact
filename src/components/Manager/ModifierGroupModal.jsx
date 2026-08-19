@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
 import { Layers3, Save, X } from "lucide-react";
+import {
+  TRANSLATION_MODE_AUTOMATIC,
+  TRANSLATION_MODE_MANUAL,
+  getInitialTranslationMode,
+} from "../../utils/translationPayload";
+import { useTranslation } from "../../utils/i18n";
 
 function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [nameEn, setNameEn] = useState("");
+  const [translationMode, setTranslationMode] = useState(TRANSLATION_MODE_AUTOMATIC);
   const [isVariant, setIsVariant] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const saving = isSaving || isSubmitting;
@@ -10,7 +20,10 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTranslationMode(getInitialTranslationMode(group, ["name"]));
       setName(group?.name ?? "");
+      setNameAr(group?.name_ar ?? "");
+      setNameEn(group?.name_en ?? "");
       setIsVariant(Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)));
     }
   }, [isOpen, group]);
@@ -25,7 +38,13 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
     setIsSubmitting(true);
 
     try {
-      await onSave({ name, is_variant: isVariant ? 1 : 0 });
+      await onSave({
+        translation_mode: translationMode,
+        name,
+        name_ar: nameAr,
+        name_en: nameEn,
+        is_variant: isVariant ? 1 : 0,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -41,10 +60,10 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                Modifier group
+                مجموعة معدّلات
               </p>
               <h2 className="text-xl font-black text-white">
-                {group ? "Edit Group" : "Add Group"}
+                {group ? t("editGroup") : "إضافة مجموعة"}
               </h2>
             </div>
           </div>
@@ -60,20 +79,72 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-[#0D1214] p-1">
+            {[
+              [TRANSLATION_MODE_AUTOMATIC, t("autoTranslate")],
+              [TRANSLATION_MODE_MANUAL, t("arabicEnglish")],
+            ].map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setTranslationMode(mode)}
+                className={`h-10 rounded-xl text-xs font-black transition ${
+                  translationMode === mode
+                    ? "bg-[#FFD166] text-[#1B1510]"
+                    : "text-white/55 hover:bg-white/[0.05] hover:text-white"
+                }`}
+                disabled={saving}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {translationMode === TRANSLATION_MODE_AUTOMATIC ? (
           <div>
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-              Group Name
+              {t("groupName")}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Size, sauce, bread type..."
+              placeholder="الحجم، الصوص، نوع الخبز..."
               className="w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
               required
               disabled={saving}
             />
           </div>
+          ) : (
+            <div className="grid gap-3">
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                  {t("arabicName")}
+                </label>
+                <input
+                  type="text"
+                  value={nameAr}
+                  onChange={(e) => setNameAr(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                  required
+                  disabled={saving}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                  {t("englishName")}
+                </label>
+                <input
+                  type="text"
+                  value={nameEn}
+                  onChange={(e) => setNameEn(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
+                  required
+                  disabled={saving}
+                />
+              </div>
+            </div>
+          )}
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#FFD166]/20 bg-[#0D1214] p-3 transition hover:border-[#FFD166]/45">
             <input
@@ -85,10 +156,10 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
             />
             <span>
               <span className="block text-sm font-black text-[#FFD166]">
-                Variant pricing group
+                مجموعة تسعير متغيرة
               </span>
               <span className="mt-1 block text-xs font-bold leading-5 text-white/50">
-                Use for sizes. Small uses the food price; bigger options store only the extra amount.
+                تستخدم للأحجام. الصغير يستخدم سعر الطعام؛ والخيارات الأكبر تخزن المبلغ الإضافي فقط.
               </span>
             </span>
           </label>
@@ -100,7 +171,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
               disabled={saving}
               className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:text-white active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -108,7 +179,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
               className="group inline-flex items-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0 disabled:cursor-wait disabled:bg-[#7F1D1D]/45 disabled:shadow-none disabled:hover:translate-y-0"
             >
               <Save size={17} className="transition duration-200 group-hover:-rotate-6" />
-              {saving ? "Please wait..." : group ? "Update" : "Save"}
+              {saving ? `${t("pleaseWait")}...` : group ? t("update") : t("save")}
             </button>
           </div>
         </form>

@@ -44,6 +44,7 @@ import api from "./API/axios";
 import { getStoredToken } from "./utils/auth";
 import NotificationManager from "./notifications/NotificationManager";
 import RealtimeManager from "./components/Realtime/RealtimeManager";
+import GlobalTextTranslator from "./components/Shared/GlobalTextTranslator";
 
 const RESTAURANT_STAFF_PERMISSIONS = [
   "manage_restaurant_staff",
@@ -139,6 +140,7 @@ function App() {
         <SessionWatcher />
         <RealtimeManager />
         <NotificationManager />
+        <GlobalTextTranslator />
 
         <Routes>
           <Route path="/ready-orders" element={<ReadyOrders />} />

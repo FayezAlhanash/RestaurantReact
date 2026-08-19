@@ -28,10 +28,13 @@ import useFoodAvailabilityRealtime from "../../hooks/useFoodAvailabilityRealtime
 import {
     FOOD_NOT_ORDERABLE_MESSAGE,
     FOOD_UNAVAILABLE_MESSAGE,
+    MODIFIER_UNAVAILABLE_MESSAGE,
+    applyModifierAvailabilityUpdates,
     applyFoodAvailabilityUpdates,
     getFoodKey,
     isFoodOrderable,
     normalizeFoodAvailability,
+    removeUnavailableModifierSelections,
 } from "../../utils/foodAvailability";
 
 const REPORTS_BACKGROUND =
@@ -371,7 +374,81 @@ function CashierDashboard({ embedded = false }) {
         return Array.from(new Set(restaurantIds.map(String).filter(Boolean)));
     }, [activeRestaurant, menuItems, restaurants]);
 
-    const handleFoodAvailabilityUpdate = useCallback((event) => {
+    const refreshMenuItems = useCallback(async () => {
+        foodDetailsCache.clear();
+
+        if (restaurants.length) {
+            const menuResponses = await Promise.allSettled(
+                restaurants.map(fetchRestaurantMenu)
+            );
+            const nextMenuItems = menuResponses.flatMap((result) =>
+                result.status === "fulfilled" ? result.value : []
+            );
+
+            setMenuItems(nextMenuItems);
+            return;
+        }
+
+        const restaurantId = await ensureCurrentRestaurantId();
+        const foodResponse = await api.get("/food", {
+            params: restaurantId ? { restaurant_id: restaurantId } : {},
+        });
+
+        setMenuItems(getList(foodResponse.data).map(normalizeFoodItem));
+    }, [restaurants]);
+
+    const handleMenuAvailabilityUpdate = useCallback((event) => {
+        if (event?.type === "modifier_availability_updated") {
+            const modifierOptions = Array.isArray(event?.modifier_options)
+                ? event.modifier_options
+                : [];
+
+            if (!modifierOptions.length) return;
+
+            modifierOptions
+                .flatMap((option) => option?.food_ids ?? option?.foodIds ?? [])
+                .forEach((foodId) => foodDetailsCache.delete(String(foodId)));
+
+            const unavailableOptionIds = new Set(
+                modifierOptions
+                    .filter((option) => option?.can_order === false)
+                    .map((option) =>
+                        String(
+                            option.modifier_option_id ??
+                                option.modifierOptionId ??
+                                option.id
+                        )
+                    )
+            );
+            const cartHadUnavailableModifier = cartItemsRef.current.some((item) =>
+                (item.selectedModifierOptions ?? []).some((option) =>
+                    unavailableOptionIds.has(
+                        String(option.modifier_option_id ?? option.id)
+                    )
+                )
+            );
+
+            setMenuItems((currentItems) =>
+                applyModifierAvailabilityUpdates(currentItems, modifierOptions)
+            );
+            setSelectedItem((currentItem) =>
+                currentItem
+                    ? applyModifierAvailabilityUpdates([currentItem], modifierOptions)[0]
+                    : currentItem
+            );
+            setCartItems((currentItems) =>
+                removeUnavailableModifierSelections(
+                    applyModifierAvailabilityUpdates(currentItems, modifierOptions)
+                )
+            );
+
+            if (cartHadUnavailableModifier) {
+                setAvailabilityMessage(MODIFIER_UNAVAILABLE_MESSAGE);
+            }
+
+            return;
+        }
+
         const updatedFoods = Array.isArray(event?.foods) ? event.foods : [];
 
         if (!updatedFoods.length) return;
@@ -401,7 +478,7 @@ function CashierDashboard({ embedded = false }) {
 
     useFoodAvailabilityRealtime(
         availabilityRestaurantIds,
-        handleFoodAvailabilityUpdate
+        handleMenuAvailabilityUpdate
     );
 
     useLayoutEffect(() => {
@@ -709,6 +786,7 @@ function CashierDashboard({ embedded = false }) {
                         cartItems={cartItems}
                         setCartItems={setCartItems}
                         canProcessPayments={canProcessPayments}
+                        onOrderRejected={refreshMenuItems}
                     />
                 </aside>
             )}

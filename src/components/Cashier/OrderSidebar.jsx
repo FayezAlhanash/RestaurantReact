@@ -15,7 +15,12 @@ import {
     isFoodOrderable,
 } from "../../utils/foodAvailability";
 
-function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
+function OrderSidebar({
+    cartItems,
+    setCartItems,
+    canProcessPayments = true,
+    onOrderRejected,
+}) {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -195,6 +200,12 @@ function OrderSidebar({ cartItems, setCartItems, canProcessPayments = true }) {
             const isMissingPreparationSnapshotColumn =
                 errorText.includes("preparation_batch_size_snapshot") ||
                 errorText.includes("preparation_time_snapshot");
+
+            if (status === 422) {
+                onOrderRejected?.().catch((refreshError) => {
+                    console.error(refreshError.response?.data || refreshError);
+                });
+            }
 
             setErrorMessage(
                 isMissingPreparationSnapshotColumn

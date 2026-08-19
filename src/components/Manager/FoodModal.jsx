@@ -4,6 +4,12 @@ import {
   nonNegativeNumberInputProps,
   toNonNegativeNumberValue,
 } from "../../utils/nonNegativeNumberInput";
+import {
+  TRANSLATION_MODE_AUTOMATIC,
+  TRANSLATION_MODE_MANUAL,
+  getInitialTranslationMode,
+} from "../../utils/translationPayload";
+import { useTranslation } from "../../utils/i18n";
 
 const numericFields = new Set([
   "price",
@@ -15,12 +21,31 @@ const numericFields = new Set([
   "fats",
 ]);
 
-function FoodModal({ isOpen, onClose, onSave, categories, food }) {
+const toBooleanValue = (value, fallback = false) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+
+  const normalizedValue = String(value).trim().toLowerCase();
+
+  if (["0", "false", "no", "off"].includes(normalizedValue)) return false;
+  if (["1", "true", "yes", "on"].includes(normalizedValue)) return true;
+
+  return Boolean(value);
+};
+
+function FoodModal({ isOpen, onClose, onSave, categories, food, errorMessage = "" }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
+    translation_mode: TRANSLATION_MODE_AUTOMATIC,
     category_id: "",
     name: "",
+    name_ar: "",
+    name_en: "",
     price: "",
     description: "",
+    description_ar: "",
+    description_en: "",
     preparation_time: "",
     preparation_batch_size: "",
     calories: "",
@@ -36,18 +61,26 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
+        translation_mode: getInitialTranslationMode(food, ["name", "description"]),
         category_id: food?.category_id ?? food?.category?.id ?? "",
         name: food?.name ?? "",
+        name_ar: food?.name_ar ?? "",
+        name_en: food?.name_en ?? "",
         price: food?.price ?? "",
         description: food?.description ?? "",
+        description_ar: food?.description_ar ?? "",
+        description_en: food?.description_en ?? "",
         preparation_time: food?.preparation_time ?? "",
         preparation_batch_size: food?.preparation_batch_size ?? "",
         calories: food?.calories ?? "",
         protein: food?.protein ?? "",
         carbs: food?.carbs ?? "",
         fats: food?.fats ?? "",
-        is_diet: Boolean(food?.is_diet),
-        is_available: food?.is_available ?? true,
+        is_diet: toBooleanValue(food?.is_diet, false),
+        is_available: toBooleanValue(
+          food?.is_available ?? food?.available ?? food?.can_order,
+          true
+        ),
         image: null,
       });
     }
@@ -89,10 +122,10 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                Food item
+                {t("foodItem")}
               </p>
               <h2 className="text-xl font-black text-white">
-                {food ? "Edit Food" : "Add Food"}
+                {food ? t("editFood") : t("addFood")}
               </h2>
             </div>
           </div>
@@ -107,23 +140,74 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
         <form onSubmit={handleSubmit} className="max-h-[calc(92vh-73px)] overflow-y-auto p-5">
           <div className="grid gap-5 md:grid-cols-2">
+            <div className="md:col-span-2 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-[#0D1214] p-1">
+              {[
+                [TRANSLATION_MODE_AUTOMATIC, t("autoTranslate")],
+                [TRANSLATION_MODE_MANUAL, t("arabicEnglish")],
+              ].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, translation_mode: mode }))
+                  }
+                  className={`h-10 rounded-xl text-xs font-black transition ${
+                    form.translation_mode === mode
+                      ? "bg-[#FFD166] text-[#1B1510]"
+                      : "text-white/55 hover:bg-white/[0.05] hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {form.translation_mode === TRANSLATION_MODE_AUTOMATIC ? (
             <div>
               <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Food Name
+                {t("foodName")}
               </label>
               <input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
                 className={fieldClass}
-                placeholder="Classic beef burger"
+                placeholder={t("foodNamePlaceholder")}
                 required
               />
             </div>
+            ) : (
+              <>
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                    {t("arabicName")}
+                  </label>
+                  <input
+                    name="name_ar"
+                    value={form.name_ar}
+                    onChange={handleChange}
+                    className={fieldClass}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                    {t("englishName")}
+                  </label>
+                  <input
+                    name="name_en"
+                    value={form.name_en}
+                    onChange={handleChange}
+                    className={fieldClass}
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             <div>
               <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Category
+                {t("category")}
               </label>
               <select
                 name="category_id"
@@ -132,7 +216,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
                 className={fieldClass}
                 required
               >
-                <option value="">Choose Category</option>
+                <option value="">{t("chooseCategory")}</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -143,7 +227,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
             <div>
               <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Price
+                {t("price")}
               </label>
               <input
                 type="number"
@@ -159,7 +243,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
             <div>
               <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Preparation Time
+                {t("preparationTime")}
               </label>
               <input
                 type="number"
@@ -174,7 +258,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
 
             <div>
               <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-                Batch Size
+                {t("batchSize")}
               </label>
               <input
                 type="number"
@@ -189,9 +273,10 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </div>
           </div>
 
+          {form.translation_mode === TRANSLATION_MODE_AUTOMATIC ? (
           <div className="mt-5">
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-              Description
+              {t("description")}
             </label>
             <textarea
               rows={4}
@@ -199,9 +284,37 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
               value={form.description}
               onChange={handleChange}
               className={fieldClass}
-              placeholder="Short kitchen-friendly description..."
+              placeholder={t("shortDescriptionPlaceholder")}
             />
           </div>
+          ) : (
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                  {t("arabicDescription")}
+                </label>
+                <textarea
+                  rows={4}
+                  name="description_ar"
+                  value={form.description_ar}
+                  onChange={handleChange}
+                  className={fieldClass}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
+                  {t("englishDescription")}
+                </label>
+                <textarea
+                  rows={4}
+                  name="description_en"
+                  value={form.description_en}
+                  onChange={handleChange}
+                  className={fieldClass}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="mt-5 grid gap-3 md:grid-cols-4">
             {["calories", "protein", "carbs", "fats"].map((field) => (
@@ -211,7 +324,7 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
                 {...nonNegativeNumberInputProps}
                 step="0.01"
                 name={field}
-                placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                placeholder={t(field)}
                 value={form[field]}
                 onChange={handleChange}
                 className={fieldClass}
@@ -225,10 +338,10 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </div>
             <div className="min-w-0 flex-1">
               <span className="block text-sm font-black text-white">
-                Food Image
+                {t("foodImage")}
               </span>
               <span className="block truncate text-sm text-white/45">
-                {form.image?.name || (food?.image ? "Keep current photo" : "Upload a dish photo")}
+                {form.image?.name || (food?.image ? t("keepCurrentPhoto") : t("uploadDishPhoto"))}
               </span>
             </div>
             <input
@@ -243,10 +356,10 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#166534]/30 bg-[#166534]/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/55">
               <span>
                 <span className="block text-sm font-black text-[#166534]">
-                  Available
+                  {t("available")}
                 </span>
                 <span className="text-sm text-white/45">
-                  Cashiers can sell this item.
+                  {t("cashiersCanSell")}
                 </span>
               </span>
               <input
@@ -261,10 +374,10 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#FFD166]/25 bg-[#FFD166]/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#FFD166]/50">
               <span>
                 <span className="block text-sm font-black text-[#FFD166]">
-                  Diet Food
+                  {t("dietFood")}
                 </span>
                 <span className="text-sm text-white/45">
-                  Mark it for diet-friendly filtering.
+                  {t("markDietFriendly")}
                 </span>
               </span>
               <input
@@ -277,20 +390,26 @@ function FoodModal({ isOpen, onClose, onSave, categories, food }) {
             </label>
           </div>
 
+          {errorMessage && (
+            <p className="mt-5 rounded-2xl border border-[#EF4444]/35 bg-[#7F1D1D]/18 px-4 py-3 text-sm font-bold text-[#FCA5A5]">
+              {errorMessage}
+            </p>
+          )}
+
           <div className="mt-6 flex justify-end gap-3 border-t border-white/[0.08] pt-5">
             <button
               type="button"
               onClick={onClose}
               className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:text-white active:translate-y-0"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               className="group inline-flex items-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Save size={17} className="transition duration-200 group-hover:-rotate-6" />
-              {food ? "Update Food" : "Save Food"}
+              {food ? t("updateFood") : t("saveFood")}
             </button>
           </div>
         </form>
