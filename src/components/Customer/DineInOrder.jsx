@@ -2834,7 +2834,6 @@ function DineInOrder() {
     const stripeCardRef = useRef(null);
     const cartItemsRef = useRef(cartItems);
     const orderTimingsRef = useRef(orderTimings);
-    const normalizedCartSignatureRef = useRef("");
 
     const saveOrderTimings = (getNextTimings) => {
         setOrderTimings((current) => {
@@ -3378,35 +3377,6 @@ function DineInOrder() {
         (total, item) => total + Number(item.quantity ?? 1),
         0,
     );
-
-    useEffect(() => {
-        const normalizedItems = cartItems.map(normalizeCartItem);
-        const normalizedSignature = JSON.stringify(
-            normalizedItems.map((item) => ({
-                id: item.id,
-                price: item.price,
-                quantity: item.quantity,
-                lineTotal: item.lineTotal,
-                notes: item.notes,
-                size: item.size,
-            })),
-        );
-
-        if (normalizedCartSignatureRef.current === normalizedSignature) return;
-
-        normalizedCartSignatureRef.current = normalizedSignature;
-
-        if (
-            normalizedItems.some(
-                (item, index) =>
-                    item.price !== cartItems[index]?.price ||
-                    item.quantity !== cartItems[index]?.quantity ||
-                    item.lineTotal !== cartItems[index]?.lineTotal,
-            )
-        ) {
-            setCartItems(normalizedItems);
-        }
-    }, [cartItems]);
 
     const addToCart = (product) => {
         if (!isFoodOrderable(product)) {

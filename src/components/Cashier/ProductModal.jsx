@@ -58,7 +58,6 @@ const toPriceNumber = (value, fallback = 0) => {
 function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [selectedSize, setSelectedSize] = useState("small");
     const [selectedModifiers, setSelectedModifiers] = useState({});
-    const [selectedModifierRecords, setSelectedModifierRecords] = useState({});
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState("");
     const [isClosing, setIsClosing] = useState(false);
@@ -74,7 +73,6 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         setQuantity(1);
         setSelectedSize("small");
         setSelectedModifiers({});
-        setSelectedModifierRecords({});
         setExpandedModifierGroups({});
         setModifierAvailabilityMessage("");
         setNotes("");
@@ -130,7 +128,6 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             setQuantity(1);
             setSelectedSize("small");
             setSelectedModifiers({});
-            setSelectedModifierRecords({});
             setExpandedModifierGroups({});
             setModifierAvailabilityMessage("");
             setNotes("");
@@ -446,7 +443,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const isLoadingDetails = Boolean(item?.isLoadingDetails);
     const canOrder = isFoodOrderable(item);
     const hasVariantGroups = modifierGroups.some(isVariantGroup);
-    const selectedModifierOptions = Object.values(selectedModifierRecords).flat();
+    const selectedModifierOptions = getSelectedModifierOptions();
     const selectedPriceSummary = selectedModifierOptions.reduce(
         (summary, group) => {
             if (group.isVariant) {
@@ -468,82 +465,6 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         selectedPriceSummary.addOnPrice;
     const changeModalQuantity = (amount) =>
         setQuantity((value) => Math.max(1, toPriceNumber(value, 1) + amount));
-    const buildSelectedModifierRecord = (
-        group,
-        option,
-        { displayPrice, optionPrice },
-    ) => {
-        const groupId = getModifierGroupId(group);
-        const isVariant = isVariantGroup(group);
-
-        return {
-            groupId,
-            modifier_group_id: groupId,
-            groupName: group.name,
-            id: getOptionId(option),
-            modifier_option_id: getOptionId(option),
-            name: option.name,
-            price: isVariant
-                ? getModifierOptionPrice(option, group, { basePrice })
-                : optionPrice,
-            finalPrice: displayPrice,
-            isVariant,
-            can_order:
-                option.can_order === undefined ? true : Boolean(option.can_order),
-            unavailable_reason: option.unavailable_reason ?? null,
-        };
-    };
-    const updateSelectedModifierRecord = (
-        group,
-        option,
-        { isSelected, displayPrice, optionPrice },
-    ) => {
-        const groupId = getModifierGroupId(group);
-        const optionId = getOptionId(option);
-        const maxSelect = getGroupMaxSelect(group);
-
-        setSelectedModifierRecords((current) => {
-            if (maxSelect <= 1) {
-                if (isSelected && !isGroupRequired(group)) {
-                    const nextRecords = { ...current };
-                    delete nextRecords[groupId];
-                    return nextRecords;
-                }
-
-                return {
-                    ...current,
-                    [groupId]: [
-                        buildSelectedModifierRecord(group, option, {
-                            displayPrice,
-                            optionPrice,
-                        }),
-                    ],
-                };
-            }
-
-            const currentRecords = current[groupId] ?? [];
-            const alreadySelected = currentRecords.some(
-                (record) => String(record.modifier_option_id) === String(optionId),
-            );
-            const nextRecords = alreadySelected
-                ? currentRecords.filter(
-                      (record) =>
-                          String(record.modifier_option_id) !== String(optionId),
-                  )
-                : [
-                      ...currentRecords,
-                      buildSelectedModifierRecord(group, option, {
-                          displayPrice,
-                          optionPrice,
-                      }),
-                  ].slice(0, maxSelect);
-
-            return {
-                ...current,
-                [groupId]: nextRecords,
-            };
-        });
-    };
     const allRequiredModifiersSelected =
         !isLoadingDetails &&
         (!hasModifiers ||
@@ -958,11 +879,6 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                     disabled={isDisabled}
                                                                     onClick={() => {
                                                                         if (isDisabled) return;
-                                                                        updateSelectedModifierRecord(group, option, {
-                                                                            isSelected,
-                                                                            displayPrice,
-                                                                            optionPrice,
-                                                                        });
 
                                                                         setSelectedModifiers((current) => {
                                                                             const maxSelect = getGroupMaxSelect(group);
@@ -1350,11 +1266,6 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             disabled={isDisabled}
                                                             onClick={() => {
                                                                 if (isDisabled) return;
-                                                                updateSelectedModifierRecord(group, option, {
-                                                                    isSelected,
-                                                                    displayPrice,
-                                                                    optionPrice,
-                                                                });
 
                                                                 setSelectedModifiers((current) => {
                                                                     const maxSelect = getGroupMaxSelect(group);

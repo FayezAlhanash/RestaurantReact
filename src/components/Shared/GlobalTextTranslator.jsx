@@ -12,8 +12,8 @@ const IGNORED_TAGS = new Set([
 ]);
 
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label"];
-const originalTextNodes = new WeakMap();
-const originalAttributes = new WeakMap();
+const textNodeStates = new WeakMap();
+const attributeStates = new WeakMap();
 
 function shouldSkipNode(node) {
     const element =
@@ -30,13 +30,28 @@ function shouldSkipNode(node) {
 function translateTextNode(node, language) {
     if (shouldSkipNode(node)) return;
 
-    if (!originalTextNodes.has(node)) {
-        originalTextNodes.set(node, node.nodeValue);
+    if (!textNodeStates.has(node)) {
+        textNodeStates.set(node, {
+            source: node.nodeValue,
+            rendered: node.nodeValue,
+        });
     }
 
-    const originalText = originalTextNodes.get(node);
+    const state = textNodeStates.get(node);
+
+    // React reuses text nodes for dynamic values. If their source value changes,
+    // keep the new value instead of restoring the first value seen by the observer.
+    if (
+        node.nodeValue !== state.source &&
+        node.nodeValue !== state.rendered
+    ) {
+        state.source = node.nodeValue;
+    }
+
     const nextText =
-        language === "ar" ? translateStaticText(originalText) : originalText;
+        language === "ar" ? translateStaticText(state.source) : state.source;
+
+    state.rendered = nextText;
 
     if (nextText !== node.nodeValue) {
         node.nodeValue = nextText;
@@ -50,22 +65,35 @@ function translateElementAttributes(element, language) {
         const value = element.getAttribute(attribute);
         if (!value) return;
 
-        let attributeOriginals = originalAttributes.get(element);
+        let elementAttributeStates = attributeStates.get(element);
 
-        if (!attributeOriginals) {
-            attributeOriginals = new Map();
-            originalAttributes.set(element, attributeOriginals);
+        if (!elementAttributeStates) {
+            elementAttributeStates = new Map();
+            attributeStates.set(element, elementAttributeStates);
         }
 
-        if (!attributeOriginals.has(attribute)) {
-            attributeOriginals.set(attribute, value);
+        if (!elementAttributeStates.has(attribute)) {
+            elementAttributeStates.set(attribute, {
+                source: value,
+                rendered: value,
+            });
         }
 
-        const originalValue = attributeOriginals.get(attribute);
+        const state = elementAttributeStates.get(attribute);
+
+        if (
+            value !== state.source &&
+            value !== state.rendered
+        ) {
+            state.source = value;
+        }
+
         const nextValue =
             language === "ar"
-                ? translateStaticText(originalValue)
-                : originalValue;
+                ? translateStaticText(state.source)
+                : state.source;
+
+        state.rendered = nextValue;
 
         if (nextValue !== value) {
             element.setAttribute(attribute, nextValue);
