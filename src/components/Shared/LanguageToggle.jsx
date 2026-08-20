@@ -46,7 +46,9 @@ export default function LanguageToggle({ compact = false, variant = "dark" }) {
                     aria-pressed={language === option}
                     className={`h-8 min-w-9 rounded-lg px-2 text-xs font-black uppercase transition ${
                         language === option
-                            ? "bg-[#FFD166] text-[#24190B] shadow-[0_8px_20px_rgba(255,209,102,0.28)] ring-1 ring-[#7F1D1D]/10"
+                            ? isLight
+                                ? "bg-[#F59E0B] text-white shadow-[0_10px_24px_rgba(245,158,11,0.30)] ring-1 ring-[#7F1D1D]/10"
+                                : "bg-[#FFD166] text-[#24190B] shadow-[0_8px_20px_rgba(255,209,102,0.28)] ring-1 ring-white/10"
                             : isLight
                                 ? "text-[#5F514B] hover:bg-[#FFF4DA] hover:text-[#7F1D1D]"
                                 : "text-white/70 hover:bg-white/10 hover:text-white"

@@ -14,6 +14,7 @@ import {
 import api from "../../API/axios";
 import { ensureManagerRestaurantId } from "./managerHelpers";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
+import { fetchKitchenQueue } from "../../utils/kitchenOrders";
 import { getUserPermissions } from "../../utils/permissions";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -60,17 +61,71 @@ function getFoodSoldCount(row) {
     row?.total_sold ??
       row?.totalSold ??
       row?.sold ??
+      row?.sold_qty ??
+      row?.sales_count ??
+      row?.salesCount ??
+      row?.orders_count ??
+      row?.order_count ??
+      row?.ordered_count ??
+      row?.times_ordered ??
+      row?.sold_count ??
+      row?.total_orders ??
+      row?.total_ordered ??
       row?.sold_quantity ??
       row?.soldQuantity ??
       row?.quantity_sold ??
       row?.quantitySold ??
       row?.total_quantity ??
       row?.totalQuantity ??
+      row?.total_qty ??
+      row?.amount_sold ??
+      row?.amountSold ??
+      row?.units_sold ??
+      row?.unitsSold ??
       row?.quantity ??
       row?.qty ??
       row?.count ??
+      row?.pivot?.quantity ??
+      row?.pivot?.count ??
+      row?.food?.orders_count ??
+      row?.food?.order_count ??
+      row?.food?.ordered_count ??
+      row?.food?.total_sold ??
+      row?.food?.total_quantity ??
+      row?.food?.quantity ??
+      row?.food?.qty ??
+      row?.food?.pivot?.quantity ??
       0
   );
+}
+
+function getTopFoodsFromOrders(orders, limit = 5) {
+  const foodTotals = new Map();
+
+  orders.forEach((order) => {
+    getList(order?.items).forEach((item) => {
+      const foodId = item.foodId ?? item.food_id ?? item.id ?? item.name;
+      const foodName = item.name || item.food_name || item.foodName || `Food #${foodId}`;
+      const quantity = Number(item.quantity ?? item.qty ?? item.count ?? 1);
+
+      if (!foodId || quantity <= 0) return;
+
+      const key = String(foodId);
+      const current = foodTotals.get(key) || {
+        id: foodId,
+        food_id: foodId,
+        food_name: foodName,
+        total_sold: 0,
+      };
+
+      current.total_sold += quantity;
+      foodTotals.set(key, current);
+    });
+  });
+
+  return Array.from(foodTotals.values())
+    .sort((a, b) => getFoodSoldCount(b) - getFoodSoldCount(a))
+    .slice(0, limit);
 }
 
 function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
@@ -260,10 +315,19 @@ export default function ManagerDashboard() {
         api.get(`/restaurants/${restaurantId}/reports/daily-revenue`, { params }),
         api.get(`/restaurants/${restaurantId}/reports/daily-orders`, { params }),
       ]);
+      const reportTopFoods = getList(topFoodsRes.data)
+        .filter((row) => getFoodSoldCount(row) > 0)
+        .slice(0, 5);
+      let nextTopFoods = reportTopFoods;
+
+      if (!nextTopFoods.length) {
+        const activeOrders = await fetchKitchenQueue(restaurantId).catch(() => []);
+        nextTopFoods = getTopFoodsFromOrders(activeOrders, 5);
+      }
 
       setSummary(summaryRes.data);
       setRestaurant(summaryRes.data?.restaurant ?? { id: restaurantId });
-      setTopFoods(getList(topFoodsRes.data));
+      setTopFoods(nextTopFoods);
       setDailyRevenue(getList(revenueRes.data).slice(-7));
       setDailyOrders(getList(ordersRes.data).slice(-7));
     } catch (error) {
@@ -689,7 +753,7 @@ export default function ManagerDashboard() {
                 ) : topFoods.length ? (
                   <ReportTable
                     rows={topFoods}
-                    emptyText="No completed food sales for this range."
+                    emptyText="No food sales for this range."
                     columns={[
                       {
                         key: "rank",
@@ -725,7 +789,7 @@ export default function ManagerDashboard() {
                     ]}
                   />
                 ) : (
-                  <EmptyState text="No completed food sales for this range." />
+                  <EmptyState text="No food sales for this range." />
                 )}
               </div>
             </article>
