@@ -1,9 +1,11 @@
 import { Pencil, Store, Trash2 } from "lucide-react";
-import { getStorageImageUrl } from "../../utils/restaurant";
+import { getLocalizedValue, getStorageImageUrl } from "../../utils/restaurant";
 import { useTranslation } from "../../utils/i18n";
 
 function RestaurantCard({ restaurant, onDelete, onEdit, cacheKey }) {
-    const { t } = useTranslation();
+    const { language, t } = useTranslation();
+    const restaurantName = getLocalizedValue(restaurant, "name", language);
+    const restaurantDescription = getLocalizedValue(restaurant, "description", language);
     const imageUrl = getStorageImageUrl(
         restaurant.front_image,
         restaurant.updated_at || restaurant.front_image_updated_at || cacheKey
@@ -15,7 +17,7 @@ function RestaurantCard({ restaurant, onDelete, onEdit, cacheKey }) {
                 {imageUrl ? (
                     <img
                         src={imageUrl}
-                        alt={restaurant.name}
+                        alt={restaurantName}
                         className="h-full w-full object-cover transition duration-500 hover:scale-105"
                     />
                 ) : (
@@ -33,10 +35,10 @@ function RestaurantCard({ restaurant, onDelete, onEdit, cacheKey }) {
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <h2 className="truncate text-2xl font-black text-white">
-                            {restaurant.name}
+                            {restaurantName}
                         </h2>
                         <p className="mt-2 line-clamp-2 min-h-11 text-sm font-semibold leading-6 text-white/48">
-                            {restaurant.description || t("noDescriptionYet")}
+                            {restaurantDescription || t("noDescriptionYet")}
                         </p>
                     </div>
                 </div>

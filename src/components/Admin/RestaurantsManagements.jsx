@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Lock, Plus, Store, Trash2, UtensilsCrossed, X } from "lucide-react";
 import api from "../../API/axios";
 import { getStoredUser } from "../../utils/auth";
+import { getLocalizedValue } from "../../utils/restaurant";
 import RestaurantModal from "./RestaurantsModal";
 import AddRestaurantsCard from "./AddRestaurantsCard";
 import RestaurantsCard from "./RestaurantCard";
@@ -27,8 +28,10 @@ function DeletePasswordModal({
     onClose,
     onConfirm,
 }) {
-    const { t } = useTranslation();
+    const { language, t } = useTranslation();
     if (!restaurant) return null;
+
+    const restaurantName = getLocalizedValue(restaurant, "name", language);
 
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-6">
@@ -46,7 +49,7 @@ function DeletePasswordModal({
                                 {t("confirmDelete")}
                             </p>
                             <h2 className="text-xl font-black text-white">
-                                {t("delete")} {restaurant.name}
+                                {t("delete")} {restaurantName}
                             </h2>
                         </div>
                     </div>
@@ -78,7 +81,7 @@ function DeletePasswordModal({
                                 value={password}
                                 onChange={(event) => setPassword(event.target.value)}
                                 autoComplete="current-password"
-                                placeholder="أدخل كلمة المرور"
+                                placeholder={t("enterPassword")}
                                 className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30"
                                 autoFocus
                             />
@@ -194,12 +197,12 @@ function RestaurantsManagements() {
         const login = getLoginIdentifier(user);
 
         if (!login) {
-            setDeleteErrorMessage("تعذر تحديد الحساب الحالي.");
+            setDeleteErrorMessage(t("couldNotIdentifyCurrentAccount"));
             return;
         }
 
         if (!deletePassword.trim()) {
-            setDeleteErrorMessage("كلمة المرور مطلوبة.");
+            setDeleteErrorMessage(t("passwordRequired"));
             return;
         }
 
@@ -223,7 +226,7 @@ function RestaurantsManagements() {
         } catch (error) {
             setDeleteErrorMessage(
                 error.response?.data?.message ||
-                    "كلمة المرور غير صحيحة أو تعذر حذف المطعم."
+                    t("incorrectPasswordOrDeleteFailed")
             );
         } finally {
             setIsDeleting(false);
@@ -296,7 +299,7 @@ function RestaurantsManagements() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[#EF4444]">
-                                    متوسط الضريبة
+                                    {t("averageTax")}
                                 </p>
                                 <strong className="mt-3 block text-3xl font-black">
                                     {averageTax.toFixed(2)}%
@@ -312,10 +315,10 @@ function RestaurantsManagements() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[#FFD166]">
-                                    السعة
+                                    {t("capacity")}
                                 </p>
                                 <strong className="mt-3 block text-3xl font-black">
-                                    مفتوح
+                                    {t("open")}
                                 </strong>
                             </div>
                             <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#FFD166]/35 bg-[#FFD166]/10 text-[#FFD166]">

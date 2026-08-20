@@ -65,3 +65,10 @@ export function getStorageImageUrl(path, cacheKey = "") {
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}v=${encodeURIComponent(cacheKey)}`;
 }
+
+export function getLocalizedValue(item, field, language = "en") {
+    const primaryKey = language === "ar" ? `${field}_ar` : `${field}_en`;
+    const secondaryKey = language === "ar" ? `${field}_en` : `${field}_ar`;
+
+    return item?.[primaryKey] || item?.[field] || item?.[secondaryKey] || "";
+}

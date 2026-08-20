@@ -3,7 +3,6 @@ import diningImage from "../assets/onboarding-dining.jpg";
 import {
     AlertCircle,
     ArrowRight,
-    CheckCircle2,
     Eye,
     Info,
     Loader2,
@@ -195,17 +194,6 @@ function Login() {
 
             {/* Top buttons */}
             <div className="absolute right-5 top-5 z-20 flex items-center gap-3">
-                <Link
-                    to="/ready-orders"
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#FFD166]/65 bg-[#7F1D1D]/90 px-4 text-sm font-black text-[#FFE8A3] shadow-lg backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:bg-[#981010] active:translate-y-0"
-                >
-                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#FFD166]/15">
-                        <CheckCircle2 size={17} />
-                    </span>
-
-                    Ready Orders
-                </Link>
-
                 <Link
                     to="/info"
                     className="login-help-button inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition hover:-translate-y-0.5 active:translate-y-0"

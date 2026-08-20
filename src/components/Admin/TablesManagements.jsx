@@ -362,7 +362,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                     <button
                                         type="button"
                                         onClick={copyDeviceKey}
-                                        title="Copy device key"
+                                        title={t("copyDeviceKey")}
                                         className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
                                     >
                                         {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
@@ -370,7 +370,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 </div>
                             ) : (
                                 <p className="mt-3 text-sm font-semibold leading-6 text-white/42">
-                                    سجل شاشة هذه الطاولة لإنشاء مفتاح جهاز ثابت.
+                                    {t("registerTableDisplayForDeviceKey")}
                                 </p>
                             )}
                         </div>
@@ -386,7 +386,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                         type="button"
                                         onClick={copySetupUrl}
                                         className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#FFD166]/30 bg-[#FFD166]/10 text-[#FFD166] transition hover:bg-[#FFD166]/18"
-                                        title="Copy setup link"
+                                        title={t("copySetupLink")}
                                     >
                                         {isSetupCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
                                     </button>
@@ -404,11 +404,11 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                             {t("scanOnTableTablet")}
                                         </p>
                                         <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
-                                            هذا الرمز يربط {t("table")} {table.table_number} مع جهاز العرض.
+                                            {t("setupQrConnectsTable")} {table.table_number} {t("withDisplayDevice")}.
                                         </p>
                                         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#FFD166]/25 bg-[#FFD166]/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#FFD166]">
                                             <QrCode size={14} />
-                                            رمز فقط
+                                            {t("qrOnly")}
                                         </div>
                                     </div>
                                 </div>
@@ -421,7 +421,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 onClick={closeSmoothly}
                                 className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-black text-white/65 transition hover:bg-white/[0.05] hover:text-white"
                             >
-                                إغلاق
+                                {t("close")}
                             </button>
 
                             <button
@@ -435,7 +435,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 ) : (
                                     <Trash2 size={18} />
                                 )}
-                                إلغاء الجهاز
+                                {t("revokeDevice")}
                             </button>
 
                             <button
@@ -449,7 +449,7 @@ function TableDeviceModal({ isOpen, table, onClose }) {
                                 ) : (
                                     <RotateCw size={18} />
                                 )}
-                                تسجيل / استبدال
+                                {t("registerReplace")}
                             </button>
                         </div>
                 </div>
@@ -564,7 +564,7 @@ function TablesManagements() {
                     />
                     <StatCard
                         icon={TriangleAlert}
-                        label="غير نشط"
+                        label={t("notActive")}
                         value={inactiveTables}
                         helper={t("unavailable")}
                         tone="pending"
@@ -574,7 +574,7 @@ function TablesManagements() {
                         icon={CheckCircle2}
                         label={t("available")}
                         value={activeTables}
-                        helper="نشط على مخطط الصالة"
+                        helper={t("activeOnFloorPlan")}
                         tone="active"
                         isLight={isLight}
                     />
@@ -597,7 +597,7 @@ function TablesManagements() {
                         <input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="ابحث في الطاولات..."
+                            placeholder={t("searchTables")}
                             className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${isLight ? "text-[#241815] placeholder:text-[#8A7972]" : "text-white placeholder:text-white/35"}`}
                         />
                     </div>
@@ -631,7 +631,7 @@ function TablesManagements() {
                                             : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                                     }`}
                                 >
-                                    {isActive ? t("active") : "غير نشط"}
+                                    {isActive ? t("active") : t("notActive")}
                                 </span>
 
                                 <div className="mt-8 flex justify-center">
@@ -694,7 +694,7 @@ function TablesManagements() {
                                         <button
                                             type="button"
                                             onClick={() => deleteTable(table.id)}
-                                            title="حذف الطاولة"
+                                            title={t("deleteTable")}
                                             className="grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D] transition hover:scale-110 hover:bg-[#7F1D1D]/18"
                                         >
                                             <Trash2 size={18} />
@@ -780,7 +780,7 @@ function TablesManagements() {
                                             : "text-[#7F1D1D]"
                                     }
                                 >
-                                    {Number(selectedTable.is_active) === 1 ? t("active") : "غير نشط"}
+                                    {Number(selectedTable.is_active) === 1 ? t("active") : t("notActive")}
                                 </span>
                             </div>
                         </div>

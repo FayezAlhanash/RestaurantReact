@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, storeUser } from "../../utils/auth";
+import { translateStaticText } from "../../utils/i18n";
 import LanguageToggle from "./LanguageToggle";
 
 function getProfileRecord(data) {
@@ -114,7 +115,7 @@ function ThemeSwitch({ isLight, onToggle }) {
         <button
             type="button"
             onClick={onToggle}
-            aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
+            aria-label={translateStaticText(isLight ? "Switch to dark mode" : "Switch to light mode")}
             className={`profile-theme-switch relative h-8 w-[62px] shrink-0 overflow-hidden rounded-full border p-1 shadow-[0_10px_24px_rgba(0,0,0,0.18)] transition duration-200 hover:scale-[1.05] active:scale-95 ${
                 isLight
                     ? "!border-[#F59E0B] !bg-[#F59E0B]"
@@ -171,6 +172,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     const [error, setError] = useState("");
 
     const displayUser = profile || {};
+    const text = translateStaticText;
     const userName = getUserName(displayUser);
     const roleName = getRoleName(displayUser);
     const phoneNumber = getPhoneNumber(displayUser);
@@ -226,7 +228,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
         } catch (requestError) {
             setError(
                 requestError.response?.data?.message ||
-                    "Could not load profile details."
+                    text("Could not load profile details.")
             );
         } finally {
             setIsLoading(false);
@@ -308,7 +310,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
         setError("");
 
         if (!passwordForm.current_password) {
-            setError("Write your current password first.");
+            setError(text("Write your current password first."));
             return;
         }
 
@@ -316,7 +318,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             displayUser.email || displayUser.login || displayUser.username || "";
 
         if (!loginValue) {
-            setError("Could not verify this account password.");
+            setError(text("Could not verify this account password."));
             return;
         }
 
@@ -333,7 +335,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
         } catch (requestError) {
             setError(
                 requestError.response?.data?.message ||
-                    "Current password is incorrect."
+                    text("Current password is incorrect.")
             );
         } finally {
             setIsVerifyingPassword(false);
@@ -373,11 +375,11 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             setIsEditingName(false);
             setActivePanel("profile");
             storeUser(updatedProfile, { data: updatedProfile });
-            setMessage("Profile updated.");
+            setMessage(text("Profile updated."));
         } catch (requestError) {
             setError(
                 requestError.response?.data?.message ||
-                    "Could not update profile."
+                    text("Could not update profile.")
             );
         } finally {
             setIsSaving(false);
@@ -393,12 +395,12 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             !passwordForm.password ||
             !passwordForm.password_confirmation
         ) {
-            setError("Fill all password fields.");
+            setError(text("Fill all password fields."));
             return;
         }
 
         if (passwordForm.password !== passwordForm.password_confirmation) {
-            setError("New password and confirmation do not match.");
+            setError(text("New password and confirmation do not match."));
             return;
         }
 
@@ -417,12 +419,12 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             await api.post("/change-password", formData);
             setPasswordForm(emptyPasswordForm);
             setPasswordStep("current");
-            setMessage("Password changed.");
+            setMessage(text("Password changed."));
             setActivePanel("profile");
         } catch (requestError) {
             setError(
                 requestError.response?.data?.message ||
-                    "Could not change password."
+                    text("Could not change password.")
             );
         } finally {
             setIsChangingPassword(false);
@@ -472,17 +474,17 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-black text-[#FFD166]">
                                     {activePanel === "password"
-                                        ? "Change password"
+                                        ? text("Change password")
                                         : activePanel === "name"
-                                            ? "Edit name"
-                                            : "Employee profile"}
+                                            ? text("Edit name")
+                                            : text("Employee profile")}
                                 </p>
                                 <p className={`truncate text-xs font-bold ${mutedTextClass}`}>
                                     {activePanel === "password"
-                                        ? "Secure your account"
+                                        ? text("Secure your account")
                                         : activePanel === "name"
-                                            ? "Update personal name"
-                                            : "Personal information"}
+                                            ? text("Update personal name")
+                                            : text("Personal information")}
                                 </p>
                             </div>
                             {activePanel === "profile" && (
@@ -491,7 +493,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                         isLight={isLight}
                                         onToggle={toggleTheme}
                                     />
-                                    <LanguageToggle compact />
+                                    <LanguageToggle compact variant={isLight ? "light" : "dark"} />
                                 </div>
                             )}
                         </div>
@@ -499,7 +501,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                             type="button"
                             onClick={closeProfile}
                             className={`${closeButtonClass} hover:scale-110 active:scale-95`}
-                            aria-label="Close profile"
+                            aria-label={text("Close profile")}
                         >
                             <X size={18} />
                         </button>
@@ -572,7 +574,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     : "border-white/10 bg-white/[0.05] text-white/55"
                             }`}>
                                 <Loader2 size={17} className="animate-spin" />
-                                Loading profile...
+                                {text("Loading profile...")}
                             </div>
                         ) : (
                             <div className="mt-4 grid gap-2.5">
@@ -593,7 +595,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                             <p className={`text-xs font-bold ${mutedTextClass}`}>
-                                                Full name
+                                                {text("Full name")}
                                             </p>
                                             <p className={`mt-1 break-words text-base font-black ${titleTextClass}`}>
                                                 {userName}
@@ -621,10 +623,10 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     >
                                         <p className={`flex items-center gap-2 text-xs font-bold ${mutedTextClass}`}>
                                             <Phone size={14} />
-                                            Phone
+                                            {text("Phone")}
                                         </p>
                                         <p className={`mt-1 break-words text-sm font-black ${titleTextClass}`}>
-                                            {phoneNumber || "Not provided"}
+                                            {phoneNumber || text("Not provided")}
                                         </p>
                                     </div>
                                     <div
@@ -636,10 +638,10 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     >
                                         <p className={`flex items-center gap-2 text-xs font-bold ${mutedTextClass}`}>
                                             <CalendarDays size={14} />
-                                            Date of birth
+                                            {text("Date of birth")}
                                         </p>
                                         <p className={`mt-1 break-words text-sm font-black ${titleTextClass}`}>
-                                            {formatDate(dateOfBirth) || "Not provided"}
+                                            {formatDate(dateOfBirth) || text("Not provided")}
                                         </p>
                                     </div>
                                 </div>
@@ -669,7 +671,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 ) : (
                                     <Save size={17} />
                                 )}
-                                Save profile
+                                {text("Save profile")}
                             </button>
                         )}
 
@@ -690,7 +692,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                         >
                             <span className="flex min-w-0 items-center gap-2">
                                 <KeyRound size={17} />
-                                <span className="font-black">Change password</span>
+                                <span className="font-black">{text("Change password")}</span>
                             </span>
                         </button>
                         </div>
@@ -718,12 +720,12 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 }`}
                             >
                                 <ArrowLeft size={15} />
-                                Profile details
+                                {text("Profile details")}
                             </button>
 
                             <div className={`mb-3 rounded-2xl border p-3 ${dividerClass}`}>
                                 <p className={`text-xs font-bold ${mutedTextClass}`}>
-                                    Current full name
+                                    {text("Current full name")}
                                 </p>
                                 <p className={`mt-1 break-words text-base font-black ${titleTextClass}`}>
                                     {userName}
@@ -739,7 +741,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                             >
                                 <div>
                                     <p className={`profile-name-label mb-1.5 text-xs font-bold ${softTextClass}`}>
-                                        First name
+                                        {text("First name")}
                                     </p>
                                     <input
                                         value={form.first_name}
@@ -754,7 +756,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 </div>
                                 <div>
                                     <p className={`profile-name-label mb-1.5 text-xs font-bold ${softTextClass}`}>
-                                        Father name
+                                        {text("Father name")}
                                     </p>
                                     <input
                                         value={form.father_name}
@@ -769,7 +771,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 </div>
                                 <div>
                                     <p className={`profile-name-label mb-1.5 text-xs font-bold ${softTextClass}`}>
-                                        Last name
+                                        {text("Last name")}
                                     </p>
                                     <input
                                         value={form.last_name}
@@ -806,7 +808,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 ) : (
                                     <Save size={17} />
                                 )}
-                                Save name
+                                {text("Save name")}
                             </button>
                         </div>
 
@@ -833,7 +835,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 }`}
                             >
                                 <ArrowLeft size={15} />
-                                Profile details
+                                {text("Profile details")}
                             </button>
 
                             <div className={`mb-3 flex items-center gap-2 rounded-2xl border p-3 ${dividerClass}`}>
@@ -842,10 +844,10 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 </div>
                                 <div>
                                     <p className={`text-sm font-black ${titleTextClass}`}>
-                                        Change password
+                                        {text("Change password")}
                                     </p>
                                     <p className={`text-xs font-bold ${mutedTextClass}`}>
-                                        Update your account password
+                                        {text("Update your account password")}
                                     </p>
                                 </div>
                             </div>
@@ -869,7 +871,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                                 event.target.value
                                             )
                                         }
-                                        placeholder="Current password"
+                                        placeholder={text("Current password")}
                                         className={fieldClass}
                                     />
                                     <button
@@ -882,8 +884,8 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                             <Loader2 size={17} className="animate-spin" />
                                         )}
                                         {isVerifyingPassword
-                                            ? "Checking..."
-                                            : "Continue"}
+                                            ? text("Checking...")
+                                            : text("Continue")}
                                     </button>
                                 </div>
 
@@ -905,7 +907,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                                 event.target.value
                                             )
                                         }
-                                        placeholder="New password"
+                                        placeholder={text("New password")}
                                         className={fieldClass}
                                     />
                                     <input
@@ -919,7 +921,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                                 event.target.value
                                             )
                                         }
-                                        placeholder="Confirm new password"
+                                        placeholder={text("Confirm new password")}
                                         className={fieldClass}
                                     />
                                 </div>
@@ -948,7 +950,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     ) : (
                                         <KeyRound size={17} />
                                     )}
-                                    Change password
+                                    {text("Change password")}
                                 </button>
                             )}
                         </div>
