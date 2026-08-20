@@ -44,6 +44,17 @@ const normalizeModifierText = (value = "") =>
         .replace(/[\u064B-\u065F\u0670]/g, "")
         .replace(/\s+/g, " ");
 
+const toPriceNumber = (value, fallback = 0) => {
+    if (value === undefined || value === null || value === "") return fallback;
+
+    const numericValue =
+        typeof value === "number"
+            ? value
+            : Number(String(value).replace(/[^\d.-]/g, ""));
+
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
 function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [selectedSize, setSelectedSize] = useState("small");
     const [selectedModifiers, setSelectedModifiers] = useState({});
@@ -374,7 +385,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         const relationPrice = isVariantGroup(group)
             ? backendRelationPrice
             : backendRelationPrice ?? getSavedModifierPrice(groupId, optionId);
-        const optionPrice = Number(relationPrice ?? option?.price ?? 0);
+        const optionPrice = toPriceNumber(relationPrice ?? option?.price, 0);
 
         if (!isVariantGroup(group)) return optionPrice;
         if (isBaseSizeOption(option, group)) return 0;
@@ -421,7 +432,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const imageUrl =
         item?.image ||
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=85";
-    const basePrice = Number(item?.price ?? 0);
+    const basePrice = toPriceNumber(item?.price, 0);
     const modifierGroups = (item?.modifierGroups ?? [])
         .map((group) => ({
             ...group,
@@ -434,12 +445,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const selectedModifierOptions = getSelectedModifierOptions();
     const nonVariantModifierPrice = selectedModifierOptions.reduce(
         (total, option) =>
-            option.isVariant ? total : total + Number(option.price ?? 0),
+            option.isVariant ? total : total + toPriceNumber(option.price, 0),
         0
     );
     const selectedVariantOption = selectedModifierOptions.find((option) => option.isVariant);
     const selectedVariantPrice = selectedVariantOption
-        ? Number(selectedVariantOption.finalPrice ?? basePrice)
+        ? toPriceNumber(selectedVariantOption.finalPrice, basePrice)
         : null;
     const hasVariantGroups = modifierGroups.some(isVariantGroup);
     const canSelectNonVariantModifiers = !hasVariantGroups || Boolean(selectedVariantOption);
@@ -447,18 +458,10 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const unitPrice =
         (selectedVariantPrice ?? basePrice + sizePrice) + nonVariantModifierPrice;
     const changeModalQuantity = (amount) => {
-        setQuantity((value) => Math.max(1, value + amount));
+        setQuantity((value) => Math.max(1, toPriceNumber(value, 1) + amount));
     };
-    const handleQuantityPointerDown = (event, amount) => {
-        event.preventDefault();
+    const handleQuantityClick = (event, amount) => {
         event.stopPropagation();
-        changeModalQuantity(amount);
-    };
-    const handleQuantityKeyboardClick = (event, amount) => {
-        event.stopPropagation();
-
-        if (event.detail !== 0) return;
-
         changeModalQuantity(amount);
     };
     const allRequiredModifiersSelected =
@@ -1025,8 +1028,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             }`}>
                                 <button
                                     type="button"
-                                    onPointerDown={(event) => handleQuantityPointerDown(event, -1)}
-                                    onClick={(event) => handleQuantityKeyboardClick(event, -1)}
+                                    onClick={(event) => handleQuantityClick(event, -1)}
                                     className={`grid h-8 w-8 place-items-center rounded-full transition active:scale-95 ${
                                         isDineInDark
                                             ? "bg-white/10 text-[#FFD166]"
@@ -1043,8 +1045,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </span>
                                 <button
                                     type="button"
-                                    onPointerDown={(event) => handleQuantityPointerDown(event, 1)}
-                                    onClick={(event) => handleQuantityKeyboardClick(event, 1)}
+                                    onClick={(event) => handleQuantityClick(event, 1)}
                                     className="grid h-8 w-8 place-items-center rounded-full bg-[#7F1D1D] text-white transition hover:bg-[#681718] active:scale-95"
                                     aria-label="Increase quantity"
                                 >
@@ -1400,8 +1401,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
-                                onPointerDown={(event) => handleQuantityPointerDown(event, -1)}
-                                onClick={(event) => handleQuantityKeyboardClick(event, -1)}
+                                onClick={(event) => handleQuantityClick(event, -1)}
                                 className={`grid h-10 w-10 place-items-center rounded-xl border text-[#FFD166] shadow-sm transition active:scale-95 ${
                                     isDark
                                         ? "border-white/10 bg-white/10 hover:bg-white/15"
@@ -1416,8 +1416,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             </span>
                             <button
                                 type="button"
-                                onPointerDown={(event) => handleQuantityPointerDown(event, 1)}
-                                onClick={(event) => handleQuantityKeyboardClick(event, 1)}
+                                onClick={(event) => handleQuantityClick(event, 1)}
                                 className="grid h-10 w-10 place-items-center rounded-xl bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] active:scale-95"
                                 aria-label="Increase quantity"
                             >
