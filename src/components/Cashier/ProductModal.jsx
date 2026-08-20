@@ -62,11 +62,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [notes, setNotes] = useState("");
     const [isClosing, setIsClosing] = useState(false);
     const [isAdded, setIsAdded] = useState(false);
+    const [selectedVariantPriceOverride, setSelectedVariantPriceOverride] =
+        useState(null);
     const [expandedModifierGroups, setExpandedModifierGroups] = useState({});
     const [modifierAvailabilityMessage, setModifierAvailabilityMessage] = useState("");
     const closeTimerRef = useRef(null);
     const addTimerRef = useRef(null);
-    const quantityPressHandledAtRef = useRef(0);
     const itemResetKey = `${item?.restaurant_id ?? ""}:${item?.food_id ?? item?.id ?? ""}`;
 
     useEffect(() => {
@@ -74,6 +75,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         setQuantity(1);
         setSelectedSize("small");
         setSelectedModifiers({});
+        setSelectedVariantPriceOverride(null);
         setExpandedModifierGroups({});
         setModifierAvailabilityMessage("");
         setNotes("");
@@ -129,6 +131,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             setQuantity(1);
             setSelectedSize("small");
             setSelectedModifiers({});
+            setSelectedVariantPriceOverride(null);
             setExpandedModifierGroups({});
             setModifierAvailabilityMessage("");
             setNotes("");
@@ -451,27 +454,16 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     );
     const selectedVariantOption = selectedModifierOptions.find((option) => option.isVariant);
     const selectedVariantPrice = selectedVariantOption
-        ? toPriceNumber(selectedVariantOption.finalPrice, basePrice)
+        ? (selectedVariantPriceOverride ??
+              toPriceNumber(selectedVariantOption.finalPrice, basePrice))
         : null;
     const hasVariantGroups = modifierGroups.some(isVariantGroup);
     const canSelectNonVariantModifiers = !hasVariantGroups || Boolean(selectedVariantOption);
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
     const unitPrice =
         (selectedVariantPrice ?? basePrice + sizePrice) + nonVariantModifierPrice;
-    const changeModalQuantity = (amount) => {
+    const changeModalQuantity = (amount) =>
         setQuantity((value) => Math.max(1, toPriceNumber(value, 1) + amount));
-    };
-    const handleQuantityPress = (event, amount) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const now =
-            typeof performance === "undefined" ? Date.now() : performance.now();
-
-        if (now - quantityPressHandledAtRef.current < 180) return;
-
-        quantityPressHandledAtRef.current = now;
-        changeModalQuantity(amount);
-    };
     const allRequiredModifiersSelected =
         !isLoadingDetails &&
         (!hasModifiers ||
@@ -886,6 +878,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                     disabled={isDisabled}
                                                                     onClick={() => {
                                                                         if (isDisabled) return;
+                                                                        if (isVariant) {
+                                                                            setSelectedVariantPriceOverride(displayPrice);
+                                                                        }
 
                                                                         setSelectedModifiers((current) => {
                                                                             const maxSelect = getGroupMaxSelect(group);
@@ -1036,9 +1031,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             }`}>
                                 <button
                                     type="button"
-                                    onPointerDownCapture={(event) => handleQuantityPress(event, -1)}
-                                    onMouseDownCapture={(event) => handleQuantityPress(event, -1)}
-                                    onClick={(event) => handleQuantityPress(event, -1)}
+                                    onClick={() => changeModalQuantity(-1)}
                                     className={`grid h-8 w-8 place-items-center rounded-full transition active:scale-95 ${
                                         isDineInDark
                                             ? "bg-white/10 text-[#FFD166]"
@@ -1055,9 +1048,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </span>
                                 <button
                                     type="button"
-                                    onPointerDownCapture={(event) => handleQuantityPress(event, 1)}
-                                    onMouseDownCapture={(event) => handleQuantityPress(event, 1)}
-                                    onClick={(event) => handleQuantityPress(event, 1)}
+                                    onClick={() => changeModalQuantity(1)}
                                     className="grid h-8 w-8 place-items-center rounded-full bg-[#7F1D1D] text-white transition hover:bg-[#681718] active:scale-95"
                                     aria-label="Increase quantity"
                                 >
@@ -1277,6 +1268,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             disabled={isDisabled}
                                                             onClick={() => {
                                                                 if (isDisabled) return;
+                                                                if (isVariant) {
+                                                                    setSelectedVariantPriceOverride(displayPrice);
+                                                                }
 
                                                                 setSelectedModifiers((current) => {
                                                                     const maxSelect = getGroupMaxSelect(group);
@@ -1413,9 +1407,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
-                                onPointerDownCapture={(event) => handleQuantityPress(event, -1)}
-                                onMouseDownCapture={(event) => handleQuantityPress(event, -1)}
-                                onClick={(event) => handleQuantityPress(event, -1)}
+                                onClick={() => changeModalQuantity(-1)}
                                 className={`grid h-10 w-10 place-items-center rounded-xl border text-[#FFD166] shadow-sm transition active:scale-95 ${
                                     isDark
                                         ? "border-white/10 bg-white/10 hover:bg-white/15"
@@ -1430,9 +1422,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             </span>
                             <button
                                 type="button"
-                                onPointerDownCapture={(event) => handleQuantityPress(event, 1)}
-                                onMouseDownCapture={(event) => handleQuantityPress(event, 1)}
-                                onClick={(event) => handleQuantityPress(event, 1)}
+                                onClick={() => changeModalQuantity(1)}
                                 className="grid h-10 w-10 place-items-center rounded-xl bg-[#7F1D1D] text-white shadow-[0_10px_22px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] active:scale-95"
                                 aria-label="Increase quantity"
                             >

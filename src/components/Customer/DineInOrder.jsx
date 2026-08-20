@@ -534,6 +534,8 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
 
         modifierOptions.forEach((option, optionIndex) => {
             const optionId = option.modifier_option_id ?? option.id;
+            const optionPrice = Number(option.price ?? 0);
+            const optionFinalPrice = Number(option.finalPrice ?? optionPrice);
 
             appendIfPresent(
                 formData,
@@ -544,6 +546,26 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
                 formData,
                 `items[${index}][modifier_options][${optionIndex}]`,
                 optionId,
+            );
+            appendIfPresent(
+                formData,
+                `items[${index}][modifier_option_details][${optionIndex}][modifier_option_id]`,
+                optionId,
+            );
+            appendIfPresent(
+                formData,
+                `items[${index}][modifier_option_details][${optionIndex}][modifier_group_id]`,
+                option.modifier_group_id ?? option.groupId,
+            );
+            appendIfPresent(
+                formData,
+                `items[${index}][modifier_option_details][${optionIndex}][price]`,
+                optionPrice,
+            );
+            appendIfPresent(
+                formData,
+                `items[${index}][modifier_option_details][${optionIndex}][final_price]`,
+                optionFinalPrice,
             );
         });
     });
@@ -578,15 +600,39 @@ const buildAddItemFormData = (item, sessionToken) => {
     appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
 
     modifierOptions.forEach((option, optionIndex) => {
+        const optionId = option.modifier_option_id ?? option.id;
+        const optionPrice = Number(option.price ?? 0);
+        const optionFinalPrice = Number(option.finalPrice ?? optionPrice);
+
         appendIfPresent(
             formData,
             `modifiers[${optionIndex}]`,
-            option.modifier_option_id ?? option.id,
+            optionId,
         );
         appendIfPresent(
             formData,
             `modifier_options[${optionIndex}]`,
-            option.modifier_option_id ?? option.id,
+            optionId,
+        );
+        appendIfPresent(
+            formData,
+            `modifier_option_details[${optionIndex}][modifier_option_id]`,
+            optionId,
+        );
+        appendIfPresent(
+            formData,
+            `modifier_option_details[${optionIndex}][modifier_group_id]`,
+            option.modifier_group_id ?? option.groupId,
+        );
+        appendIfPresent(
+            formData,
+            `modifier_option_details[${optionIndex}][price]`,
+            optionPrice,
+        );
+        appendIfPresent(
+            formData,
+            `modifier_option_details[${optionIndex}][final_price]`,
+            optionFinalPrice,
         );
     });
 
