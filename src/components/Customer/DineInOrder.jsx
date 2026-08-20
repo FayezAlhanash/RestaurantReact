@@ -1783,26 +1783,26 @@ function OrderPanel({
         <section
             className={`flex flex-col overflow-hidden border border-white/10 bg-[#151A1D]/92 text-white shadow-[0_28px_70px_rgba(0,0,0,0.30)] backdrop-blur-xl ${
                 isMobile
-                    ? "max-h-[74dvh] rounded-[28px]"
+                    ? "max-h-[calc(100dvh-1.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] rounded-[24px]"
                     : "max-h-[calc(100dvh-7.5rem)] min-h-[520px] rounded-[28px]"
             }`}
         >
             <div
-                className={`shrink-0 border-b border-white/10 bg-white/[0.03] ${isMobile ? "p-4" : "p-5"}`}
+                className={`shrink-0 border-b border-white/10 bg-white/[0.03] ${isMobile ? "p-3" : "p-5"}`}
             >
                 <div className="flex items-center gap-3">
                     <div
-                        className={`${isMobile ? "h-10 w-10" : "h-12 w-12"} grid place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-[0_14px_32px_rgba(127,29,29,0.28)]`}
+                        className={`${isMobile ? "h-9 w-9 rounded-xl" : "h-12 w-12 rounded-2xl"} grid place-items-center bg-[#7F1D1D] text-white shadow-[0_14px_32px_rgba(127,29,29,0.28)]`}
                     >
-                        <ReceiptText size={isMobile ? 19 : 22} />
+                        <ReceiptText size={isMobile ? 17 : 22} />
                     </div>
                     <div className="min-w-0 flex-1">
                         <h2
-                            className={`${isMobile ? "text-xl" : "text-2xl"} font-black leading-7`}
+                            className={`${isMobile ? "text-lg leading-6" : "text-2xl leading-7"} font-black`}
                         >
                             Your order
                         </h2>
-                        <p className="text-sm font-bold text-white/55">
+                        <p className={`${isMobile ? "text-xs" : "text-sm"} font-bold text-white/55`}>
                             {itemCount
                                 ? `${itemCount} items in your order`
                                 : "No items yet"}
@@ -1816,7 +1816,9 @@ function OrderPanel({
                                     ? confirmClearOrder
                                     : requestClearOrder
                             }
-                            className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black transition active:scale-95 ${
+                            className={`flex shrink-0 items-center justify-center gap-1.5 rounded-xl border font-black transition active:scale-95 ${
+                                isMobile ? "h-9 px-2 text-[11px]" : "h-10 px-3 text-xs"
+                            } ${
                                 isClearPending
                                     ? "border-[#FF6B6B]/60 bg-[#7F1D1D] text-white hover:bg-[#9B1C1C]"
                                     : "border-[#7F1D1D]/40 bg-[#7F1D1D]/12 text-[#FFB3B3] hover:bg-[#7F1D1D]/20"
@@ -1849,7 +1851,7 @@ function OrderPanel({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/10 text-white transition active:scale-95"
+                            className={`${isMobile ? "h-9 w-9" : "h-10 w-10"} grid shrink-0 place-items-center rounded-xl border border-white/10 bg-white/10 text-white transition active:scale-95`}
                             aria-label="Close bill"
                         >
                             <X size={19} />
@@ -1873,7 +1875,7 @@ function OrderPanel({
             </div>
 
             <div
-                className={`customer-order-scroll min-h-0 flex-1 space-y-3 overflow-y-auto ${isMobile ? "p-3" : "p-4"}`}
+                className={`customer-order-scroll min-h-[120px] flex-1 space-y-2.5 overflow-y-auto overscroll-contain ${isMobile ? "p-2.5" : "p-4"}`}
             >
                 {cartItems.length ? (
                     cartItems.map((item, index) => {
@@ -1883,7 +1885,7 @@ function OrderPanel({
                         return (
                             <div
                                 key={`${item.id}-${item.notes}-${index}`}
-                                className={`rounded-2xl border ${isMobile ? "p-3" : "p-4"} ${
+                                className={`rounded-2xl border ${isMobile ? "p-2.5" : "p-4"} ${
                                     isDeletePending
                                         ? "border-[#FF6B6B]/35 bg-[#7F1D1D]/18"
                                         : !canOrder
@@ -1894,11 +1896,11 @@ function OrderPanel({
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <p
-                                            className={`${isMobile ? "text-base" : "text-lg"} break-words font-black leading-6 text-white`}
+                                            className={`${isMobile ? "text-sm leading-5" : "text-lg leading-6"} break-words font-black text-white`}
                                         >
                                             {item.title}
                                         </p>
-                                        <p className="mt-1 truncate text-sm font-extrabold text-white/55">
+                                        <p className={`${isMobile ? "text-xs" : "text-sm"} mt-1 truncate font-extrabold text-white/55`}>
                                             {item.restaurantName}
                                         </p>
                                         {!canOrder && (
@@ -1907,7 +1909,7 @@ function OrderPanel({
                                             </p>
                                         )}
                                         {item.notes && (
-                                            <p className="mt-3 break-words text-sm font-semibold leading-5 text-white/72">
+                                            <p className={`${isMobile ? "mt-2 text-xs leading-4" : "mt-3 text-sm leading-5"} break-words font-semibold text-white/72`}>
                                                 {item.notes}
                                             </p>
                                         )}
@@ -1955,7 +1957,7 @@ function OrderPanel({
                                     )}
                                 </div>
 
-                                <div className="mt-4 flex items-center justify-between gap-3">
+                                <div className={`${isMobile ? "mt-3" : "mt-4"} flex items-center justify-between gap-3`}>
                                     <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
                                         <button
                                             type="button"
@@ -1984,7 +1986,7 @@ function OrderPanel({
                                         </button>
                                     </div>
                                     <span
-                                        className={`${isMobile ? "text-base" : "text-lg"} shrink-0 font-black text-[#FFD166]`}
+                                        className={`${isMobile ? "text-sm" : "text-lg"} shrink-0 font-black text-[#FFD166]`}
                                     >
                                         $
                                         {(
@@ -2014,14 +2016,14 @@ function OrderPanel({
             </div>
 
             <div
-                className={`shrink-0 border-t border-white/10 ${isMobile ? "p-3" : "p-5"}`}
+                className={`shrink-0 border-t border-white/10 ${isMobile ? "p-2.5" : "p-5"}`}
             >
                 {hasUnavailableOrderItems && (
                     <p className="mb-3 rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3]">
                         {FOOD_UNAVAILABLE_MESSAGE}
                     </p>
                 )}
-                <div className="mb-4">
+                <div className={isMobile ? "mb-2.5" : "mb-4"}>
                     <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
                         Payment method
                     </p>
@@ -2040,7 +2042,9 @@ function OrderPanel({
                                     onClick={() =>
                                         onPaymentMethodChange(method.id)
                                     }
-                                    className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-black transition ${
+                                    className={`flex items-center justify-center gap-2 rounded-lg font-black transition ${
+                                        isMobile ? "px-2.5 py-2 text-xs" : "px-3 py-2.5 text-sm"
+                                    } ${
                                         isActive
                                             ? "bg-[#FFD166] text-[#151A1D]"
                                             : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -2059,7 +2063,7 @@ function OrderPanel({
                         </p>
                     )}
                     {paymentMethod === "stripe" && (
-                        <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
+                        <div className={`${isMobile ? "mt-2 p-2.5" : "mt-3 p-3"} rounded-xl border border-white/10 bg-white/10`}>
                             <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
                                 Card
                             </p>
@@ -2079,7 +2083,9 @@ function OrderPanel({
                     )}
                 </div>
                 <div
-                    className={`space-y-3 rounded-2xl border border-white/10 bg-white/[0.07] ${isMobile ? "p-3" : "p-4"} text-base`}
+                    className={`rounded-2xl border border-white/10 bg-white/[0.07] ${
+                        isMobile ? "space-y-2 p-2.5 text-sm" : "space-y-3 p-4 text-base"
+                    }`}
                 >
                     <div className="flex items-center justify-between text-white/65">
                         <span>Subtotal</span>
@@ -2095,16 +2101,16 @@ function OrderPanel({
                     </div>
                     <div className="border-t border-dashed border-white/20" />
                     <div className="flex items-end justify-between">
-                        <span className="text-lg font-black">Total</span>
+                        <span className={`${isMobile ? "text-base" : "text-lg"} font-black`}>Total</span>
                         <span
-                            className={`${isMobile ? "text-2xl" : "text-3xl"} font-black text-[#FFD166]`}
+                            className={`${isMobile ? "text-xl" : "text-3xl"} font-black text-[#FFD166]`}
                         >
                             ${total.toFixed(2)}
                         </span>
                     </div>
                 </div>
 
-                <div className="mt-4">
+                <div className={isMobile ? "mt-2.5" : "mt-4"}>
                     <button
                         type="button"
                         onClick={onSubmit}
@@ -2114,7 +2120,7 @@ function OrderPanel({
                             isSubmitting ||
                             (paymentMethod === "stripe" && !isStripeReady)
                         }
-                        className="h-12 w-full rounded-2xl bg-[#7F1D1D] px-4 text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
+                        className={`${isMobile ? "h-11 text-xs" : "h-12 text-sm"} w-full rounded-2xl bg-[#7F1D1D] px-4 font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none`}
                     >
                         {isSubmitting ? "Sending..." : "Confirm order"}
                     </button>
@@ -2151,6 +2157,29 @@ function MobileOrderBar({
         if (isOpen) setIsClosing(false);
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const scrollY = window.scrollY;
+        const previousBodyPosition = document.body.style.position;
+        const previousBodyTop = document.body.style.top;
+        const previousBodyWidth = document.body.style.width;
+        const previousBodyOverflow = document.body.style.overflow;
+
+        document.body.style.position = "fixed";
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = "100%";
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.position = previousBodyPosition;
+            document.body.style.top = previousBodyTop;
+            document.body.style.width = previousBodyWidth;
+            document.body.style.overflow = previousBodyOverflow;
+            window.scrollTo(0, scrollY);
+        };
+    }, [isOpen]);
+
     const closeBill = () => {
         if (isClosing) return;
 
@@ -2164,11 +2193,11 @@ function MobileOrderBar({
         <div>
             {isOpen && (
                 <div
-                    className={`${isClosing ? "order-backdrop-exit" : "order-backdrop-enter"} fixed inset-0 z-[300] flex items-end justify-center bg-black/35 p-3 backdrop-blur-[2px] sm:p-5`}
+                    className={`${isClosing ? "order-backdrop-exit" : "order-backdrop-enter"} fixed inset-0 z-[300] flex items-end justify-center overflow-hidden overscroll-contain bg-black/35 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:p-5`}
                     onClick={closeBill}
                 >
                     <div
-                        className={`${isClosing ? "order-sheet-exit" : "order-sheet-enter"} w-[min(92vw,380px)] sm:w-[min(84vw,420px)]`}
+                        className={`${isClosing ? "order-sheet-exit" : "order-sheet-enter"} w-[min(94vw,400px)] sm:w-[min(84vw,420px)]`}
                         onClick={(event) => event.stopPropagation()}
                     >
                         <OrderPanel
