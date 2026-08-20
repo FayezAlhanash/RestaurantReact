@@ -27,7 +27,20 @@ export function getRestaurantTaxRate(source = {}) {
 }
 
 export function getLineSubtotal(item = {}) {
-    return Number(item.price ?? 0) * Number(item.quantity ?? 1);
+    const quantity = Number(item.quantity ?? 1);
+    const unitPrice = Number(
+        item.price ?? item.unitPrice ?? item.unit_price ?? item.unit_price_cents ?? 0,
+    );
+    const explicitLineTotal = Number(
+        item.lineTotal ?? item.line_total ?? item.total_price ?? item.totalPrice,
+    );
+
+    if (Number.isFinite(explicitLineTotal) && explicitLineTotal > 0) {
+        return explicitLineTotal;
+    }
+
+    return (Number.isFinite(unitPrice) ? unitPrice : 0) *
+        (Number.isFinite(quantity) ? quantity : 1);
 }
 
 export function getLineTax(item = {}) {

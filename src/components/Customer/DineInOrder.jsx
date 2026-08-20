@@ -28,7 +28,7 @@ import {
     findStripeClientSecret,
     preloadStripe,
 } from "../../utils/stripePayments";
-import { getCartTotals, getRestaurantTaxRate } from "../../utils/tax";
+import { getCartTotals, getLineSubtotal, getRestaurantTaxRate } from "../../utils/tax";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredToken } from "../../utils/auth";
 import { translateStaticText } from "../../utils/i18n";
@@ -637,6 +637,27 @@ const buildAddItemFormData = (item, sessionToken) => {
     });
 
     return formData;
+};
+
+const getCartItemUnitPrice = (item = {}) => {
+    const unitPrice = Number(
+        item.price ?? item.unitPrice ?? item.unit_price ?? item.basePrice ?? 0,
+    );
+
+    return Number.isFinite(unitPrice) ? unitPrice : 0;
+};
+
+const normalizeCartItem = (item = {}) => {
+    const quantity = Math.max(1, Number(item.quantity ?? 1));
+    const unitPrice = getCartItemUnitPrice(item);
+
+    return {
+        ...item,
+        price: unitPrice,
+        unitPrice,
+        quantity,
+        lineTotal: unitPrice * quantity,
+    };
 };
 
 const getCreatedOrderId = (data) => {
@@ -2034,11 +2055,7 @@ function OrderPanel({
                                     <span
                                         className={`${isMobile ? "text-sm" : "text-lg"} shrink-0 font-black text-[#FFD166]`}
                                     >
-                                        $
-                                        {(
-                                            Number(item.price ?? 0) *
-                                            item.quantity
-                                        ).toFixed(2)}
+                                        ${getLineSubtotal(item).toFixed(2)}
                                     </span>
                                 </div>
                                 {isDeletePending && (
@@ -2392,11 +2409,7 @@ function ConfirmOrderModal({
                                             )}
                                         </div>
                                         <span className="shrink-0 text-sm font-black text-white">
-                                            $
-                                            {(
-                                                Number(item.price ?? 0) *
-                                                item.quantity
-                                            ).toFixed(2)}
+                                            ${getLineSubtotal(item).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
@@ -2821,6 +2834,7 @@ function DineInOrder() {
     const stripeCardRef = useRef(null);
     const cartItemsRef = useRef(cartItems);
     const orderTimingsRef = useRef(orderTimings);
+    const normalizedCartSignatureRef = useRef("");
 
     const saveOrderTimings = (getNextTimings) => {
         setOrderTimings((current) => {
@@ -3365,6 +3379,35 @@ function DineInOrder() {
         0,
     );
 
+    useEffect(() => {
+        const normalizedItems = cartItems.map(normalizeCartItem);
+        const normalizedSignature = JSON.stringify(
+            normalizedItems.map((item) => ({
+                id: item.id,
+                price: item.price,
+                quantity: item.quantity,
+                lineTotal: item.lineTotal,
+                notes: item.notes,
+                size: item.size,
+            })),
+        );
+
+        if (normalizedCartSignatureRef.current === normalizedSignature) return;
+
+        normalizedCartSignatureRef.current = normalizedSignature;
+
+        if (
+            normalizedItems.some(
+                (item, index) =>
+                    item.price !== cartItems[index]?.price ||
+                    item.quantity !== cartItems[index]?.quantity ||
+                    item.lineTotal !== cartItems[index]?.lineTotal,
+            )
+        ) {
+            setCartItems(normalizedItems);
+        }
+    }, [cartItems]);
+
     const addToCart = (product) => {
         if (!isFoodOrderable(product)) {
             setSuccessMessage("");
@@ -3372,20 +3415,27 @@ function DineInOrder() {
             return false;
         }
 
+        const cartProduct = normalizeCartItem(product);
+
         setCartItems((current) => {
             const existingIndex = current.findIndex(
                 (item) =>
-                    item.id === product.id &&
-                    item.size === product.size &&
-                    item.notes === product.notes,
+                    item.id === cartProduct.id &&
+                    item.size === cartProduct.size &&
+                    item.notes === cartProduct.notes,
             );
 
-            if (existingIndex === -1) return [...current, product];
+            if (existingIndex === -1) return [...current, cartProduct];
 
             return current.map((item, index) =>
                 index === existingIndex
-                    ? { ...item, quantity: item.quantity + product.quantity }
-                    : item,
+                    ? normalizeCartItem({
+                          ...item,
+                          quantity:
+                              Number(item.quantity ?? 1) +
+                              Number(cartProduct.quantity ?? 1),
+                      })
+                    : normalizeCartItem(item),
             );
         });
         return true;
@@ -3396,11 +3446,14 @@ function DineInOrder() {
             items
                 .map((item, index) =>
                     index === indexToChange
-                        ? {
+                        ? normalizeCartItem({
                               ...item,
-                              quantity: Math.max(0, item.quantity + amount),
-                          }
-                        : item,
+                              quantity: Math.max(
+                                  0,
+                                  Number(item.quantity ?? 1) + amount,
+                              ),
+                          })
+                        : normalizeCartItem(item),
                 )
                 .filter((item) => item.quantity > 0),
         );

@@ -58,12 +58,11 @@ const toPriceNumber = (value, fallback = 0) => {
 function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [selectedSize, setSelectedSize] = useState("small");
     const [selectedModifiers, setSelectedModifiers] = useState({});
+    const [selectedModifierRecords, setSelectedModifierRecords] = useState({});
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState("");
     const [isClosing, setIsClosing] = useState(false);
     const [isAdded, setIsAdded] = useState(false);
-    const [selectedVariantPriceOverride, setSelectedVariantPriceOverride] =
-        useState(null);
     const [expandedModifierGroups, setExpandedModifierGroups] = useState({});
     const [modifierAvailabilityMessage, setModifierAvailabilityMessage] = useState("");
     const closeTimerRef = useRef(null);
@@ -75,7 +74,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         setQuantity(1);
         setSelectedSize("small");
         setSelectedModifiers({});
-        setSelectedVariantPriceOverride(null);
+        setSelectedModifierRecords({});
         setExpandedModifierGroups({});
         setModifierAvailabilityMessage("");
         setNotes("");
@@ -131,7 +130,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
             setQuantity(1);
             setSelectedSize("small");
             setSelectedModifiers({});
-            setSelectedVariantPriceOverride(null);
+            setSelectedModifierRecords({});
             setExpandedModifierGroups({});
             setModifierAvailabilityMessage("");
             setNotes("");
@@ -446,24 +445,105 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const hasModifiers = modifierGroups.length > 0;
     const isLoadingDetails = Boolean(item?.isLoadingDetails);
     const canOrder = isFoodOrderable(item);
-    const selectedModifierOptions = getSelectedModifierOptions();
-    const nonVariantModifierPrice = selectedModifierOptions.reduce(
-        (total, option) =>
-            option.isVariant ? total : total + toPriceNumber(option.price, 0),
-        0
+    const hasVariantGroups = modifierGroups.some(isVariantGroup);
+    const selectedModifierOptions = Object.values(selectedModifierRecords).flat();
+    const selectedPriceSummary = selectedModifierOptions.reduce(
+        (summary, group) => {
+            if (group.isVariant) {
+                summary.variantPrice = toPriceNumber(group.finalPrice, basePrice);
+                return summary;
+            }
+
+            summary.addOnPrice += toPriceNumber(group.price, 0);
+
+            return summary;
+        },
+        { variantPrice: null, addOnPrice: 0 },
     );
     const selectedVariantOption = selectedModifierOptions.find((option) => option.isVariant);
-    const selectedVariantPrice = selectedVariantOption
-        ? (selectedVariantPriceOverride ??
-              toPriceNumber(selectedVariantOption.finalPrice, basePrice))
-        : null;
-    const hasVariantGroups = modifierGroups.some(isVariantGroup);
     const canSelectNonVariantModifiers = !hasVariantGroups || Boolean(selectedVariantOption);
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
     const unitPrice =
-        (selectedVariantPrice ?? basePrice + sizePrice) + nonVariantModifierPrice;
+        (selectedPriceSummary.variantPrice ?? basePrice + sizePrice) +
+        selectedPriceSummary.addOnPrice;
     const changeModalQuantity = (amount) =>
         setQuantity((value) => Math.max(1, toPriceNumber(value, 1) + amount));
+    const buildSelectedModifierRecord = (
+        group,
+        option,
+        { displayPrice, optionPrice },
+    ) => {
+        const groupId = getModifierGroupId(group);
+        const isVariant = isVariantGroup(group);
+
+        return {
+            groupId,
+            modifier_group_id: groupId,
+            groupName: group.name,
+            id: getOptionId(option),
+            modifier_option_id: getOptionId(option),
+            name: option.name,
+            price: isVariant
+                ? getModifierOptionPrice(option, group, { basePrice })
+                : optionPrice,
+            finalPrice: displayPrice,
+            isVariant,
+            can_order:
+                option.can_order === undefined ? true : Boolean(option.can_order),
+            unavailable_reason: option.unavailable_reason ?? null,
+        };
+    };
+    const updateSelectedModifierRecord = (
+        group,
+        option,
+        { isSelected, displayPrice, optionPrice },
+    ) => {
+        const groupId = getModifierGroupId(group);
+        const optionId = getOptionId(option);
+        const maxSelect = getGroupMaxSelect(group);
+
+        setSelectedModifierRecords((current) => {
+            if (maxSelect <= 1) {
+                if (isSelected && !isGroupRequired(group)) {
+                    const nextRecords = { ...current };
+                    delete nextRecords[groupId];
+                    return nextRecords;
+                }
+
+                return {
+                    ...current,
+                    [groupId]: [
+                        buildSelectedModifierRecord(group, option, {
+                            displayPrice,
+                            optionPrice,
+                        }),
+                    ],
+                };
+            }
+
+            const currentRecords = current[groupId] ?? [];
+            const alreadySelected = currentRecords.some(
+                (record) => String(record.modifier_option_id) === String(optionId),
+            );
+            const nextRecords = alreadySelected
+                ? currentRecords.filter(
+                      (record) =>
+                          String(record.modifier_option_id) !== String(optionId),
+                  )
+                : [
+                      ...currentRecords,
+                      buildSelectedModifierRecord(group, option, {
+                          displayPrice,
+                          optionPrice,
+                      }),
+                  ].slice(0, maxSelect);
+
+            return {
+                ...current,
+                [groupId]: nextRecords,
+            };
+        });
+    };
     const allRequiredModifiersSelected =
         !isLoadingDetails &&
         (!hasModifiers ||
@@ -878,9 +958,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                                     disabled={isDisabled}
                                                                     onClick={() => {
                                                                         if (isDisabled) return;
-                                                                        if (isVariant) {
-                                                                            setSelectedVariantPriceOverride(displayPrice);
-                                                                        }
+                                                                        updateSelectedModifierRecord(group, option, {
+                                                                            isSelected,
+                                                                            displayPrice,
+                                                                            optionPrice,
+                                                                        });
 
                                                                         setSelectedModifiers((current) => {
                                                                             const maxSelect = getGroupMaxSelect(group);
@@ -1268,9 +1350,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             disabled={isDisabled}
                                                             onClick={() => {
                                                                 if (isDisabled) return;
-                                                                if (isVariant) {
-                                                                    setSelectedVariantPriceOverride(displayPrice);
-                                                                }
+                                                                updateSelectedModifierRecord(group, option, {
+                                                                    isSelected,
+                                                                    displayPrice,
+                                                                    optionPrice,
+                                                                });
 
                                                                 setSelectedModifiers((current) => {
                                                                     const maxSelect = getGroupMaxSelect(group);
