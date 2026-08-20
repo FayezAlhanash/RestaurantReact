@@ -2628,19 +2628,19 @@ img, svg {
 
 [data-theme="light"] .invoice-global-page {
     background:
-        radial-gradient(circle at 16% 8%, rgba(20, 184, 166, 0.18), transparent 30%),
-        radial-gradient(circle at 92% 16%, rgba(245, 158, 11, 0.14), transparent 26%),
-        linear-gradient(145deg, #eefcf8 0%, #d8f3ea 48%, #c6e7df 100%) !important;
+        radial-gradient(circle at 16% 8%, rgba(127, 29, 29, 0.08), transparent 30%),
+        radial-gradient(circle at 92% 16%, rgba(245, 158, 11, 0.10), transparent 26%),
+        linear-gradient(145deg, #fffaf5 0%, #f7ebe4 52%, #efd8ce 100%) !important;
 }
 
 [data-theme="light"] .invoice-global-page > section:first-of-type {
-    background: linear-gradient(135deg, #fbfffd 0%, #e0f7ef 55%, #d3eee7 100%) !important;
-    border-color: rgba(15, 118, 110, 0.34) !important;
-    box-shadow: 0 22px 52px rgba(15, 118, 110, 0.16) !important;
+    background: linear-gradient(135deg, #fffdfa 0%, #fff5ee 58%, #f5e1d8 100%) !important;
+    border-color: rgba(127, 29, 29, 0.18) !important;
+    box-shadow: 0 22px 52px rgba(127, 29, 29, 0.10) !important;
 }
 
 [data-theme="light"] .invoice-global-page > section:first-of-type > div:first-child {
-    background: #0f766e !important;
+    background: #8f1d1d !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-scope-badge {
@@ -2655,56 +2655,56 @@ img, svg {
 }
 
 [data-theme="light"] .invoice-global-page > section:first-of-type h1 {
-    color: #0f766e !important;
-    -webkit-text-fill-color: #0f766e !important;
+    color: #241815 !important;
+    -webkit-text-fill-color: #241815 !important;
 }
 
 [data-theme="light"] .invoice-global-page aside,
 [data-theme="light"] .invoice-global-page article {
-    background: linear-gradient(180deg, #fbfffd 0%, #eefaf6 100%) !important;
-    border-color: rgba(15, 118, 110, 0.28) !important;
-    box-shadow: 0 18px 44px rgba(15, 118, 110, 0.12) !important;
+    background: linear-gradient(180deg, #fffdfa 0%, #fff8f2 100%) !important;
+    border-color: rgba(127, 29, 29, 0.14) !important;
+    box-shadow: 0 18px 44px rgba(127, 29, 29, 0.09) !important;
 }
 
 [data-theme="light"] .invoice-global-page aside > div:first-child,
 [data-theme="light"] .invoice-global-page article > div:first-child {
-    background: linear-gradient(135deg, #ddf6ef 0%, #fbfffd 100%) !important;
-    border-color: rgba(15, 118, 110, 0.26) !important;
+    background: linear-gradient(135deg, #fff4ec 0%, #fffdfa 100%) !important;
+    border-color: rgba(127, 29, 29, 0.12) !important;
 }
 
 [data-theme="light"] .invoice-global-page aside button.group {
-    background: linear-gradient(135deg, #ffffff 0%, #edf9f5 100%) !important;
-    border-color: rgba(15, 118, 110, 0.26) !important;
-    box-shadow: inset 4px 0 0 rgba(15, 118, 110, 0.24) !important;
+    background: #ffffff !important;
+    border-color: rgba(127, 29, 29, 0.14) !important;
+    box-shadow: inset 4px 0 0 rgba(127, 29, 29, 0.20) !important;
 }
 
 [data-theme="light"] .invoice-global-page aside button.group:hover {
-    background: linear-gradient(135deg, #f3fffb 0%, #dff7f0 100%) !important;
-    border-color: rgba(15, 118, 110, 0.48) !important;
+    background: #fff7f1 !important;
+    border-color: rgba(127, 29, 29, 0.32) !important;
 }
 
 [data-theme="light"] .invoice-global-page aside button.group:focus,
 [data-theme="light"] .invoice-global-page aside button.group:focus-visible {
-    outline: 3px solid rgba(15, 118, 110, 0.18) !important;
+    outline: 3px solid rgba(127, 29, 29, 0.13) !important;
     outline-offset: 2px !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-refresh-button {
-    background: #0f766e !important;
-    border-color: #0f766e !important;
+    background: #7f1d1d !important;
+    border-color: #7f1d1d !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-refresh-button:hover {
-    background: #115e59 !important;
+    background: #681718 !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-panel {
-    background: linear-gradient(135deg, #dff7f0 0%, #f6fffb 100%) !important;
-    border-color: rgba(15, 118, 110, 0.24) !important;
+    background: #fffdfa !important;
+    border-color: rgba(127, 29, 29, 0.14) !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-mark {
-    background: #0f766e !important;
+    background: #7f1d1d !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
 }
@@ -2714,43 +2714,43 @@ img, svg {
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-panel :is(p, span, input) {
-    color: #134e4a !important;
-    -webkit-text-fill-color: #134e4a !important;
+    color: #4b332b !important;
+    -webkit-text-fill-color: #4b332b !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-panel [class*="bg-[#F3DCDC]"] {
-    background: #ccfbf1 !important;
-    border-color: rgba(15, 118, 110, 0.28) !important;
-    color: #0f766e !important;
-    -webkit-text-fill-color: #0f766e !important;
+    background: #f3dcdc !important;
+    border-color: rgba(127, 29, 29, 0.18) !important;
+    color: #7f1d1d !important;
+    -webkit-text-fill-color: #7f1d1d !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-field {
     background: #ffffff !important;
-    border-color: rgba(15, 118, 110, 0.22) !important;
-    color: #134e4a !important;
-    -webkit-text-fill-color: #134e4a !important;
+    border-color: rgba(127, 29, 29, 0.16) !important;
+    color: #4b332b !important;
+    -webkit-text-fill-color: #4b332b !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-field:focus-within {
-    border-color: rgba(15, 118, 110, 0.58) !important;
-    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14) !important;
+    border-color: rgba(127, 29, 29, 0.42) !important;
+    box-shadow: 0 0 0 3px rgba(127, 29, 29, 0.10) !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-filter-field svg {
-    color: #0f766e !important;
-    stroke: #0f766e !important;
+    color: #7f1d1d !important;
+    stroke: #7f1d1d !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-clear-filter-button {
-    background: #0f766e !important;
-    border-color: #0f766e !important;
+    background: #7f1d1d !important;
+    border-color: #7f1d1d !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
 }
 
 [data-theme="light"] .invoice-global-page .invoice-clear-filter-button:hover {
-    background: #115e59 !important;
+    background: #681718 !important;
 }
 
 [data-theme="dark"] .invoice-global-page {
