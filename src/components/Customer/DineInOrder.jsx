@@ -701,12 +701,6 @@ const getUniqueActiveDineInOrders = (data) => {
     return Array.from(uniqueOrders.values());
 };
 
-const getCurrentDineInOrderEndpoints = (sessionToken) => [
-    "/customer-dine-in/orders/current",
-    "/customer-dine-in/current-order",
-    `/customer-dine-in/session/${encodeURIComponent(sessionToken)}/orders`,
-];
-
 const getRestaurantScopedOrderRequests = (restaurantIds = []) =>
     restaurantIds.map((restaurantId) => ({
         endpoint: "/customer-dine-in/orders",
@@ -723,18 +717,13 @@ async function fetchCurrentDineInOrders(
 
     if (sessionOrders.length) return sessionOrders;
 
-    const requests = [
-        ...getRestaurantScopedOrderRequests(restaurantIds),
-        ...getCurrentDineInOrderEndpoints(sessionToken).map((endpoint) => ({
-            endpoint,
-            params: {},
-        })),
-    ];
-    const collectedOrders = [];
+    const scopedRequests = getRestaurantScopedOrderRequests(restaurantIds);
 
-    for (const { endpoint, params } of requests) {
-        try {
-            const response = await api.get(endpoint, {
+    if (!scopedRequests.length) return [];
+
+    const responses = await Promise.allSettled(
+        scopedRequests.map(({ endpoint, params }) =>
+            api.get(endpoint, {
                 headers: getSessionTokenHeaders(sessionToken),
                 params: {
                     ...params,
@@ -744,21 +733,14 @@ async function fetchCurrentDineInOrders(
                     token: sessionToken,
                     table_id: getTableIdForRequest(tableId),
                 },
-            });
-            const orders = getUniqueActiveDineInOrders(response.data);
-
-            collectedOrders.push(...orders);
-        } catch (error) {
-            if (
-                isMissingEndpointError(error) ||
-                error.response?.status === 404 ||
-                error.response?.status === 405 ||
-                error.response?.status === 422
-            ) {
-                continue;
-            }
-        }
-    }
+            }),
+        ),
+    );
+    const collectedOrders = responses.flatMap((result) =>
+        result.status === "fulfilled"
+            ? getUniqueActiveDineInOrders(result.value.data)
+            : [],
+    );
 
     return getUniqueActiveDineInOrders(collectedOrders);
 }
