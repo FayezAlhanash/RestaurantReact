@@ -4278,7 +4278,7 @@ function DineInOrder() {
                 stripeCardMessage={stripeCardMessage}
                 stripeCardContainerRef={stripeCardContainerRef}
                 isOpen={isMobileCartOpen}
-                onOpen={() => setIsMobileCartOpen(true)}
+                onOpen={openConfirmOrder}
                 onClose={() => setIsMobileCartOpen(false)}
             />
 

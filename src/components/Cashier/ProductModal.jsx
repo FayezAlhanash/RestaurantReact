@@ -34,6 +34,13 @@ const getAnyModifierGroups = (item) =>
 const getAnyModifierOptions = (group) =>
     group?.options ?? group?.modifier_options ?? group?.modifierOptions ?? [];
 
+const normalizeModifierText = (value = "") =>
+    String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/[\u064B-\u065F\u0670]/g, "")
+        .replace(/\s+/g, " ");
+
 function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
     const [selectedSize, setSelectedSize] = useState("small");
     const [selectedModifiers, setSelectedModifiers] = useState({});
@@ -176,11 +183,27 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
     const getOptionId = (option) => option?.id ?? option?.modifier_option_id ?? option?.modifierOptionId ?? option?.option_id ?? option?.optionId;
     const getModifierGroupId = (group) => group?.id ?? group?.modifier_group_id ?? group?.modifierGroupId ?? group?.group_id ?? group?.groupId;
-    const isVariantGroup = (group) =>
-        Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)) ||
-        ["size", "sizes", "\u062d\u062c\u0645", "\u0627\u0644\u062d\u062c\u0645"].some((term) =>
-            String(group?.name ?? "").toLowerCase().includes(term)
+    const isVariantGroup = (group) => {
+        const groupName = normalizeModifierText(group?.name);
+        const groupType = normalizeModifierText(
+            group?.type ??
+                group?.modifier_type ??
+                group?.modifierType ??
+                group?.display_type ??
+                group?.displayType
         );
+
+        return (
+            Boolean(Number(group?.is_variant ?? group?.isVariant ?? 0)) ||
+            ["variant", "variants", "size", "sizes"].includes(groupType) ||
+            ["size", "sizes", "\u062d\u062c\u0645", "\u0627\u0644\u062d\u062c\u0645"].some((term) =>
+                groupName.includes(term)
+            ) ||
+            (groupName.includes("\u0633\u0639\u0631") &&
+                groupName.includes("\u0627\u0633\u0627\u0633\u064a") &&
+                groupName.includes("\u0635\u0646\u0641"))
+        );
+    };
     const getGroupMaxSelect = (group) =>
         isVariantGroup(group)
             ? 1
@@ -354,6 +377,8 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
         return optionPrice > itemBasePrice ? optionPrice - itemBasePrice : optionPrice;
     };
+    const getModifierOptionFinalPrice = (option, group, { basePrice: itemBasePrice = 0 } = {}) =>
+        itemBasePrice + getModifierOptionPrice(option, group, { basePrice: itemBasePrice });
     const getSelectedModifierOptions = () =>
         modifierGroups
             .flatMap((group) => {
@@ -425,10 +450,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
             if (!selectedOption) return currentPrice;
 
-            return (
-                basePrice +
-                getModifierOptionPrice(selectedOption, group, { basePrice })
-            );
+            return getModifierOptionFinalPrice(selectedOption, group, { basePrice });
         }, null);
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
     const unitPrice =
@@ -832,7 +854,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                             );
                                                             const optionPrice = getModifierOptionPrice(option, group, { basePrice });
                                                             const isVariant = isVariantGroup(group);
-                                                            const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
+                                                            const displayPrice = isVariant
+                                                                ? getModifierOptionFinalPrice(option, group, { basePrice })
+                                                                : optionPrice;
                                                             const isUnavailable = !isModifierOptionOrderable(option);
                                                             const isDisabled =
                                                                 isUnavailable ||
@@ -1217,7 +1241,9 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                                         (selectedOptionId) => String(selectedOptionId) === String(optionId)
                                                     );
                                                     const optionPrice = getModifierOptionPrice(option, group, { basePrice });
-                                                    const displayPrice = isVariant ? basePrice + optionPrice : optionPrice;
+                                                    const displayPrice = isVariant
+                                                        ? getModifierOptionFinalPrice(option, group, { basePrice })
+                                                        : optionPrice;
                                                     const isUnavailable = !isModifierOptionOrderable(option);
                                                     const isDisabled =
                                                         isUnavailable ||
