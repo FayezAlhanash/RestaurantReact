@@ -2259,10 +2259,8 @@ function ConfirmOrderModal({
     tax,
     total,
     paymentMethod,
-    onPaymentMethodChange,
     isStripeReady,
     stripeCardMessage,
-    stripeCardContainerRef,
     isSubmitting,
     onCancel,
     onConfirm,
@@ -2349,42 +2347,15 @@ function ConfirmOrderModal({
                             <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
                                 Payment method
                             </p>
-                            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
-                                {[
-                                    {
-                                        id: "cash",
-                                        label: "Cash",
-                                        icon: Banknote,
-                                    },
-                                    {
-                                        id: "stripe",
-                                        label: "Stripe",
-                                        icon: CreditCard,
-                                    },
-                                ].map((method) => {
-                                    const Icon = method.icon;
-                                    const isActive =
-                                        paymentMethod === method.id;
-
-                                    return (
-                                        <button
-                                            key={method.id}
-                                            type="button"
-                                            onClick={() =>
-                                                onPaymentMethodChange(method.id)
-                                            }
-                                            disabled={isSubmitting}
-                                            className={`flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                                                isActive
-                                                    ? "bg-[#FFD166] text-[#151A1D]"
-                                                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                                            }`}
-                                        >
-                                            <Icon size={16} />
-                                            {method.label}
-                                        </button>
-                                    );
-                                })}
+                            <div className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#FFD166] px-3 text-sm font-black text-[#151A1D]">
+                                {paymentMethod === "stripe" ? (
+                                    <CreditCard size={16} />
+                                ) : (
+                                    <Banknote size={16} />
+                                )}
+                                {paymentMethod === "stripe"
+                                    ? "Stripe"
+                                    : "Cash"}
                             </div>
                         </div>
 
@@ -2397,19 +2368,12 @@ function ConfirmOrderModal({
 
                         {paymentMethod === "stripe" && (
                             <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
-                                <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
-                                    Card
-                                </p>
-                                <div
-                                    ref={stripeCardContainerRef}
-                                    className="rounded-lg border border-white/10 bg-white px-3 py-3"
-                                />
                                 <p
                                     className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}
                                 >
                                     {stripeCardMessage ||
                                         (isStripeReady
-                                            ? "Card ready."
+                                            ? "Card is ready from your order panel."
                                             : "Loading Stripe...")}
                                 </p>
                             </div>
@@ -3060,7 +3024,7 @@ function DineInOrder() {
             stripeCardRef.current?.destroy();
             stripeCardRef.current = null;
         };
-    }, [paymentMethod, isMobileCartOpen, isConfirmOrderOpen]);
+    }, [paymentMethod, isMobileCartOpen]);
 
     const visibleItems = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -3568,6 +3532,11 @@ function DineInOrder() {
 
         setErrorMessage("");
         setSuccessMessage("");
+        if (paymentMethod === "stripe") {
+            submitOrder();
+            return;
+        }
+
         setIsConfirmOrderOpen(true);
     };
 
@@ -4196,10 +4165,8 @@ function DineInOrder() {
                     tax={tax}
                     total={total}
                     paymentMethod={paymentMethod}
-                    onPaymentMethodChange={setPaymentMethod}
                     isStripeReady={isStripeReady}
                     stripeCardMessage={stripeCardMessage}
-                    stripeCardContainerRef={stripeCardContainerRef}
                     isSubmitting={isSubmitting}
                     onCancel={() =>
                         !isSubmitting && setIsConfirmOrderOpen(false)
