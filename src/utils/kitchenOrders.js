@@ -347,6 +347,32 @@ function getModifierTextValue(value) {
     return "";
 }
 
+const sizeNoteTokens = new Set([
+    "xs",
+    "extra small",
+    "small",
+    "sm",
+    "medium",
+    "md",
+    "large",
+    "lg",
+    "xl",
+    "extra large",
+]);
+
+function getExplicitSizeValue(item = {}) {
+    return getModifierTextValue(
+        item.size ??
+            item.size_name ??
+            item.sizeName ??
+            item.selected_size ??
+            item.selectedSize ??
+            item.pivot?.size ??
+            item.pivot?.size_name ??
+            item.pivot?.selected_size
+    );
+}
+
 function getModifierOptionName(option = {}) {
     return getModifierTextValue(
         option.name ??
@@ -485,14 +511,36 @@ function isDuplicateModifierNoteSegment(segment, modifierDetails) {
 function normalizeKitchenItem(item, index) {
     const food = item.food || item.menu_item || item.product || item.item || {};
     const modifierDetails = getModifierNoteDetails(item);
-    const modifierSegments = modifierDetails.map((modifier) => modifier.segment);
+    const noteSource = splitNoteSegments(
+        item.note ||
+            item.notes ||
+            item.special_instructions ||
+            item.pivot?.notes ||
+            ""
+    );
+    const hasSizeModifier = modifierDetails.some(
+        (modifier) => normalizeNoteToken(modifier.groupName) === "size"
+    );
+    const explicitSize = hasSizeModifier ? "" : getExplicitSizeValue(item);
+    const sizeFromNote = hasSizeModifier || explicitSize
+        ? ""
+        : noteSource.find((segment) => sizeNoteTokens.has(normalizeNoteToken(segment))) || "";
+    const sizeDetail = explicitSize || sizeFromNote
+        ? {
+            groupName: "Size",
+            optionName: explicitSize || sizeFromNote,
+            segment: `Size: ${explicitSize || sizeFromNote}`,
+        }
+        : null;
+    const itemDetails = sizeDetail ? [...modifierDetails, sizeDetail] : modifierDetails;
+    const modifierSegments = itemDetails.map((modifier) => modifier.segment);
     const noteSegments = splitNoteSegments(
         item.note ||
             item.notes ||
             item.special_instructions ||
             item.pivot?.notes ||
             ""
-    ).filter((segment) => !isDuplicateModifierNoteSegment(segment, modifierDetails));
+    ).filter((segment) => !isDuplicateModifierNoteSegment(segment, itemDetails));
     const note = dedupeNoteSegments(
         [...modifierSegments, ...noteSegments].join(" · ")
     );
@@ -1137,7 +1185,9 @@ export function createCashierOrderPayload(cartItems, type = "takeaway") {
                 unit_price: unitPrice,
                 price: unitPrice,
                 total_price: unitPrice * quantity,
-                notes: dedupeNoteSegments([item.size, item.notes].filter(Boolean).join(" · ")),
+                size: item.size,
+                selected_size: item.size,
+                notes: dedupeNoteSegments([item.notes].filter(Boolean).join(" · ")),
                 modifier_options: modifierOptionPayload,
                 selected_modifier_options: modifierOptionPayload,
                 selected_modifiers: modifierSelections,
@@ -1177,6 +1227,8 @@ function createCashierOrderFormData(cartItems, type = "takeaway") {
         appendIfPresent(formData, `items[${itemIndex}][unit_price]`, item.unit_price);
         appendIfPresent(formData, `items[${itemIndex}][price]`, item.price);
         appendIfPresent(formData, `items[${itemIndex}][total_price]`, item.total_price);
+        appendIfPresent(formData, `items[${itemIndex}][size]`, item.size);
+        appendIfPresent(formData, `items[${itemIndex}][selected_size]`, item.selected_size);
         appendIfPresent(formData, `items[${itemIndex}][notes]`, item.notes);
 
         item.modifiers.forEach((optionId, optionIndex) => {
