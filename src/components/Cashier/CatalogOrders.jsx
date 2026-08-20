@@ -527,17 +527,9 @@ function CatalogOrders() {
             () => loadOrders({ showLoader: true }),
             0
         );
-        const intervalId = window.setInterval(loadOrders, 30000);
-        const handleOrdersUpdated = () => {
-            loadOrders();
-        };
-
-        window.addEventListener("big4:orders-updated", handleOrdersUpdated);
 
         return () => {
             window.clearTimeout(timeoutId);
-            window.clearInterval(intervalId);
-            window.removeEventListener("big4:orders-updated", handleOrdersUpdated);
         };
     }, [loadOrders]);
 

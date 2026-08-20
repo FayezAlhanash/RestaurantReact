@@ -27,14 +27,10 @@ export default function ReadyOrders() {
     };
 
     useEffect(() => {
-        fetchReadyOrders();
-
-        const intervalId = window.setInterval(() => {
-            fetchReadyOrders();
-        }, 3000);
+        const timeoutId = window.setTimeout(fetchReadyOrders, 0);
 
         return () => {
-            window.clearInterval(intervalId);
+            window.clearTimeout(timeoutId);
         };
     }, []);
 

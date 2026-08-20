@@ -56,6 +56,8 @@ const getTablesList = (data) => {
 const getInvoiceId = (item) =>
     item?.invoice_id ??
     item?.invoice?.id ??
+    item?.order?.invoice_id ??
+    item?.order?.invoice?.id ??
     item?.restaurant_invoice?.invoice_id ??
     item?.restaurantInvoice?.invoice_id ??
     item?.id ??
@@ -233,27 +235,171 @@ const getTotal = (item) =>
             item?.amount ??
             item?.invoice?.total ??
             item?.invoice?.amount ??
+            item?.order?.invoice?.total ??
+            item?.order?.invoice?.amount ??
             item?.restaurant_invoice?.invoice?.total ??
             item?.restaurantInvoice?.invoice?.total ??
             0
     );
 
-const getItems = (order) =>
-    getList(
-        order?.items ||
-            order?.order_items ||
-            order?.orderItems ||
-            order?.foods ||
-            order?.restaurant_order_items ||
-            order?.restaurantOrderItems ||
-            []
+const looksLikeOrderItem = (item) => {
+    if (!item || typeof item !== "object") return false;
+
+    if (item.payment_method || item.transaction_id || item.payment_status || item.invoice_id) {
+        return false;
+    }
+
+    return Boolean(
+        item.food ||
+            item.menu_item ||
+            item.menuItem ||
+            item.product ||
+            item.dish ||
+            item.food_id ||
+            item.foodId ||
+            item.menu_item_id ||
+            item.menuItemId ||
+            item.food_name ||
+            item.foodName ||
+            item.item_name ||
+            item.itemName ||
+            item.menu_item_name ||
+            item.menuItemName ||
+            (item.quantity !== undefined && (item.name || item.title))
     );
+};
+
+const findNestedOrderItems = (value, seen = new WeakSet()) => {
+    if (!value || typeof value !== "object") return [];
+    if (seen.has(value)) return [];
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        if (value.some(looksLikeOrderItem)) {
+            return value.filter(looksLikeOrderItem);
+        }
+
+        return value.flatMap((item) => findNestedOrderItems(item, seen));
+    }
+
+    return Object.values(value).flatMap((item) => findNestedOrderItems(item, seen));
+};
+
+const getItemCandidates = (order) => [
+    order?.items,
+    order?.order_items,
+    order?.orderItems,
+    order?.details,
+    order?.order_details,
+    order?.orderDetails,
+    order?.foods,
+    order?.restaurant_order_items,
+    order?.restaurantOrderItems,
+    order?.restaurant_order?.items,
+    order?.restaurant_order?.order_items,
+    order?.restaurant_order?.orderItems,
+    order?.restaurant_order?.details,
+    order?.restaurant_order?.order_details,
+    order?.restaurant_order?.orderDetails,
+    order?.restaurantOrder?.items,
+    order?.restaurantOrder?.order_items,
+    order?.restaurantOrder?.orderItems,
+    order?.restaurantOrder?.details,
+    order?.restaurantOrder?.order_details,
+    order?.restaurantOrder?.orderDetails,
+    order?.order?.items,
+    order?.order?.order_items,
+    order?.order?.orderItems,
+    order?.order?.details,
+    order?.order?.order_details,
+    order?.order?.orderDetails,
+    order?.order?.foods,
+];
+
+const getItems = (order) => {
+    const directItems = getItemCandidates(order).flatMap(getList).filter(looksLikeOrderItem);
+
+    return directItems.length ? directItems : findNestedOrderItems(order);
+};
 
 const getFoodName = (item) => {
-    const food = item?.food || item?.menu_item || item?.product || {};
+    const food =
+        item?.food ||
+        item?.menu_item ||
+        item?.menuItem ||
+        item?.product ||
+        item?.dish ||
+        item?.item ||
+        {};
 
-    return food?.name || food?.title || item?.name || item?.title || item?.food_name || "Item";
+    return (
+        food?.name ||
+        food?.title ||
+        food?.food_name ||
+        food?.foodName ||
+        item?.name ||
+        item?.title ||
+        item?.food_name ||
+        item?.foodName ||
+        item?.item_name ||
+        item?.itemName ||
+        item?.menu_item_name ||
+        item?.menuItemName ||
+        "Item"
+    );
 };
+
+const getWaiterOrderRecord = (data) =>
+    data?.restaurant_order ??
+    data?.restaurantOrder ??
+    data?.order ??
+    data?.data?.restaurant_order ??
+    data?.data?.restaurantOrder ??
+    data?.data?.order ??
+    data?.data ??
+    data;
+
+const mergeWaiterOrderDetail = (order, detail) => ({
+    ...order,
+    ...detail,
+    order: {
+        ...(order?.order || {}),
+        ...(detail?.order || {}),
+    },
+    restaurant_order: {
+        ...(order?.restaurant_order || {}),
+        ...(detail?.restaurant_order || {}),
+    },
+    restaurantOrder: {
+        ...(order?.restaurantOrder || {}),
+        ...(detail?.restaurantOrder || {}),
+    },
+});
+
+const enrichReadyOrderItems = async (orders) =>
+    Promise.all(
+        orders.map(async (order) => {
+            if (getItems(order).length) return order;
+
+            const restaurantOrderId = getRestaurantOrderId(order);
+
+            if (!restaurantOrderId) return order;
+
+            try {
+                const response = await api.get(`/waiter/orders/${restaurantOrderId}`);
+                const detail = getWaiterOrderRecord(response.data);
+
+                if (!detail || typeof detail !== "object") return order;
+
+                const mergedDetail = mergeWaiterOrderDetail(order, detail);
+
+                return mergedDetail;
+            } catch {
+                return order;
+            }
+        })
+    );
 
 const normalizeResponseKey = (key) => String(key).toLowerCase().replace(/[_-]/g, "");
 
@@ -650,9 +796,11 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
         }
     }, []);
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async ({ showLoader = true } = {}) => {
         try {
-            setIsLoading(true);
+            if (showLoader) {
+                setIsLoading(true);
+            }
             const [cashResponse, readyResponse, tablesResponse] = await Promise.all([
                 canProcessPayments
                     ? api.get("/waiter/pending-cash-payments")
@@ -665,8 +813,10 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
                     : Promise.resolve([]),
             ]);
 
+            const readyOrderList = getList(readyResponse.data);
+
             setCashPayments(getList(cashResponse.data));
-            setReadyOrders(getList(readyResponse.data));
+            setReadyOrders(await enrichReadyOrderItems(readyOrderList));
             setTableSessions(tablesResponse);
             setErrorMessage("");
         } catch (error) {
@@ -677,17 +827,15 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     }, [canProcessPayments, canServeDineInOrders, loadServiceTables]);
 
     useEffect(() => {
-        const timeoutId = window.setTimeout(loadData, 0);
-        const intervalId = window.setInterval(loadData, 7000);
+        const timeoutId = window.setTimeout(() => loadData(), 0);
 
         return () => {
             window.clearTimeout(timeoutId);
-            window.clearInterval(intervalId);
         };
     }, [loadData]);
 
     useRealtimeRefresh(() => {
-        loadData();
+        loadData({ showLoader: false });
     });
 
     const confirmCash = async (payment) => {

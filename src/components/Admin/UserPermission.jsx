@@ -15,6 +15,7 @@ import {
   canAssignPermissionToUser,
   filterPermissionsForUser,
 } from "../../utils/permissionScopes";
+import { translateStaticText } from "../../utils/i18n";
 
 const getList = (data, key) => {
   if (Array.isArray(data)) return data;
@@ -121,14 +122,18 @@ const removeStoredRevokedPermissionId = (userId, permissionId) => {
 };
 
 const formatPermissionLabel = (permission = {}) =>
-  getPermissionKey(permission)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  translateStaticText(
+    getPermissionKey(permission)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
 
 const formatRoleName = (role) =>
-  String(role?.name ?? "No role")
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  translateStaticText(
+    String(role?.name ?? "No role")
+      .replace(/[_-]+/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
 
 const getDirectUserPermissions = (user = {}) => {
   const safeUser = asObject(user);

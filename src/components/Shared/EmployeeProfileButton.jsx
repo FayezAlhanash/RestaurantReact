@@ -2,6 +2,7 @@ import {
     ArrowLeft,
     Camera,
     CalendarDays,
+    Clock,
     KeyRound,
     Loader2,
     Mail,
@@ -96,6 +97,86 @@ function formatDate(value) {
     });
 }
 
+const dayNames = {
+    sunday: "Sunday",
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+};
+
+const dayOrder = Object.keys(dayNames);
+
+function normalizeDay(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function formatShiftDay(value) {
+    const day = normalizeDay(value);
+    return dayNames[day] || String(value || "");
+}
+
+function formatShiftTime(value) {
+    if (!value) return "--:--";
+    return String(value).slice(0, 5);
+}
+
+function timeToMinutes(value) {
+    const [hours, minutes] = String(value || "").split(":").map(Number);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+
+    return hours * 60 + minutes;
+}
+
+function getShiftList(data) {
+    const shifts =
+        data?.data?.shifts ??
+        data?.data?.employee_shifts ??
+        data?.shifts ??
+        data?.employee_shifts ??
+        data?.data ??
+        data;
+
+    return Array.isArray(shifts) ? shifts : [];
+}
+
+function sortShifts(shifts) {
+    return [...shifts].sort((first, second) => {
+        const firstIndex = dayOrder.indexOf(normalizeDay(first?.day_of_week ?? first?.day));
+        const secondIndex = dayOrder.indexOf(normalizeDay(second?.day_of_week ?? second?.day));
+
+        return (firstIndex === -1 ? 99 : firstIndex) - (secondIndex === -1 ? 99 : secondIndex);
+    });
+}
+
+function isShiftHappeningNow(shift, now = new Date()) {
+    if ((shift?.is_active ?? true) !== true) return false;
+
+    const shiftDay = normalizeDay(shift?.day_of_week ?? shift?.day);
+    const startMinutes = timeToMinutes(shift?.start_time ?? shift?.startTime);
+    const endMinutes = timeToMinutes(shift?.end_time ?? shift?.endTime);
+
+    if (!shiftDay || startMinutes === null || endMinutes === null) return false;
+
+    const today = dayOrder[now.getDay()];
+    const previousDay = dayOrder[(now.getDay() + 6) % 7];
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    if (startMinutes <= endMinutes) {
+        return shiftDay === today &&
+            currentMinutes >= startMinutes &&
+            currentMinutes < endMinutes;
+    }
+
+    return (
+        (shiftDay === today && currentMinutes >= startMinutes) ||
+        (shiftDay === previousDay && currentMinutes < endMinutes)
+    );
+}
+
 function buildFormState(user) {
     return {
         first_name: user?.first_name || "",
@@ -168,6 +249,11 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     const [isSaving, setIsSaving] = useState(false);
     const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [shifts, setShifts] = useState([]);
+    const [shiftEmployee, setShiftEmployee] = useState(null);
+    const [isLoadingShifts, setIsLoadingShifts] = useState(false);
+    const [shiftError, setShiftError] = useState("");
+    const [shiftNow, setShiftNow] = useState(() => new Date());
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
@@ -207,6 +293,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
         setIsEditingName(false);
         setMessage("");
         setError("");
+        setShiftError("");
         setIsLoading(true);
 
         requestAnimationFrame(() => {
@@ -253,6 +340,31 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
         }, 180);
     };
 
+    const openShiftsPanel = async () => {
+        setMessage("");
+        setError("");
+        setShiftError("");
+        setIsEditingName(false);
+        setPasswordStep("current");
+        setActivePanel("shifts");
+        setShiftNow(new Date());
+        setIsLoadingShifts(true);
+
+        try {
+            const response = await api.get("/employee/my-shifts");
+
+            setShifts(sortShifts(getShiftList(response.data)));
+            setShiftEmployee(response.data?.employee ?? response.data?.data?.employee ?? null);
+        } catch (requestError) {
+            setShiftError(
+                requestError.response?.data?.message ||
+                    text("Could not load your shifts.")
+            );
+        } finally {
+            setIsLoadingShifts(false);
+        }
+    };
+
     useEffect(() => {
         const handleCloseProfile = () => {
             if (isOpen) closeProfile();
@@ -287,6 +399,18 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
             document.removeEventListener("keydown", handleKeyDown);
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (activePanel !== "shifts") return undefined;
+
+        const intervalId = window.setInterval(() => {
+            setShiftNow(new Date());
+        }, 60000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [activePanel]);
 
     const handleFieldChange = (field, value) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -477,14 +601,18 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                         ? text("Change password")
                                         : activePanel === "name"
                                             ? text("Edit name")
-                                            : text("Employee profile")}
+                                            : activePanel === "shifts"
+                                                ? text("My shifts")
+                                                : text("Employee profile")}
                                 </p>
                                 <p className={`truncate text-xs font-bold ${mutedTextClass}`}>
                                     {activePanel === "password"
                                         ? text("Secure your account")
                                         : activePanel === "name"
                                             ? text("Update personal name")
-                                            : text("Personal information")}
+                                            : activePanel === "shifts"
+                                                ? text("Weekly work hours")
+                                                : text("Personal information")}
                                 </p>
                             </div>
                             {activePanel === "profile" && (
@@ -512,7 +640,9 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                             ? "min-h-[330px]"
                             : activePanel === "name"
                                 ? "min-h-[360px]"
-                                : "min-h-0"
+                                : activePanel === "shifts"
+                                    ? "min-h-[390px]"
+                                    : "min-h-0"
                     }`}>
                         <div
                             className={`transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
@@ -645,6 +775,24 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                         </p>
                                     </div>
                                 </div>
+
+                                <button
+                                    type="button"
+                                    onClick={openShiftsPanel}
+                                    className={`profile-shifts-button flex h-11 w-full items-center justify-between rounded-xl border px-3 text-left transition duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                                        isLight
+                                            ? "border-[#D8A22D]/35 bg-[#FFF4DA] text-[#7A4F00] hover:bg-[#FFE9B5]"
+                                            : "border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166] hover:bg-[#FFD166]/16"
+                                    }`}
+                                >
+                                    <span className="flex min-w-0 items-center gap-2">
+                                        <CalendarDays size={17} />
+                                        <span className="font-black">{text("My shifts")}</span>
+                                    </span>
+                                    <span className={`text-[11px] font-black ${isLight ? "text-[#9A6400]" : "text-[#FFD166]/75"}`}>
+                                        {text("View")}
+                                    </span>
+                                </button>
                             </div>
                         )}
 
@@ -810,6 +958,117 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 )}
                                 {text("Save name")}
                             </button>
+                        </div>
+
+                        <div
+                            className={`transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                                activePanel === "shifts"
+                                    ? "translate-x-0 opacity-100"
+                                    : "translate-x-8 opacity-0 pointer-events-none absolute"
+                            }`}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShiftError("");
+                                    setActivePanel("profile");
+                                }}
+                                className={`mb-3 flex h-9 items-center gap-2 rounded-xl px-2.5 text-xs font-black transition duration-200 hover:scale-[1.04] active:scale-95 ${
+                                    isLight
+                                        ? "border border-[#D8A22D]/35 bg-[#FFF4DA] text-[#7A4F00] hover:bg-[#FFE9B5]"
+                                        : "bg-[#FFD166]/10 text-[#FFD166] hover:bg-[#FFD166]/16"
+                                }`}
+                            >
+                                <ArrowLeft size={15} />
+                                {text("Profile details")}
+                            </button>
+
+                            <div className={`mb-3 flex items-center gap-2 rounded-2xl border p-3 ${dividerClass}`}>
+                                <div className={`grid h-9 w-9 place-items-center rounded-xl border ${iconTileClass}`}>
+                                    <CalendarDays size={17} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className={`truncate text-sm font-black ${titleTextClass}`}>
+                                        {text("Weekly schedule")}
+                                    </p>
+                                    <p className={`truncate text-xs font-bold ${mutedTextClass}`}>
+                                        {shiftEmployee?.name || userName}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {isLoadingShifts ? (
+                                <div className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-6 text-sm font-black ${
+                                    isLight
+                                        ? "border-[#E4CFC3] bg-white text-[#7A6A64]"
+                                        : "border-white/10 bg-white/[0.05] text-white/55"
+                                }`}>
+                                    <Loader2 size={17} className="animate-spin" />
+                                    {text("Loading shifts...")}
+                                </div>
+                            ) : shiftError ? (
+                                <p className="rounded-xl border border-[#7F1D1D]/35 bg-[#7F1D1D]/16 px-3 py-2 text-sm font-black text-[#ffb4b4]">
+                                    {shiftError}
+                                </p>
+                            ) : shifts.length ? (
+                                <div className="grid max-h-[260px] gap-2 overflow-y-auto pr-1">
+                                    {shifts.map((shift, index) => {
+                                        const day = shift?.day_of_week ?? shift?.day ?? "";
+                                        const isActive = shift?.is_active ?? true;
+                                        const isCurrentShift = isShiftHappeningNow(shift, shiftNow);
+
+                                        return (
+                                            <div
+                                                key={shift?.id ?? `${day}-${index}`}
+                                                className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 ${
+                                                    isCurrentShift
+                                                        ? isLight
+                                                            ? "border-emerald-400 bg-emerald-50 shadow-[0_10px_24px_rgba(16,185,129,0.18)]"
+                                                            : "border-emerald-300/45 bg-emerald-400/12 shadow-[0_10px_26px_rgba(16,185,129,0.14)]"
+                                                        : isLight
+                                                        ? "border-[#E4CFC3] bg-white"
+                                                        : "border-white/10 bg-white/[0.05]"
+                                                }`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className={`truncate text-sm font-black ${titleTextClass}`}>
+                                                        {text(formatShiftDay(day))}
+                                                    </p>
+                                                    <p className={`mt-0.5 flex items-center gap-1.5 text-xs font-bold ${mutedTextClass}`}>
+                                                        <Clock size={13} />
+                                                        {formatShiftTime(shift?.start_time ?? shift?.startTime)}
+                                                        {" - "}
+                                                        {formatShiftTime(shift?.end_time ?? shift?.endTime)}
+                                                    </p>
+                                                </div>
+                                                <span className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-black ${
+                                                    isCurrentShift
+                                                        ? isLight
+                                                            ? "bg-emerald-600 text-white"
+                                                            : "bg-emerald-300 text-[#062016]"
+                                                        : isActive
+                                                        ? isLight
+                                                            ? "bg-emerald-100 text-emerald-700"
+                                                            : "bg-emerald-400/12 text-emerald-200"
+                                                        : isLight
+                                                            ? "bg-[#F3E7DF] text-[#7A6A64]"
+                                                            : "bg-white/8 text-white/45"
+                                                }`}>
+                                                    {text(isCurrentShift ? "Now" : isActive ? "Active" : "Inactive")}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className={`rounded-2xl border px-4 py-6 text-center text-sm font-black ${
+                                    isLight
+                                        ? "border-[#E4CFC3] bg-white text-[#7A6A64]"
+                                        : "border-white/10 bg-white/[0.05] text-white/55"
+                                }`}>
+                                    {text("No shifts found.")}
+                                </div>
+                            )}
                         </div>
 
                         <div

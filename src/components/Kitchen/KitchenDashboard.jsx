@@ -165,16 +165,10 @@ export default function KitchenDashboard() {
 
     useEffect(() => {
         const initialLoadId = window.setTimeout(loadQueue, 0);
-        const intervalId = window.setInterval(() => {
-            if (shouldPollRef.current) {
-                loadQueue();
-            }
-        }, 5000);
 
         return () => {
             shouldPollRef.current = false;
             window.clearTimeout(initialLoadId);
-            window.clearInterval(intervalId);
         };
     }, [loadQueue]);
 

@@ -2,7 +2,6 @@ import { CheckCircle2, Clock3, PackageCheck, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../../API/axios";
-import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 
 const getList = (data) => {
     if (Array.isArray(data?.orders)) return data.orders;
@@ -109,17 +108,11 @@ function PickupOrders() {
 
     useEffect(() => {
         const timeoutId = window.setTimeout(loadOrders, 0);
-        const intervalId = window.setInterval(loadOrders, 7000);
 
         return () => {
             window.clearTimeout(timeoutId);
-            window.clearInterval(intervalId);
         };
     }, [loadOrders]);
-
-    useRealtimeRefresh(() => {
-        loadOrders();
-    });
 
     const readyOrders = useMemo(
         () =>

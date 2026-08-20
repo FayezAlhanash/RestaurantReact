@@ -17,6 +17,7 @@ import { getStoredUser, ROLE_IDS } from "../../utils/auth";
 import { fetchKitchenQueue } from "../../utils/kitchenOrders";
 import { getUserPermissions } from "../../utils/permissions";
 import { useTheme } from "../../context/ThemeContext";
+import { translateStaticText } from "../../utils/i18n";
 
 const currentYear = new Date().getFullYear();
 const defaultFrom = `${currentYear}-01-01`;
@@ -186,7 +187,7 @@ function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
       <div className="relative flex items-start justify-between gap-4">
         <div>
           <p className={`text-sm font-black uppercase tracking-[0.16em] ${isLight ? "text-[#5A4037]" : "text-white/60"}`}>
-            {title}
+            {translateStaticText(title)}
           </p>
           <strong
             className="mt-4 block text-[clamp(3rem,2.4rem+1.4vw,4.25rem)] font-black leading-none"
@@ -199,7 +200,7 @@ function StatCard({ title, value, helper, icon: Icon, tone = "red" }) {
           <Icon size={22} />
         </div>
       </div>
-      <p className={`relative mt-4 text-base font-bold ${isLight ? "text-[#4F403A]" : "text-white/76"}`}>{helper}</p>
+      <p className={`relative mt-4 text-base font-bold ${isLight ? "text-[#4F403A]" : "text-white/76"}`}>{translateStaticText(helper)}</p>
     </article>
   );
 }
@@ -216,7 +217,7 @@ function EmptyState({ text }) {
       <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-[#7F1D1D] text-white shadow-lg shadow-[#7F1D1D]/20">
         <BarChart3 size={20} />
       </div>
-      <p className={`mt-3 text-sm font-black ${isLight ? "text-[#5A4037]" : "text-white/70"}`}>{text}</p>
+      <p className={`mt-3 text-sm font-black ${isLight ? "text-[#5A4037]" : "text-white/70"}`}>{translateStaticText(text)}</p>
     </div>
   );
 }
@@ -237,7 +238,7 @@ function ReportTable({ columns, rows, emptyText }) {
           <tr>
             {columns.map((column) => (
               <th key={column.key} className="whitespace-nowrap px-4 py-4 sm:px-5">
-                {column.label}
+                {translateStaticText(column.label)}
               </th>
             ))}
           </tr>

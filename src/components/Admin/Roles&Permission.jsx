@@ -22,6 +22,7 @@ import {
   filterPermissionsForRole,
   roleRequiresRestaurantAssignment,
 } from "../../utils/permissionScopes";
+import { translateStaticText } from "../../utils/i18n";
 
 const getList = (data, key) => {
   if (Array.isArray(data)) return data;
@@ -72,9 +73,11 @@ const getUniquePermissions = (roles = []) => {
 };
 
 const formatPermissionLabel = (permission = {}) =>
-  getPermissionKey(permission)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  translateStaticText(
+    getPermissionKey(permission)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
 
 const isAdminRole = (role = {}) => {
   const roleId = Number(role?.id ?? role?.role_id);
@@ -1031,11 +1034,8 @@ export default function RolesPermission() {
                   }`}
                 >
                   <span className="min-w-0">
-                    <span
-                      data-no-translate
-                      className="line-clamp-2 text-[clamp(0.82rem,0.72rem+0.22vw,0.95rem)] font-black capitalize leading-tight"
-                    >
-                      {role.name}
+                    <span className="line-clamp-2 text-[clamp(0.82rem,0.72rem+0.22vw,0.95rem)] font-black capitalize leading-tight">
+                      {translateStaticText(role.name)}
                     </span>
                     <span
                       className={`mt-1 block text-xs font-bold ${
