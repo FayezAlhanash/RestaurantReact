@@ -3457,11 +3457,11 @@ function DineInOrder() {
             setIsMobileCartOpen(false);
             setSuccessMessage("");
             setOrderSuccessNotice({
-                title: "تم طلبك بنجاح",
+                title: "Order placed successfully",
                 message:
                     paymentMethod === "cash"
-                        ? "تم إرسال الطلب، وسيقوم النادل بتحصيل الدفع نقداً."
-                        : "تم الدفع عبر سترايب وإرسال الطلب للمطعم.",
+                        ? "Your order was sent. The waiter will collect the cash payment."
+                        : "Your Stripe payment is complete and the order was sent.",
             });
         } catch (error) {
             const validationErrors = error.response?.data?.errors;

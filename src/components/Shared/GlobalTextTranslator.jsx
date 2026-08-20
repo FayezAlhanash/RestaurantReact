@@ -76,10 +76,11 @@ function translateSubtree(root) {
 
 export default function GlobalTextTranslator() {
     useEffect(() => {
-        if (getAppLanguage() !== "ar") return undefined;
-
         const runTranslation = () => translateSubtree(document.body);
         const timeoutId = window.setTimeout(runTranslation, 0);
+        const handleLanguageChange = () => {
+            window.setTimeout(runTranslation, 0);
+        };
 
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -102,10 +103,12 @@ export default function GlobalTextTranslator() {
             attributes: true,
             attributeFilter: TRANSLATABLE_ATTRIBUTES,
         });
+        window.addEventListener("app-language-change", handleLanguageChange);
 
         return () => {
             window.clearTimeout(timeoutId);
             observer.disconnect();
+            window.removeEventListener("app-language-change", handleLanguageChange);
         };
     }, []);
 
