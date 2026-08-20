@@ -68,15 +68,60 @@ function formatItemCount(count) {
     return `${count} ${count === 1 ? "item" : "items"}`;
 }
 
+const sizeNoteTokens = new Set([
+    "xs",
+    "extra small",
+    "small",
+    "sm",
+    "medium",
+    "md",
+    "large",
+    "lg",
+    "xl",
+    "extra large",
+]);
+
+function normalizeNoteToken(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+}
+
 function getItemNoteSections(note) {
     const segments = String(note || "")
         .split("·")
         .map((segment) => segment.trim())
         .filter(Boolean);
+    const details = [];
+    const notes = [];
+
+    segments.forEach((segment) => {
+        if (segment.includes(":")) {
+            details.push(segment);
+            return;
+        }
+
+        if (sizeNoteTokens.has(normalizeNoteToken(segment))) {
+            const hasSizeDetail = details.some(
+                (detail) =>
+                    normalizeNoteToken(detail.slice(0, detail.indexOf(":"))) ===
+                    "size"
+            );
+
+            if (!hasSizeDetail) {
+                details.push(`Size: ${segment}`);
+            }
+
+            return;
+        }
+
+        notes.push(segment);
+    });
 
     return {
-        details: segments.filter((segment) => segment.includes(":")),
-        notes: segments.filter((segment) => !segment.includes(":")),
+        details,
+        notes,
     };
 }
 
