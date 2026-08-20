@@ -77,9 +77,13 @@ function translateSubtree(root) {
 export default function GlobalTextTranslator() {
     useEffect(() => {
         const runTranslation = () => translateSubtree(document.body);
-        const timeoutId = window.setTimeout(runTranslation, 0);
+        const timeoutIds = [0, 50, 250, 1000].map((delay) =>
+            window.setTimeout(runTranslation, delay)
+        );
         const handleLanguageChange = () => {
-            window.setTimeout(runTranslation, 0);
+            [0, 50, 250, 1000].forEach((delay) => {
+                window.setTimeout(runTranslation, delay);
+            });
         };
 
         const observer = new MutationObserver((mutations) => {
@@ -106,7 +110,7 @@ export default function GlobalTextTranslator() {
         window.addEventListener("app-language-change", handleLanguageChange);
 
         return () => {
-            window.clearTimeout(timeoutId);
+            timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
             observer.disconnect();
             window.removeEventListener("app-language-change", handleLanguageChange);
         };

@@ -2417,12 +2417,30 @@ function ConfirmOrderModal({
     );
 }
 
-function OrderSuccessNotice({ title, message }) {
+function OrderSuccessNotice({ title, message, variant = "success" }) {
+    const isError = variant === "error";
+
     return (
         <div className="order-success-notice pointer-events-none fixed inset-0 z-[360] flex items-center justify-center bg-black/25 p-4 backdrop-blur-[2px]">
-            <div className="order-success-card w-full max-w-[440px] rounded-[30px] border border-emerald-200/70 bg-white px-6 py-8 text-center text-[#151A1D] shadow-[0_34px_90px_rgba(5,95,70,0.24)]">
-                <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-emerald-500 text-white shadow-[0_18px_42px_rgba(16,185,129,0.34)]">
-                    <CheckCircle2 size={58} strokeWidth={2.7} />
+            <div
+                className={`order-success-card w-full max-w-[440px] rounded-[30px] border bg-white px-6 py-8 text-center text-[#151A1D] shadow-[0_34px_90px_rgba(5,95,70,0.24)] ${
+                    isError
+                        ? "border-[#F3B0B0]/80"
+                        : "border-emerald-200/70"
+                }`}
+            >
+                <div
+                    className={`mx-auto grid h-24 w-24 place-items-center rounded-full text-white ${
+                        isError
+                            ? "bg-[#7F1D1D] shadow-[0_18px_42px_rgba(127,29,29,0.30)]"
+                            : "bg-emerald-500 shadow-[0_18px_42px_rgba(16,185,129,0.34)]"
+                    }`}
+                >
+                    {isError ? (
+                        <X size={58} strokeWidth={2.7} />
+                    ) : (
+                        <CheckCircle2 size={58} strokeWidth={2.7} />
+                    )}
                 </div>
                 <h2 className="mt-5 text-3xl font-black leading-tight">
                     {title}
@@ -3293,12 +3311,19 @@ function DineInOrder() {
             );
             sessionStorage.removeItem(orderStorageKey);
             sessionStorage.removeItem(invoiceStorageKey);
-            setSuccessMessage(`Order #${orderId} canceled.`);
+            setOrderSuccessNotice({
+                title: "Order canceled",
+                message: `Order #${orderId} was canceled successfully.`,
+                variant: "success",
+            });
         } catch (error) {
-            setErrorMessage(
-                error.response?.data?.message ||
+            setOrderSuccessNotice({
+                title: "Order could not be canceled",
+                message:
+                    error.response?.data?.message ||
                     "Could not cancel this order. Please ask the waiter for help.",
-            );
+                variant: "error",
+            });
         } finally {
             setCancelingOrderId("");
         }
@@ -4200,6 +4225,7 @@ function DineInOrder() {
                 <OrderSuccessNotice
                     title={orderSuccessNotice.title}
                     message={orderSuccessNotice.message}
+                    variant={orderSuccessNotice.variant}
                 />
             )}
         </div>
