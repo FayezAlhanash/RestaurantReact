@@ -12,34 +12,61 @@ const IGNORED_TAGS = new Set([
 ]);
 
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label"];
+const originalTextNodes = new WeakMap();
+const originalAttributes = new WeakMap();
 
 function shouldSkipNode(node) {
-    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const element =
+        node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
     if (!element) return true;
 
     if (IGNORED_TAGS.has(element.tagName)) return true;
-    if (element.closest("[data-no-translate], [contenteditable='true']")) return true;
+    if (element.closest("[data-no-translate], [contenteditable='true']"))
+        return true;
 
     return false;
 }
 
-function translateTextNode(node) {
+function translateTextNode(node, language) {
     if (shouldSkipNode(node)) return;
 
-    const nextText = translateStaticText(node.nodeValue);
+    if (!originalTextNodes.has(node)) {
+        originalTextNodes.set(node, node.nodeValue);
+    }
+
+    const originalText = originalTextNodes.get(node);
+    const nextText =
+        language === "ar" ? translateStaticText(originalText) : originalText;
+
     if (nextText !== node.nodeValue) {
         node.nodeValue = nextText;
     }
 }
 
-function translateElementAttributes(element) {
+function translateElementAttributes(element, language) {
     if (shouldSkipNode(element)) return;
 
     TRANSLATABLE_ATTRIBUTES.forEach((attribute) => {
         const value = element.getAttribute(attribute);
         if (!value) return;
 
-        const nextValue = translateStaticText(value);
+        let attributeOriginals = originalAttributes.get(element);
+
+        if (!attributeOriginals) {
+            attributeOriginals = new Map();
+            originalAttributes.set(element, attributeOriginals);
+        }
+
+        if (!attributeOriginals.has(attribute)) {
+            attributeOriginals.set(attribute, value);
+        }
+
+        const originalValue = attributeOriginals.get(attribute);
+        const nextValue =
+            language === "ar"
+                ? translateStaticText(originalValue)
+                : originalValue;
+
         if (nextValue !== value) {
             element.setAttribute(attribute, nextValue);
         }
@@ -47,27 +74,34 @@ function translateElementAttributes(element) {
 }
 
 function translateSubtree(root) {
-    if (getAppLanguage() !== "ar") return;
+    const language = getAppLanguage();
 
     if (root.nodeType === Node.TEXT_NODE) {
-        translateTextNode(root);
+        translateTextNode(root, language);
         return;
     }
 
-    if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+    if (
+        root.nodeType !== Node.ELEMENT_NODE &&
+        root.nodeType !== Node.DOCUMENT_NODE
+    )
+        return;
 
     if (root.nodeType === Node.ELEMENT_NODE) {
-        translateElementAttributes(root);
+        translateElementAttributes(root, language);
     }
 
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+    );
     let currentNode = walker.nextNode();
 
     while (currentNode) {
         if (currentNode.nodeType === Node.TEXT_NODE) {
-            translateTextNode(currentNode);
+            translateTextNode(currentNode, language);
         } else if (currentNode.nodeType === Node.ELEMENT_NODE) {
-            translateElementAttributes(currentNode);
+            translateElementAttributes(currentNode, language);
         }
 
         currentNode = walker.nextNode();
@@ -78,7 +112,7 @@ export default function GlobalTextTranslator() {
     useEffect(() => {
         const runTranslation = () => translateSubtree(document.body);
         const timeoutIds = [0, 50, 250, 1000].map((delay) =>
-            window.setTimeout(runTranslation, delay)
+            window.setTimeout(runTranslation, delay),
         );
         const handleLanguageChange = () => {
             [0, 50, 250, 1000].forEach((delay) => {
@@ -112,7 +146,10 @@ export default function GlobalTextTranslator() {
         return () => {
             timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
             observer.disconnect();
-            window.removeEventListener("app-language-change", handleLanguageChange);
+            window.removeEventListener(
+                "app-language-change",
+                handleLanguageChange,
+            );
         };
     }, []);
 
