@@ -521,7 +521,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     : "-translate-x-8 opacity-0 pointer-events-none absolute"
                             }`}
                         >
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
@@ -550,13 +550,13 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                 className="hidden"
                             />
 
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <h2 className={`truncate text-lg font-black ${titleTextClass}`}>
                                     {userName}
                                 </h2>
-                                <p className={`mt-1 flex items-center gap-2 text-xs font-bold ${softTextClass}`}>
-                                    <ShieldCheck size={15} className="text-[#FFD166]" />
-                                    {roleName}
+                                <p className={`mt-1 flex min-w-0 items-center gap-2 text-xs font-bold ${softTextClass}`}>
+                                    <ShieldCheck size={15} className="shrink-0 text-[#FFD166]" />
+                                    <span className="truncate">{roleName}</span>
                                 </p>
                                 {displayUser.email && (
                                     <p className={`mt-1 flex min-w-0 items-center gap-2 text-xs font-bold ${mutedTextClass}`}>

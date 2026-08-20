@@ -580,10 +580,10 @@ function WaiterCard({ title, eyebrow, total, emphasizeTotal = false, children, a
         <article className="flex min-h-[260px] min-w-0 flex-col rounded-[28px] border border-white/10 bg-[#252A2D] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-sm font-black uppercase tracking-[0.14em] text-[#FFD166]">
+                    <p className="text-xl font-black uppercase tracking-[0.08em] text-[#FFD166]">
                         {eyebrow}
                     </p>
-                    <h2 className="mt-2 break-words text-2xl font-black text-white">{title}</h2>
+                    <h2 className="mt-1.5 break-words text-2xl font-black text-white">{title}</h2>
                 </div>
                 {total !== undefined && !emphasizeTotal && (
                     <span className="shrink-0 rounded-full bg-[#FFD166]/14 px-3 py-1 text-sm font-black text-[#FFD166]">

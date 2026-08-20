@@ -1,4 +1,5 @@
 import { Bike, CheckCircle2, Clock3, Loader2, ShoppingBag, Utensils } from "lucide-react";
+import { useTranslation } from "../../utils/i18n";
 
 const orderTypeConfig = {
     delivery: {
@@ -79,7 +80,63 @@ const sizeNoteTokens = new Set([
     "lg",
     "xl",
     "extra large",
+    "صغير جدا",
+    "صغير",
+    "صغيرة",
+    "وسط",
+    "متوسط",
+    "متوسطة",
+    "كبير",
+    "كبيرة",
+    "كبير جدا",
 ]);
+
+const localizedSizeValues = {
+    ar: {
+        xs: "صغير جدا",
+        "extra small": "صغير جدا",
+        small: "صغير",
+        sm: "صغير",
+        medium: "متوسط",
+        md: "متوسط",
+        large: "كبير",
+        lg: "كبير",
+        xl: "كبير جدا",
+        "extra large": "كبير جدا",
+    },
+    en: {
+        "صغير جدا": "Extra small",
+        صغير: "Small",
+        صغيرة: "Small",
+        وسط: "Medium",
+        متوسط: "Medium",
+        متوسطة: "Medium",
+        كبير: "Large",
+        كبيرة: "Large",
+        "كبير جدا": "Extra large",
+    },
+};
+const sizeValueAliases = {
+    xs: { en: "Extra small", ar: "صغير جدا" },
+    "extra small": { en: "Extra small", ar: "صغير جدا" },
+    "صغير جدا": { en: "Extra small", ar: "صغير جدا" },
+    small: { en: "Small", ar: "صغير" },
+    sm: { en: "Small", ar: "صغير" },
+    صغير: { en: "Small", ar: "صغير" },
+    صغيرة: { en: "Small", ar: "صغير" },
+    medium: { en: "Medium", ar: "متوسط" },
+    md: { en: "Medium", ar: "متوسط" },
+    وسط: { en: "Medium", ar: "متوسط" },
+    متوسط: { en: "Medium", ar: "متوسط" },
+    متوسطة: { en: "Medium", ar: "متوسط" },
+    large: { en: "Large", ar: "كبير" },
+    lg: { en: "Large", ar: "كبير" },
+    كبير: { en: "Large", ar: "كبير" },
+    كبيرة: { en: "Large", ar: "كبير" },
+    xl: { en: "Extra large", ar: "كبير جدا" },
+    "extra large": { en: "Extra large", ar: "كبير جدا" },
+    "كبير جدا": { en: "Extra large", ar: "كبير جدا" },
+};
 
 function normalizeNoteToken(value) {
     return String(value || "")
@@ -88,18 +145,29 @@ function normalizeNoteToken(value) {
         .replace(/\s+/g, " ");
 }
 
-function getItemNoteSections(note) {
-    const segments = String(note || "")
-        .split("·")
+function splitNoteSegments(value) {
+    return String(value || "")
+        .replace(/(?:^|[\n\r])\s*(Size|الحجم)\s*:/gi, " · $1:")
+        .replace(/\s+(Size|الحجم)\s*:/gi, " · $1:")
+        .split(/·|[\n\r]+/)
         .map((segment) => segment.trim())
         .filter(Boolean);
+}
+
+function getItemNoteSections(note) {
+    const segments = splitNoteSegments(note);
     const details = [];
     const notes = [];
     const detailKeys = new Set();
 
     segments.forEach((segment) => {
         if (segment.includes(":")) {
-            const detailKey = normalizeNoteToken(segment);
+            const label = segment.slice(0, segment.indexOf(":")).trim();
+            const normalizedLabel = normalizeNoteToken(label);
+            const detailKey =
+                normalizedLabel === "size" || normalizedLabel === "الحجم"
+                    ? "size"
+                    : normalizeNoteToken(segment);
 
             if (!detailKeys.has(detailKey)) {
                 detailKeys.add(detailKey);
@@ -110,15 +178,11 @@ function getItemNoteSections(note) {
         }
 
         if (sizeNoteTokens.has(normalizeNoteToken(segment))) {
-            const hasSizeDetail = details.some(
-                (detail) =>
-                    normalizeNoteToken(detail.slice(0, detail.indexOf(":"))) ===
-                    "size"
-            );
+            const hasSizeDetail = detailKeys.has("size");
 
             if (!hasSizeDetail) {
                 const detail = `Size: ${segment}`;
-                const detailKey = normalizeNoteToken(detail);
+                const detailKey = "size";
 
                 detailKeys.add(detailKey);
                 details.push(detail);
@@ -136,18 +200,40 @@ function getItemNoteSections(note) {
     };
 }
 
-function renderDetail(detail) {
+function localizeSizeValue(value, language) {
+    const normalizedValue = normalizeNoteToken(value).replace(/\b(size|الحجم)\s*:/gi, " ");
+    const directValue = localizedSizeValues[language]?.[normalizeNoteToken(value)];
+
+    if (directValue) return directValue;
+
+    const matchingAlias = Object.entries(sizeValueAliases)
+        .sort(([left], [right]) => right.length - left.length)
+        .find(([alias]) => normalizedValue.includes(alias));
+
+    if (matchingAlias) {
+        return matchingAlias[1][language] || matchingAlias[1].en;
+    }
+
+    return String(value || "")
+        .replace(/\s*(Size|الحجم)\s*:.*/i, "")
+        .trim() || value;
+}
+
+function renderDetail(detail, language) {
     const separatorIndex = detail.indexOf(":");
 
     if (separatorIndex === -1) return detail;
 
     const label = detail.slice(0, separatorIndex).trim();
     const value = detail.slice(separatorIndex + 1).trim();
+    const isSize = normalizeNoteToken(label) === "size" || normalizeNoteToken(label) === "الحجم";
+    const displayLabel = isSize && language === "ar" ? "الحجم" : label;
+    const displayValue = isSize ? localizeSizeValue(value, language) : value;
 
     return (
         <>
-            <span className="font-black text-[#3f3427]">{label}</span>
-            {value && <span className="font-bold text-[#6b5d4e]">: {value}</span>}
+            <span className="font-black text-[#3f3427]">{displayLabel}</span>
+            {displayValue && <span className="font-bold text-[#6b5d4e]">: {displayValue}</span>}
         </>
     );
 }
@@ -159,6 +245,7 @@ export default function OrderCard({
     pendingAction = "",
     className = "",
 }) {
+    const { language } = useTranslation();
     const type = orderTypeConfig[order.type] || orderTypeConfig.dine_in;
     const TypeIcon = type.icon;
     const normalizedStatus = normalizeStatus(order.status);
@@ -231,7 +318,7 @@ export default function OrderCard({
                                             <div className="mt-2 rounded-lg bg-[#efe5d4] px-3 py-2 text-lg font-extrabold leading-7 text-[#5f5345]">
                                                 {details.map((detail) => (
                                                     <p key={detail} className="break-words">
-                                                        {renderDetail(detail)}
+                                                        {renderDetail(detail, language)}
                                                     </p>
                                                 ))}
                                             </div>

@@ -310,10 +310,7 @@ function formatOrderTime(value) {
 }
 
 function dedupeNoteSegments(value) {
-    return String(value || "")
-        .split("·")
-        .map((segment) => segment.trim())
-        .filter(Boolean)
+    return splitNoteSegments(value)
         .filter(
             (segment, index, segments) =>
                 segments.findIndex(
@@ -334,7 +331,9 @@ function normalizeNoteToken(value) {
 
 function splitNoteSegments(value) {
     return String(value || "")
-        .split("·")
+        .replace(/(?:^|[\n\r])\s*(Size|الحجم)\s*:/gi, " · $1:")
+        .replace(/\s+(Size|الحجم)\s*:/gi, " · $1:")
+        .split(/·|[\n\r]+/)
         .map((segment) => segment.trim())
         .filter(Boolean);
 }
@@ -358,6 +357,15 @@ const sizeNoteTokens = new Set([
     "lg",
     "xl",
     "extra large",
+    "صغير جدا",
+    "صغير",
+    "صغيرة",
+    "وسط",
+    "متوسط",
+    "متوسطة",
+    "كبير",
+    "كبيرة",
+    "كبير جدا",
 ]);
 
 function getExplicitSizeValue(item = {}) {
@@ -442,17 +450,20 @@ function getModifierNoteDetails(item) {
             const groupName = getModifierGroupName(option);
             const normalizedGroupName = normalizeNoteToken(groupName);
             const normalizedOptionName = normalizeNoteToken(optionName);
+            const isSizeOption = sizeNoteTokens.has(normalizedOptionName);
             const segment =
                 normalizedOptionName === "size" && groupName
                     ? `Size: ${groupName}`
                     : normalizedGroupName === "size"
                         ? `Size: ${optionName}`
+                        : !groupName && isSizeOption
+                            ? `Size: ${optionName}`
                         : groupName
                             ? `${groupName}: ${optionName}`
                             : optionName;
 
             return {
-                groupName,
+                groupName: !groupName && isSizeOption ? "Size" : groupName,
                 optionName,
                 segment,
             };
@@ -494,16 +505,29 @@ function getModifierNoteDetails(item) {
 
 function isDuplicateModifierNoteSegment(segment, modifierDetails) {
     const normalizedSegment = normalizeNoteToken(segment);
+    const separatorIndex = segment.indexOf(":");
+    const normalizedSegmentLabel =
+        separatorIndex === -1
+            ? ""
+            : normalizeNoteToken(segment.slice(0, separatorIndex));
+    const normalizedSegmentValue =
+        separatorIndex === -1
+            ? ""
+            : normalizeNoteToken(segment.slice(separatorIndex + 1));
 
     return modifierDetails.some((modifier) => {
         const groupName = normalizeNoteToken(modifier.groupName);
         const optionName = normalizeNoteToken(modifier.optionName);
         const fullSegment = normalizeNoteToken(modifier.segment);
+        const isSizeSegment =
+            normalizedSegmentLabel === "size" || normalizedSegmentLabel === "الحجم";
+        const isSizeModifier = groupName === "size" || groupName === "الحجم";
 
         return (
             normalizedSegment === groupName ||
             normalizedSegment === optionName ||
-            normalizedSegment === fullSegment
+            normalizedSegment === fullSegment ||
+            (isSizeSegment && (normalizedSegmentValue === optionName || isSizeModifier))
         );
     });
 }
@@ -512,7 +536,11 @@ function dedupeModifierDetails(details) {
     const seen = new Set();
 
     return details.filter((detail) => {
-        const key = normalizeNoteToken(detail.segment);
+        const groupName = normalizeNoteToken(detail.groupName);
+        const key =
+            groupName === "size" || groupName === "الحجم"
+                ? "size"
+                : normalizeNoteToken(detail.segment);
 
         if (!key || seen.has(key)) return false;
 

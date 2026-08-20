@@ -1375,6 +1375,77 @@ img, svg {
     background-color: #ffffff !important;
 }
 
+.language-toggle {
+    isolation: isolate;
+}
+
+.language-toggle .language-toggle__icon {
+    color: #FFD166 !important;
+    stroke: #FFD166 !important;
+}
+
+.language-toggle--light {
+    background-color: #ffffff !important;
+    border-color: #E4CFC3 !important;
+    color: #5F514B !important;
+}
+
+.language-toggle--light .language-toggle__option--active {
+    background-color: #F59E0B !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(245, 158, 11, 0.30) !important;
+}
+
+[data-theme="light"] .admin-topbar .language-toggle.language-toggle--light .language-toggle__option--active {
+    background-color: #F59E0B !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(245, 158, 11, 0.30) !important;
+}
+
+.language-toggle--light .language-toggle__option--inactive {
+    background-color: transparent !important;
+    color: #5F514B !important;
+}
+
+[data-theme="light"] .admin-topbar .language-toggle.language-toggle--light .language-toggle__option--inactive {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    color: #5F514B !important;
+}
+
+.language-toggle--light .language-toggle__option--inactive:hover {
+    background-color: #FFF4DA !important;
+    color: #7F1D1D !important;
+}
+
+[data-theme="light"] .admin-topbar .language-toggle.language-toggle--light .language-toggle__option--inactive:hover {
+    background-color: #FFF4DA !important;
+    color: #7F1D1D !important;
+}
+
+.language-toggle--dark {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+    color: #ffffff !important;
+}
+
+.language-toggle--dark .language-toggle__option--active {
+    background-color: #FFD166 !important;
+    color: #24190B !important;
+    box-shadow: 0 8px 20px rgba(255, 209, 102, 0.28) !important;
+}
+
+.language-toggle--dark .language-toggle__option--inactive {
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.70) !important;
+}
+
+.language-toggle--dark .language-toggle__option--inactive:hover {
+    background-color: rgba(255, 255, 255, 0.10) !important;
+    color: #ffffff !important;
+}
+
 [data-theme="light"] .profile-save-button,
 [data-theme="light"] .profile-save-button:disabled,
 [data-theme="light"] .profile-avatar-button {

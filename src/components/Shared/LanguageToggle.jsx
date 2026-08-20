@@ -27,7 +27,7 @@ export default function LanguageToggle({ compact = false, variant = "dark" }) {
 
     return (
         <div
-            className={`flex shrink-0 items-center gap-1 rounded-xl border p-1 shadow-sm ${
+            className={`language-toggle language-toggle--${isLight ? "light" : "dark"} flex shrink-0 items-center gap-1 rounded-xl border p-1 shadow-sm ${
                 compact ? "h-10" : "h-11"
             } ${
                 isLight
@@ -37,14 +37,18 @@ export default function LanguageToggle({ compact = false, variant = "dark" }) {
             title={`${translate("language")}: ${language.toUpperCase()}`}
             aria-label={translate("language")}
         >
-            <Languages size={compact ? 15 : 16} className="mx-1 text-[#FFD166]" />
+            <Languages size={compact ? 15 : 16} className="language-toggle__icon mx-1 text-[#FFD166]" />
             {["ar", "en"].map((option) => (
                 <button
                     key={option}
                     type="button"
                     onClick={() => handleChange(option)}
                     aria-pressed={language === option}
-                    className={`h-8 min-w-9 rounded-lg px-2 text-xs font-black uppercase transition ${
+                    className={`language-toggle__option h-8 min-w-9 rounded-lg px-2 text-xs font-black uppercase transition ${
+                        language === option
+                            ? "language-toggle__option--active "
+                            : "language-toggle__option--inactive "
+                    }${
                         language === option
                             ? isLight
                                 ? "bg-[#F59E0B] text-white shadow-[0_10px_24px_rgba(245,158,11,0.30)] ring-1 ring-[#7F1D1D]/10"

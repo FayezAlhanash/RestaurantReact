@@ -14,6 +14,7 @@ import {
 const FCM_TOKEN_STORAGE_KEY = "big4:fcm-token";
 const FCM_USER_STORAGE_KEY = "big4:fcm-user-id";
 const BACKEND_NOTIFICATION_POLL_INTERVAL_MS = 3000;
+const WEBSITE_OPEN_NOTIFICATION_GRACE_MS = 1000;
 
 let registrationPromise = null;
 let backendNotificationsPollerStarted = false;
@@ -58,6 +59,23 @@ const getNotificationBody = (notification) =>
 
 const getNotificationUrl = (notification) =>
     notification?.url || notification?.data?.url || notification?.link || window.location.pathname;
+
+const getNotificationTimestamp = (notification) => {
+    const value =
+        notification?.created_at ||
+        notification?.createdAt ||
+        notification?.time ||
+        notification?.data?.created_at ||
+        notification?.data?.createdAt ||
+        notification?.data?.time;
+
+    if (!value) return null;
+
+    const timestamp =
+        typeof value === "number" ? value : Date.parse(String(value));
+
+    return Number.isNaN(timestamp) ? null : timestamp;
+};
 
 const isUnreadNotification = (notification) => {
     if (notification?.read_at || notification?.readAt) return false;
@@ -201,6 +219,8 @@ function startBackendNotificationsPoller() {
     let isStopped = false;
     let initialized = false;
     let seenNotificationIds = new Set();
+    const websiteOpenedAt = Date.now();
+    const notificationCutoff = websiteOpenedAt - WEBSITE_OPEN_NOTIFICATION_GRACE_MS;
 
     const poll = async () => {
         if (isStopped || !getStoredToken()) return;
@@ -220,7 +240,16 @@ function startBackendNotificationsPoller() {
 
                 if (!id) return;
 
-                if (initialized && !seenNotificationIds.has(id)) {
+                const notificationTimestamp = getNotificationTimestamp(notification);
+                const wasCreatedAfterWebsiteOpened =
+                    notificationTimestamp === null ||
+                    notificationTimestamp >= notificationCutoff;
+
+                if (
+                    initialized &&
+                    !seenNotificationIds.has(id) &&
+                    wasCreatedAfterWebsiteOpened
+                ) {
                     showBrowserNotification(
                         getNotificationTitle(notification),
                         getNotificationBody(notification),
