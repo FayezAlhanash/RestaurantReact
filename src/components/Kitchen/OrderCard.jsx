@@ -95,10 +95,17 @@ function getItemNoteSections(note) {
         .filter(Boolean);
     const details = [];
     const notes = [];
+    const detailKeys = new Set();
 
     segments.forEach((segment) => {
         if (segment.includes(":")) {
-            details.push(segment);
+            const detailKey = normalizeNoteToken(segment);
+
+            if (!detailKeys.has(detailKey)) {
+                detailKeys.add(detailKey);
+                details.push(segment);
+            }
+
             return;
         }
 
@@ -110,7 +117,11 @@ function getItemNoteSections(note) {
             );
 
             if (!hasSizeDetail) {
-                details.push(`Size: ${segment}`);
+                const detail = `Size: ${segment}`;
+                const detailKey = normalizeNoteToken(detail);
+
+                detailKeys.add(detailKey);
+                details.push(detail);
             }
 
             return;

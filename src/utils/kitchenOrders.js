@@ -508,6 +508,19 @@ function isDuplicateModifierNoteSegment(segment, modifierDetails) {
     });
 }
 
+function dedupeModifierDetails(details) {
+    const seen = new Set();
+
+    return details.filter((detail) => {
+        const key = normalizeNoteToken(detail.segment);
+
+        if (!key || seen.has(key)) return false;
+
+        seen.add(key);
+        return true;
+    });
+}
+
 function normalizeKitchenItem(item, index) {
     const food = item.food || item.menu_item || item.product || item.item || {};
     const modifierDetails = getModifierNoteDetails(item);
@@ -532,7 +545,9 @@ function normalizeKitchenItem(item, index) {
             segment: `Size: ${explicitSize || sizeFromNote}`,
         }
         : null;
-    const itemDetails = sizeDetail ? [...modifierDetails, sizeDetail] : modifierDetails;
+    const itemDetails = dedupeModifierDetails(
+        sizeDetail ? [...modifierDetails, sizeDetail] : modifierDetails
+    );
     const modifierSegments = itemDetails.map((modifier) => modifier.segment);
     const noteSegments = splitNoteSegments(
         item.note ||
