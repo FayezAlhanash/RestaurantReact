@@ -1042,7 +1042,7 @@ export default function RolesPermission() {
                         isActive ? goldText : isLight ? "text-[#6B5A52]" : "text-white/40"
                       }`}
                     >
-                      {assignedCount} enabled
+                      {translateStaticText(`${assignedCount} enabled`)}
                     </span>
                   </span>
                   {isActive && <CheckCircle2 size={18} className="shrink-0" />}
