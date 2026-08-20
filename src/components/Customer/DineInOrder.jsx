@@ -2243,8 +2243,10 @@ function ConfirmOrderModal({
     tax,
     total,
     paymentMethod,
+    onPaymentMethodChange,
     isStripeReady,
     stripeCardMessage,
+    stripeCardContainerRef,
     isSubmitting,
     onCancel,
     onConfirm,
@@ -2256,15 +2258,15 @@ function ConfirmOrderModal({
     const hasUnavailableOrderItems = hasUnavailableCartItems(cartItems);
 
     return (
-        <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
-            <div className="modal-panel-enter w-full max-w-[520px] overflow-hidden rounded-[28px] border border-white/10 bg-[#151A1D] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)]">
-                <div className="border-b border-white/10 bg-white/[0.04] p-5">
+        <div className="modal-backdrop-enter fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/65 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:items-center sm:p-4">
+            <div className="modal-panel-enter flex max-h-[calc(100dvh-1.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-[520px] flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#151A1D] text-white shadow-[0_34px_90px_rgba(0,0,0,0.55)] sm:rounded-[28px]">
+                <div className="shrink-0 border-b border-white/10 bg-white/[0.04] p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-4">
-                        <div>
+                        <div className="min-w-0">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
                                 Final check
                             </p>
-                            <h2 className="mt-1 text-2xl font-black">
+                            <h2 className="mt-1 text-xl font-black leading-tight sm:text-2xl">
                                 Confirm your order
                             </h2>
                             <p className="mt-1 text-sm font-bold text-white/55">
@@ -2284,133 +2286,174 @@ function ConfirmOrderModal({
                     </div>
                 </div>
 
-                <div className="customer-order-scroll max-h-[45dvh] space-y-3 overflow-y-auto p-4">
-                    {cartItems.map((item, index) => {
-                        const canOrder = isFoodOrderable(item);
+                <div className="customer-order-scroll min-h-0 flex-1 overflow-y-auto">
+                    <div className="space-y-3 p-3 sm:p-4">
+                        {cartItems.map((item, index) => {
+                            const canOrder = isFoodOrderable(item);
 
-                        return (
-                            <div
-                                key={`${item.id}-${item.notes}-${index}`}
-                                className={`rounded-2xl border p-3 ${
-                                    canOrder
-                                        ? "border-white/10 bg-white/[0.07]"
-                                        : "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
-                                }`}
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <p className="line-clamp-2 text-sm font-black text-white">
-                                            {item.title}
-                                        </p>
-                                        <p className="mt-1 text-xs font-bold text-[#FFD166]">
-                                            {item.restaurantName} · Qty{" "}
-                                            {item.quantity}
-                                        </p>
-                                        {!canOrder && (
-                                            <p className="mt-1 text-xs font-black text-[#FFB3B3]">
-                                                Unavailable
+                            return (
+                                <div
+                                    key={`${item.id}-${item.notes}-${index}`}
+                                    className={`rounded-2xl border p-3 ${
+                                        canOrder
+                                            ? "border-white/10 bg-white/[0.07]"
+                                            : "border-[#FF6B6B]/35 bg-[#7F1D1D]/16"
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="line-clamp-2 text-sm font-black text-white">
+                                                {item.title}
                                             </p>
-                                        )}
+                                            <p className="mt-1 text-xs font-bold text-[#FFD166]">
+                                                {item.restaurantName} · Qty{" "}
+                                                {item.quantity}
+                                            </p>
+                                            {!canOrder && (
+                                                <p className="mt-1 text-xs font-black text-[#FFB3B3]">
+                                                    Unavailable
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span className="shrink-0 text-sm font-black text-white">
+                                            $
+                                            {(
+                                                Number(item.price ?? 0) *
+                                                item.quantity
+                                            ).toFixed(2)}
+                                        </span>
                                     </div>
-                                    <span className="shrink-0 text-sm font-black text-white">
-                                        $
-                                        {(
-                                            Number(item.price ?? 0) *
-                                            item.quantity
-                                        ).toFixed(2)}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="border-t border-white/10 p-3 sm:p-5">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-3 sm:p-4">
+                            <div>
+                                <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                                    Payment method
+                                </p>
+                                <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/10 p-1">
+                                    {[
+                                        {
+                                            id: "cash",
+                                            label: "Cash",
+                                            icon: Banknote,
+                                        },
+                                        {
+                                            id: "stripe",
+                                            label: "Stripe",
+                                            icon: CreditCard,
+                                        },
+                                    ].map((method) => {
+                                        const Icon = method.icon;
+                                        const isActive =
+                                            paymentMethod === method.id;
+
+                                        return (
+                                            <button
+                                                key={method.id}
+                                                type="button"
+                                                onClick={() =>
+                                                    onPaymentMethodChange(
+                                                        method.id,
+                                                    )
+                                                }
+                                                disabled={isSubmitting}
+                                                className={`flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-black transition disabled:opacity-60 ${
+                                                    isActive
+                                                        ? "bg-[#FFD166] text-[#151A1D]"
+                                                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                                                }`}
+                                            >
+                                                <Icon size={16} />
+                                                {method.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {paymentMethod === "cash" && (
+                                <p className="mt-2 text-xs font-semibold text-white/55">
+                                    The waiter will collect and confirm the cash
+                                    payment.
+                                </p>
+                            )}
+
+                            {paymentMethod === "stripe" && (
+                                <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
+                                    <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
+                                        Card
+                                    </p>
+                                    <div
+                                        ref={stripeCardContainerRef}
+                                        className="rounded-lg border border-white/10 bg-white px-3 py-3"
+                                    />
+                                    <p
+                                        className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}
+                                    >
+                                        {stripeCardMessage ||
+                                            (isStripeReady
+                                                ? "Card ready."
+                                                : "Loading Stripe...")}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="mt-3 space-y-2 border-t border-dashed border-white/20 pt-3">
+                                <div className="flex items-center justify-between text-sm font-bold text-white/65">
+                                    <span>Subtotal</span>
+                                    <span className="text-white">
+                                        ${subtotal.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm font-bold text-white/65">
+                                    <span>Tax</span>
+                                    <span className="text-white">
+                                        ${tax.toFixed(2)}
                                     </span>
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
-
-                <div className="border-t border-white/10 p-5">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                        <div>
-                            <p className="mb-2 text-xs font-black uppercase tracking-wide text-white/55">
-                                Payment method
-                            </p>
-                            <div className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#FFD166] px-3 text-sm font-black text-[#151A1D]">
-                                {paymentMethod === "stripe" ? (
-                                    <CreditCard size={16} />
-                                ) : (
-                                    <Banknote size={16} />
-                                )}
-                                {paymentMethod === "stripe"
-                                    ? "Stripe"
-                                    : "Cash"}
+                            <div className="mt-3 flex items-end justify-between gap-3">
+                                <span className="text-lg font-black">
+                                    Total
+                                </span>
+                                <span className="text-3xl font-black text-[#FFD166]">
+                                    ${total.toFixed(2)}
+                                </span>
                             </div>
                         </div>
 
-                        {paymentMethod === "cash" && (
-                            <p className="mt-2 text-xs font-semibold text-white/55">
-                                The waiter will collect and confirm the cash
-                                payment.
-                            </p>
-                        )}
-
-                        {paymentMethod === "stripe" && (
-                            <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
-                                <p
-                                    className={`mt-2 text-xs font-semibold ${stripeCardMessage ? "text-red-200" : "text-white/55"}`}
-                                >
-                                    {stripeCardMessage ||
-                                        (isStripeReady
-                                            ? "Card is ready from your order panel."
-                                            : "Loading Stripe...")}
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            {hasUnavailableOrderItems && (
+                                <p className="rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3] sm:col-span-2">
+                                    {FOOD_UNAVAILABLE_MESSAGE}
                                 </p>
-                            </div>
-                        )}
-
-                        <div className="mt-3 space-y-2 border-t border-dashed border-white/20 pt-3">
-                            <div className="flex items-center justify-between text-sm font-bold text-white/65">
-                                <span>Subtotal</span>
-                                <span className="text-white">
-                                    ${subtotal.toFixed(2)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm font-bold text-white/65">
-                                <span>Tax</span>
-                                <span className="text-white">
-                                    ${tax.toFixed(2)}
-                                </span>
-                            </div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={onCancel}
+                                disabled={isSubmitting}
+                                className="h-12 rounded-2xl border border-white/10 bg-white/[0.07] text-sm font-black text-white/72 transition hover:bg-white/[0.12] hover:text-white disabled:opacity-50"
+                            >
+                                Back
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onConfirm}
+                                disabled={
+                                    hasUnavailableOrderItems ||
+                                    isSubmitting ||
+                                    (paymentMethod === "stripe" &&
+                                        !isStripeReady)
+                                }
+                                className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
+                            >
+                                {isSubmitting ? "Sending..." : "Place order"}
+                            </button>
                         </div>
-                        <div className="mt-3 flex items-end justify-between">
-                            <span className="text-lg font-black">Total</span>
-                            <span className="text-3xl font-black text-[#FFD166]">
-                                ${total.toFixed(2)}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {hasUnavailableOrderItems && (
-                            <p className="rounded-2xl border border-[#FF6B6B]/35 bg-[#7F1D1D]/24 px-4 py-2.5 text-center text-sm font-extrabold leading-5 text-[#FFB3B3] sm:col-span-2">
-                                {FOOD_UNAVAILABLE_MESSAGE}
-                            </p>
-                        )}
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            disabled={isSubmitting}
-                            className="h-12 rounded-2xl border border-white/10 bg-white/[0.07] text-sm font-black text-white/72 transition hover:bg-white/[0.12] hover:text-white disabled:opacity-50"
-                        >
-                            Back
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onConfirm}
-                            disabled={
-                                hasUnavailableOrderItems ||
-                                isSubmitting ||
-                                (paymentMethod === "stripe" && !isStripeReady)
-                            }
-                            className="h-12 rounded-2xl bg-[#7F1D1D] text-sm font-black text-white shadow-[0_16px_32px_rgba(127,29,29,0.25)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:opacity-65 disabled:shadow-none"
-                        >
-                            {isSubmitting ? "Sending..." : "Place order"}
-                        </button>
                     </div>
                 </div>
             </div>
@@ -3059,7 +3102,7 @@ function DineInOrder() {
             stripeCardRef.current?.destroy();
             stripeCardRef.current = null;
         };
-    }, [paymentMethod, isMobileCartOpen]);
+    }, [paymentMethod, isMobileCartOpen, isConfirmOrderOpen]);
 
     const visibleItems = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -3577,11 +3620,6 @@ function DineInOrder() {
 
         setErrorMessage("");
         setSuccessMessage("");
-        if (paymentMethod === "stripe") {
-            submitOrder();
-            return;
-        }
-
         setIsConfirmOrderOpen(true);
     };
 
@@ -4214,8 +4252,10 @@ function DineInOrder() {
                     tax={tax}
                     total={total}
                     paymentMethod={paymentMethod}
+                    onPaymentMethodChange={setPaymentMethod}
                     isStripeReady={isStripeReady}
                     stripeCardMessage={stripeCardMessage}
+                    stripeCardContainerRef={stripeCardContainerRef}
                     isSubmitting={isSubmitting}
                     onCancel={() =>
                         !isSubmitting && setIsConfirmOrderOpen(false)

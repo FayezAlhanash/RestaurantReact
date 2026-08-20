@@ -313,12 +313,12 @@ function OrderSidebar({
 
             <div className="border-t border-white/[0.08] bg-[linear-gradient(180deg,#11191B_0%,#0D1214_100%)] px-4 py-3 shadow-[0_-18px_36px_rgba(0,0,0,0.26)] sm:px-5">
                 <div className="space-y-1 text-sm">
-                    <div className="flex justify-between text-white/55"><span>Estimated subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between text-white/55"><span>Estimated tax</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-white/55"><span>Subtotal</span><span className="font-bold text-white">${subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-white/55"><span>Tax</span><span className="font-bold text-white">${tax.toFixed(2)}</span></div>
                 </div>
                 <div className="my-2 border-t border-dashed border-white/15" />
                 <div className="mb-2.5 flex items-end justify-between">
-                    <span className="text-base font-black">Estimated total</span>
+                    <span className="text-base font-black">Total</span>
                     <span className="text-2xl font-black text-[#FFD166]">${estimatedTotal.toFixed(2)}</span>
                 </div>
                 <div className="mb-2.5">
@@ -382,7 +382,7 @@ function OrderSidebar({
                     </p>
                 )}
                 <button onClick={placeOrder} disabled={!cartItems.length || hasUnavailableOrderItems || isSubmitting || !canProcessPayments || (paymentMethod === "stripe" && !isStripeReady)} className="w-full rounded-2xl bg-[#7F1D1D] py-3 text-sm font-black text-white shadow-[0_16px_30px_rgba(127,29,29,0.24)] transition hover:bg-[#681718] disabled:cursor-not-allowed disabled:!bg-[#7F1D1D] disabled:!text-white disabled:!opacity-100 disabled:shadow-none">
-                    {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · est. $${estimatedTotal.toFixed(2)}`}
+                    {isSubmitting ? "Sending..." : `Pay ${paymentMethod === "cash" ? "cash" : "Stripe"} · $${estimatedTotal.toFixed(2)}`}
                 </button>
                 {cartItems.length > 0 && (
                     <button onClick={() => setCartItems([])} className="mt-1.5 w-full py-1 text-sm font-bold text-white/45 transition hover:text-[#7F1D1D]">Clear order</button>
