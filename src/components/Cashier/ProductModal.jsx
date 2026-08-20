@@ -499,10 +499,10 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
 
     if (isDineIn) {
         return (
-            <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-center justify-center overscroll-contain p-3 backdrop-blur-md sm:p-6 ${
+            <div className={`product-modal-overlay fixed inset-0 z-[300] flex items-start justify-center overscroll-contain p-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:items-center sm:p-6 ${
                 isDineInDark ? "bg-black/72" : "bg-[#211715]/55"
             } ${isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"}`}>
-                <div className={`product-modal-shell flex h-[calc(100dvh-1.5rem)] max-h-[820px] w-full max-w-[520px] flex-col overflow-hidden rounded-[30px] border shadow-[0_34px_90px_rgba(0,0,0,0.48)] ${
+                <div className={`product-modal-shell flex h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-[820px] w-full max-w-[520px] flex-col overflow-hidden rounded-[24px] border shadow-[0_34px_90px_rgba(0,0,0,0.48)] sm:h-[calc(100dvh-1.5rem)] sm:rounded-[30px] ${
                     isDineInDark
                         ? "border-white/10 bg-[#12181B] text-white"
                         : "border-[#E4CFC3] bg-[#FFF9F2] text-[#241815]"
@@ -515,12 +515,12 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 ? "bg-[radial-gradient(circle_at_18%_12%,rgba(255,209,102,0.16),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(127,29,29,0.34),transparent_26%),linear-gradient(145deg,#101517_0%,#171D20_52%,#26181B_100%)]"
                                 : "bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.58),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(127,29,29,0.16),transparent_25%),linear-gradient(145deg,#FFF4DA_0%,#F3E5D9_56%,#E4CFC3_100%)]"
                         }`} />
-                        <div className="relative z-10 flex items-center px-4 pt-4 sm:px-5 sm:pt-5">
+                        <div className="relative z-10 flex items-center px-4 pt-3 sm:px-5 sm:pt-5">
                             <button
                                 type="button"
                                 onClick={closeModal}
                                 aria-label="Close product"
-                                className={`grid h-10 w-10 place-items-center rounded-full shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition active:scale-95 ${
+                                className={`grid h-9 w-9 place-items-center rounded-full shadow-[0_10px_24px_rgba(127,29,29,0.16)] transition active:scale-95 sm:h-10 sm:w-10 ${
                                     isDineInDark
                                         ? "border border-white/10 bg-white/10 text-white hover:bg-[#7F1D1D]"
                                         : "bg-white/88 text-[#241815] hover:bg-white"
@@ -530,18 +530,18 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             </button>
                         </div>
 
-                        <div className="relative z-10 px-5 pb-6 pt-4 text-center sm:px-7">
+                        <div className="relative z-10 px-5 pb-4 pt-1 text-center sm:px-7 sm:pb-6 sm:pt-4">
                             <p className={`text-xs font-black uppercase tracking-[0.18em] ${
                                 isDineInDark ? "text-[#FFD166]" : "text-[#9A6400]"
                             }`}>
                                 {item?.restaurantName || "Big-4 Menu"}
                             </p>
-                            <h2 className={`mx-auto mt-2 line-clamp-2 max-w-[360px] text-2xl font-black leading-[1.1] sm:text-[34px] ${
+                            <h2 className={`mx-auto mt-1 line-clamp-2 max-w-[360px] text-[26px] font-black leading-[1.08] sm:mt-2 sm:text-[34px] ${
                                 isDineInDark ? "text-white" : "text-[#241815]"
                             }`}>
                                 {item?.title}
                             </h2>
-                            <div className={`mx-auto mt-4 h-32 w-32 overflow-hidden rounded-full border-[7px] shadow-[0_22px_42px_rgba(127,29,29,0.24)] sm:h-40 sm:w-40 ${
+                            <div className={`mx-auto mt-3 h-24 w-24 overflow-hidden rounded-full border-[6px] shadow-[0_18px_34px_rgba(127,29,29,0.22)] sm:mt-4 sm:h-40 sm:w-40 sm:border-[7px] ${
                                 isDineInDark
                                     ? "border-[#12181B] bg-[#0D1113]"
                                     : "border-[#FFF9F2] bg-[#241815]"
@@ -558,8 +558,8 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                     <div className={`relative flex min-h-0 flex-1 flex-col ${
                         isDineInDark ? "bg-[#12181B]" : "bg-[#FFF9F2]"
                     }`}>
-                        <div className="product-modal-scroll min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-4 pb-4 pt-4 sm:px-5">
-                            <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="product-modal-scroll min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-4 pb-3 pt-3 sm:px-5 sm:pb-4 sm:pt-4">
+                            <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
                                 <div className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black shadow-[0_8px_22px_rgba(127,29,29,0.08)] ${
                                     isDineInDark
                                         ? "border border-white/10 bg-white/10 text-white"
@@ -592,8 +592,8 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                 </p>
                             )}
 
-                            <div className="mt-4 grid grid-cols-3 gap-2">
-                                <div className={`rounded-[18px] px-3 py-3 text-center ${
+                            <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4">
+                                <div className={`rounded-[16px] px-2 py-2.5 text-center sm:rounded-[18px] sm:px-3 sm:py-3 ${
                                     isDineInDark ? "border border-white/10 bg-white/[0.07]" : "bg-[#FFF4DA]"
                                 }`}>
                                     <Clock3 className={`mx-auto ${
@@ -608,7 +608,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         {preparationTime ? `${preparationTime}m` : "Fresh"}
                                     </p>
                                 </div>
-                                <div className={`rounded-[18px] px-3 py-3 text-center ${
+                                <div className={`rounded-[16px] px-2 py-2.5 text-center sm:rounded-[18px] sm:px-3 sm:py-3 ${
                                     isDineInDark ? "border border-[#7F1D1D]/35 bg-[#7F1D1D]/16" : "bg-[#F9ECEC]"
                                 }`}>
                                     <Flame className={`mx-auto ${
@@ -623,7 +623,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                         {calories ? `${calories}` : "Chef"}
                                     </p>
                                 </div>
-                                <div className={`rounded-[18px] px-3 py-3 text-center ${
+                                <div className={`rounded-[16px] px-2 py-2.5 text-center sm:rounded-[18px] sm:px-3 sm:py-3 ${
                                     isDineInDark ? "border border-white/10 bg-[#0D1113]" : "bg-[#F7F2EF]"
                                 }`}>
                                     <Utensils className={`mx-auto ${
@@ -961,7 +961,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                             </div>
                         </div>
 
-                        <div className={`grid shrink-0 grid-cols-[112px_minmax(0,1fr)] gap-3 border-t p-4 shadow-[0_-18px_34px_rgba(127,29,29,0.08)] backdrop-blur ${
+                        <div className={`grid shrink-0 grid-cols-[104px_minmax(0,1fr)] gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-18px_34px_rgba(127,29,29,0.08)] backdrop-blur sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-3 sm:p-4 ${
                             isDineInDark
                                 ? "border-white/10 bg-[#12181B]/96"
                                 : "border-[#E4CFC3] bg-[#FFF9F2]/96"
