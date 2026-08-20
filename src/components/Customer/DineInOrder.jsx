@@ -2416,6 +2416,26 @@ function ConfirmOrderModal({
     );
 }
 
+function OrderSuccessNotice({ title, message }) {
+    return (
+        <div className="order-success-notice pointer-events-none fixed inset-0 z-[360] flex items-center justify-center bg-black/25 p-4 backdrop-blur-[2px]">
+            <div className="order-success-card w-full max-w-[440px] rounded-[30px] border border-emerald-200/70 bg-white px-6 py-8 text-center text-[#151A1D] shadow-[0_34px_90px_rgba(5,95,70,0.24)]">
+                <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-emerald-500 text-white shadow-[0_18px_42px_rgba(16,185,129,0.34)]">
+                    <CheckCircle2 size={58} strokeWidth={2.7} />
+                </div>
+                <h2 className="mt-5 text-3xl font-black leading-tight">
+                    {title}
+                </h2>
+                {message && (
+                    <p className="mx-auto mt-2 max-w-[320px] text-sm font-bold leading-6 text-[#6F625B]">
+                        {message}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
 const onboardingSlides = [
     {
         image: onboardingMediterraneanBar,
@@ -2644,6 +2664,7 @@ function DineInOrder() {
     const [isSessionAvailable, setIsSessionAvailable] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [orderSuccessNotice, setOrderSuccessNotice] = useState(null);
     const [orderTimings, setOrderTimings] = useState(() =>
         readStoredOrderTimings(orderTimingsStorageKey),
     );
@@ -2692,6 +2713,16 @@ function DineInOrder() {
 
         return () => window.clearTimeout(timeoutId);
     }, [successMessage]);
+
+    useEffect(() => {
+        if (!orderSuccessNotice) return undefined;
+
+        const timeoutId = window.setTimeout(() => {
+            setOrderSuccessNotice(null);
+        }, 3000);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [orderSuccessNotice]);
 
     useEffect(() => {
         if (!errorMessage || isSessionAvailable === false) return undefined;
@@ -3424,11 +3455,14 @@ function DineInOrder() {
             setCartItems([]);
             setIsConfirmOrderOpen(false);
             setIsMobileCartOpen(false);
-            setSuccessMessage(
-                paymentMethod === "cash"
-                    ? "Cash payment selected. The waiter will collect it."
-                    : "Stripe payment completed.",
-            );
+            setSuccessMessage("");
+            setOrderSuccessNotice({
+                title: "تم طلبك بنجاح",
+                message:
+                    paymentMethod === "cash"
+                        ? "تم إرسال الطلب، وسيقوم النادل بتحصيل الدفع نقداً."
+                        : "تم الدفع عبر سترايب وإرسال الطلب للمطعم.",
+            });
         } catch (error) {
             const validationErrors = error.response?.data?.errors;
             const firstValidationError = validationErrors
@@ -4154,6 +4188,13 @@ function DineInOrder() {
                         !isSubmitting && setIsConfirmOrderOpen(false)
                     }
                     onConfirm={submitOrder}
+                />
+            )}
+
+            {orderSuccessNotice && (
+                <OrderSuccessNotice
+                    title={orderSuccessNotice.title}
+                    message={orderSuccessNotice.message}
                 />
             )}
         </div>
