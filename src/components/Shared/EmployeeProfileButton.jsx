@@ -593,10 +593,10 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                         ? "translate-y-1 scale-95 opacity-0"
                         : "translate-y-0 scale-100 opacity-100"
                 } ${panelClass}`}>
-                    <div className={`flex items-center justify-between border-b px-3.5 py-3 ${dividerClass}`}>
-                        <div className="flex min-w-0 items-center gap-3">
+                    <div className={`flex items-start justify-between gap-3 border-b px-3.5 py-3 ${dividerClass}`}>
+                        <div className={`min-w-0 flex-1 ${activePanel === "profile" ? "flex flex-col gap-2" : "flex items-center gap-3"}`}>
                             <div className="min-w-0">
-                                <p className="truncate text-sm font-black text-[#FFD166]">
+                                <p className="break-words text-sm font-black leading-5 text-[#FFD166]">
                                     {activePanel === "password"
                                         ? text("Change password")
                                         : activePanel === "name"
@@ -605,7 +605,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                                 ? text("My shifts")
                                                 : text("Employee profile")}
                                 </p>
-                                <p className={`truncate text-xs font-bold ${mutedTextClass}`}>
+                                <p className={`break-words text-xs font-bold leading-4 ${mutedTextClass}`}>
                                     {activePanel === "password"
                                         ? text("Secure your account")
                                         : activePanel === "name"
