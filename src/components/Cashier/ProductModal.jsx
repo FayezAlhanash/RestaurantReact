@@ -38,6 +38,9 @@ const normalizeModifierText = (value = "") =>
     String(value)
         .trim()
         .toLowerCase()
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/ة/g, "ه")
         .replace(/[\u064B-\u065F\u0670]/g, "")
         .replace(/\s+/g, " ");
 
@@ -402,6 +405,7 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
                                   modifier_option_id: getOptionId(option),
                                   name: option.name,
                                   price: getModifierOptionPrice(option, group, { basePrice }),
+                                  finalPrice: getModifierOptionFinalPrice(option, group, { basePrice }),
                                   isVariant: isVariantGroup(group),
                                   can_order:
                                       option.can_order === undefined
@@ -433,25 +437,11 @@ function ProductModal({ isOpen, onClose, item, addToCart, variant = "light" }) {
         0
     );
     const selectedVariantOption = selectedModifierOptions.find((option) => option.isVariant);
+    const selectedVariantPrice = selectedVariantOption
+        ? Number(selectedVariantOption.finalPrice ?? basePrice)
+        : null;
     const hasVariantGroups = modifierGroups.some(isVariantGroup);
     const canSelectNonVariantModifiers = !hasVariantGroups || Boolean(selectedVariantOption);
-    const selectedVariantPrice = modifierGroups
-        .filter(isVariantGroup)
-        .reduce((currentPrice, group) => {
-            if (currentPrice !== null) return currentPrice;
-
-            const groupId = getModifierGroupId(group);
-            const selectedOptionId = Array.isArray(selectedModifiers[groupId])
-                ? selectedModifiers[groupId][0]
-                : selectedModifiers[groupId];
-            const selectedOption = group.options.find(
-                (option) => String(getOptionId(option)) === String(selectedOptionId)
-            );
-
-            if (!selectedOption) return currentPrice;
-
-            return getModifierOptionFinalPrice(selectedOption, group, { basePrice });
-        }, null);
     const sizePrice = !hasModifiers && selectedSize === "large" ? 2 : 0;
     const unitPrice =
         (selectedVariantPrice ?? basePrice + sizePrice) + nonVariantModifierPrice;
