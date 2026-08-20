@@ -230,7 +230,11 @@ function ThemeSwitch({ isLight, onToggle }) {
     );
 }
 
-export default function EmployeeProfileButton({ compact = false, floatingPanel = false }) {
+export default function EmployeeProfileButton({
+    compact = false,
+    floatingPanel = false,
+    showShifts = true,
+}) {
     const fileInputRef = useRef(null);
     const profileRootRef = useRef(null);
     const { isLight, toggleTheme } = useTheme();
@@ -341,6 +345,8 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
     };
 
     const openShiftsPanel = async () => {
+        if (!showShifts) return;
+
         setMessage("");
         setError("");
         setShiftError("");
@@ -402,6 +408,10 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
 
     useEffect(() => {
         if (activePanel !== "shifts") return undefined;
+        if (!showShifts) {
+            setActivePanel("profile");
+            return undefined;
+        }
 
         const intervalId = window.setInterval(() => {
             setShiftNow(new Date());
@@ -601,7 +611,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                         ? text("Change password")
                                         : activePanel === "name"
                                             ? text("Edit name")
-                                            : activePanel === "shifts"
+                                            : activePanel === "shifts" && showShifts
                                                 ? text("My shifts")
                                                 : text("Employee profile")}
                                 </p>
@@ -610,7 +620,7 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                         ? text("Secure your account")
                                         : activePanel === "name"
                                             ? text("Update personal name")
-                                            : activePanel === "shifts"
+                                            : activePanel === "shifts" && showShifts
                                                 ? text("Weekly work hours")
                                                 : text("Personal information")}
                                 </p>
@@ -776,23 +786,25 @@ export default function EmployeeProfileButton({ compact = false, floatingPanel =
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={openShiftsPanel}
-                                    className={`profile-shifts-button flex h-11 w-full items-center justify-between rounded-xl border px-3 text-left transition duration-200 hover:scale-[1.02] active:scale-[0.98] ${
-                                        isLight
-                                            ? "border-[#D8A22D]/35 bg-[#FFF4DA] text-[#7A4F00] hover:bg-[#FFE9B5]"
-                                            : "border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166] hover:bg-[#FFD166]/16"
-                                    }`}
-                                >
-                                    <span className="flex min-w-0 items-center gap-2">
-                                        <CalendarDays size={17} />
-                                        <span className="font-black">{text("My shifts")}</span>
-                                    </span>
-                                    <span className={`text-[11px] font-black ${isLight ? "text-[#9A6400]" : "text-[#FFD166]/75"}`}>
-                                        {text("View")}
-                                    </span>
-                                </button>
+                                {showShifts && (
+                                    <button
+                                        type="button"
+                                        onClick={openShiftsPanel}
+                                        className={`profile-shifts-button flex h-11 w-full items-center justify-between rounded-xl border px-3 text-left transition duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                                            isLight
+                                                ? "border-[#D8A22D]/35 bg-[#FFF4DA] text-[#7A4F00] hover:bg-[#FFE9B5]"
+                                                : "border-[#FFD166]/25 bg-[#FFD166]/10 text-[#FFD166] hover:bg-[#FFD166]/16"
+                                        }`}
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <CalendarDays size={17} />
+                                            <span className="font-black">{text("My shifts")}</span>
+                                        </span>
+                                        <span className={`text-[11px] font-black ${isLight ? "text-[#9A6400]" : "text-[#FFD166]/75"}`}>
+                                            {text("View")}
+                                        </span>
+                                    </button>
+                                )}
                             </div>
                         )}
 

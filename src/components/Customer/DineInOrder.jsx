@@ -33,6 +33,7 @@ import { getStoredToken } from "../../utils/auth";
 import CategoryTabs from "../Cashier/CategoryTabs";
 import ProductModal from "../Cashier/ProductModal";
 import useFoodAvailabilityRealtime from "../../hooks/useFoodAvailabilityRealtime";
+import LanguageToggle from "../Shared/LanguageToggle";
 import {
     FOOD_NOT_ORDERABLE_MESSAGE,
     FOOD_UNAVAILABLE_MESSAGE,
@@ -3592,6 +3593,10 @@ function DineInOrder() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <LanguageToggle
+                            compact
+                            variant={isLight ? "light" : "dark"}
+                        />
                         <button
                             type="button"
                             onClick={toggleTheme}

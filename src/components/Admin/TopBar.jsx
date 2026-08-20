@@ -77,7 +77,7 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
 
                     <NotificationsButton />
 
-                    <EmployeeProfileButton floatingPanel />
+                    <EmployeeProfileButton floatingPanel showShifts={false} />
                 </div>
             </div>
         </div>
