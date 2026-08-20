@@ -1,4 +1,5 @@
 const STRIPE_JS_URL = "https://js.stripe.com/v3/";
+const STRIPE_LOAD_TIMEOUT_MS = 10000;
 
 let stripePromise;
 
@@ -10,7 +11,9 @@ function getStripeKey() {
 }
 
 function loadStripeScript() {
-    const existingScript = document.querySelector(`script[src="${STRIPE_JS_URL}"]`);
+    const existingScript = document.querySelector(
+        `script[src="${STRIPE_JS_URL}"]`,
+    );
 
     if (existingScript) {
         return new Promise((resolve, reject) => {
@@ -19,17 +22,90 @@ function loadStripeScript() {
                 return;
             }
 
-            existingScript.addEventListener("load", resolve, { once: true });
-            existingScript.addEventListener("error", reject, { once: true });
+            if (existingScript.dataset.loadError === "true") {
+                reject(
+                    new Error(
+                        "Stripe could not be loaded. Check your connection.",
+                    ),
+                );
+                return;
+            }
+
+            const timeoutId = window.setTimeout(() => {
+                reject(
+                    new Error(
+                        "Stripe is taking too long to load. Check your connection and try again.",
+                    ),
+                );
+            }, STRIPE_LOAD_TIMEOUT_MS);
+            const cleanup = () => window.clearTimeout(timeoutId);
+
+            existingScript.addEventListener(
+                "load",
+                () => {
+                    cleanup();
+
+                    if (window.Stripe) {
+                        resolve();
+                        return;
+                    }
+
+                    reject(
+                        new Error(
+                            "Stripe could not be loaded. Check your connection.",
+                        ),
+                    );
+                },
+                { once: true },
+            );
+            existingScript.addEventListener(
+                "error",
+                () => {
+                    cleanup();
+                    existingScript.dataset.loadError = "true";
+                    reject(
+                        new Error(
+                            "Stripe could not be loaded. Check your connection.",
+                        ),
+                    );
+                },
+                { once: true },
+            );
         });
     }
 
     return new Promise((resolve, reject) => {
         const script = document.createElement("script");
+        const timeoutId = window.setTimeout(() => {
+            reject(
+                new Error(
+                    "Stripe is taking too long to load. Check your connection and try again.",
+                ),
+            );
+        }, STRIPE_LOAD_TIMEOUT_MS);
+        const cleanup = () => window.clearTimeout(timeoutId);
+
         script.src = STRIPE_JS_URL;
         script.async = true;
-        script.onload = resolve;
-        script.onerror = reject;
+        script.onload = () => {
+            cleanup();
+
+            if (window.Stripe) {
+                resolve();
+                return;
+            }
+
+            reject(
+                new Error("Stripe could not be loaded. Check your connection."),
+            );
+        };
+        script.onerror = () => {
+            cleanup();
+            script.dataset.loadError = "true";
+            reject(
+                new Error("Stripe could not be loaded. Check your connection."),
+            );
+        };
         document.head.appendChild(script);
     });
 }
@@ -42,14 +118,35 @@ export async function getStripe() {
     }
 
     if (!stripePromise) {
-        stripePromise = loadStripeScript().then(() => window.Stripe(key));
+        stripePromise = loadStripeScript()
+            .then(() => {
+                const stripe = window.Stripe(key);
+
+                if (!stripe) {
+                    throw new Error(
+                        "Stripe could not start. Check the publishable key.",
+                    );
+                }
+
+                return stripe;
+            })
+            .catch((error) => {
+                stripePromise = null;
+                throw error;
+            });
     }
 
     return stripePromise;
 }
 
+export function preloadStripe() {
+    getStripe().catch(() => {});
+}
+
 export async function createStripeCardElement(container) {
     if (!container) return null;
+
+    container.replaceChildren();
 
     const stripe = await getStripe();
     const elements = stripe.elements();

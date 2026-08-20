@@ -26,6 +26,7 @@ import {
     confirmStripePayment,
     createStripeCardElement,
     findStripeClientSecret,
+    preloadStripe,
 } from "../../utils/stripePayments";
 import { getCartTotals, getRestaurantTaxRate } from "../../utils/tax";
 import { useTheme } from "../../context/ThemeContext";
@@ -2470,9 +2471,7 @@ function OrderSuccessNotice({ title, message, variant = "success" }) {
         <div className="order-success-notice pointer-events-none fixed inset-0 z-[360] flex items-center justify-center bg-black/25 p-4 backdrop-blur-[2px]">
             <div
                 className={`order-success-card w-full max-w-[440px] rounded-[30px] border bg-white px-6 py-8 text-center text-[#151A1D] shadow-[0_34px_90px_rgba(5,95,70,0.24)] ${
-                    isError
-                        ? "border-[#F3B0B0]/80"
-                        : "border-emerald-200/70"
+                    isError ? "border-[#F3B0B0]/80" : "border-emerald-200/70"
                 }`}
             >
                 <div
@@ -3008,7 +3007,9 @@ function DineInOrder() {
 
         const foodsResponse = await api.get("/food");
         const foods = getList(foodsResponse.data).map(normalizeFoodItem);
-        const detailResponses = await Promise.allSettled(foods.map(fetchFoodDetails));
+        const detailResponses = await Promise.allSettled(
+            foods.map(fetchFoodDetails),
+        );
 
         setMenuItems(
             detailResponses.map((result, index) =>
@@ -3059,6 +3060,10 @@ function DineInOrder() {
     }, [orderTimings.length, orderTimingsStorageKey, sessionToken]);
 
     useEffect(() => {
+        preloadStripe();
+    }, []);
+
+    useEffect(() => {
         let isMounted = true;
 
         if (paymentMethod !== "stripe") {
@@ -3073,7 +3078,14 @@ function DineInOrder() {
         setStripeCardMessage("Loading Stripe...");
 
         window.setTimeout(() => {
-            if (!isMounted || !stripeCardContainerRef.current) return;
+            if (!isMounted) return;
+
+            if (!stripeCardContainerRef.current) {
+                setStripeCardMessage(
+                    "Stripe is opening. Try again in a moment.",
+                );
+                return;
+            }
 
             createStripeCardElement(stripeCardContainerRef.current)
                 .then((stripeCardSetup) => {
@@ -3185,16 +3197,17 @@ function DineInOrder() {
                         String(
                             option.modifier_option_id ??
                                 option.modifierOptionId ??
-                                option.id
-                        )
-                    )
+                                option.id,
+                        ),
+                    ),
             );
-            const cartHadUnavailableModifier = cartItemsRef.current.some((item) =>
-                (item.selectedModifierOptions ?? []).some((option) =>
-                    unavailableOptionIds.has(
-                        String(option.modifier_option_id ?? option.id)
-                    )
-                )
+            const cartHadUnavailableModifier = cartItemsRef.current.some(
+                (item) =>
+                    (item.selectedModifierOptions ?? []).some((option) =>
+                        unavailableOptionIds.has(
+                            String(option.modifier_option_id ?? option.id),
+                        ),
+                    ),
             );
 
             setMenuItems((currentItems) =>
@@ -3202,12 +3215,18 @@ function DineInOrder() {
             );
             setSelectedItem((currentItem) =>
                 currentItem
-                    ? applyModifierAvailabilityUpdates([currentItem], modifierOptions)[0]
+                    ? applyModifierAvailabilityUpdates(
+                          [currentItem],
+                          modifierOptions,
+                      )[0]
                     : currentItem,
             );
             setCartItems((currentItems) =>
                 removeUnavailableModifierSelections(
-                    applyModifierAvailabilityUpdates(currentItems, modifierOptions),
+                    applyModifierAvailabilityUpdates(
+                        currentItems,
+                        modifierOptions,
+                    ),
                 ),
             );
 
@@ -3975,7 +3994,6 @@ function DineInOrder() {
                                                                                                                         {
                                                                                                                             item.quantity
                                                                                                                         }
-
                                                                                                                         x{" "}
                                                                                                                         {
                                                                                                                             item.name
