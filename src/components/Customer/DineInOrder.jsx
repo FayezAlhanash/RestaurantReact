@@ -30,6 +30,7 @@ import {
 import { getCartTotals, getRestaurantTaxRate } from "../../utils/tax";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredToken } from "../../utils/auth";
+import { translateStaticText } from "../../utils/i18n";
 import CategoryTabs from "../Cashier/CategoryTabs";
 import ProductModal from "../Cashier/ProductModal";
 import useFoodAvailabilityRealtime from "../../hooks/useFoodAvailabilityRealtime";
@@ -2419,6 +2420,8 @@ function ConfirmOrderModal({
 
 function OrderSuccessNotice({ title, message, variant = "success" }) {
     const isError = variant === "error";
+    const translatedTitle = translateStaticText(title);
+    const translatedMessage = translateStaticText(message);
 
     return (
         <div className="order-success-notice pointer-events-none fixed inset-0 z-[360] flex items-center justify-center bg-black/25 p-4 backdrop-blur-[2px]">
@@ -2443,11 +2446,11 @@ function OrderSuccessNotice({ title, message, variant = "success" }) {
                     )}
                 </div>
                 <h2 className="mt-5 text-3xl font-black leading-tight">
-                    {title}
+                    {translatedTitle}
                 </h2>
-                {message && (
+                {translatedMessage && (
                     <p className="mx-auto mt-2 max-w-[320px] text-sm font-bold leading-6 text-[#6F625B]">
-                        {message}
+                        {translatedMessage}
                     </p>
                 )}
             </div>

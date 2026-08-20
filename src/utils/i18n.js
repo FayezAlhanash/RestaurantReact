@@ -1262,6 +1262,8 @@ const staticPhraseTranslations = {
     "Selected": "محدد",
     "Small": "صغير",
     "small": "صغير",
+    "Some restaurant orders can no longer be canceled": "بعض طلبات المطاعم لم تعد قابلة للإلغاء",
+    "Some restaurant orders can no longer be cancelled": "بعض طلبات المطاعم لم تعد قابلة للإلغاء",
     "Special instructions": "تعليمات خاصة",
     "Subtotal": "المجموع الفرعي",
     "The dish modal will open only when you tap a food item.": "نافذة الطبق ستفتح فقط عند الضغط على صنف طعام.",
