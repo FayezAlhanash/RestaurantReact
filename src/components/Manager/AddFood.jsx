@@ -47,18 +47,9 @@ const getFoodImageUrl = (image) => {
 };
 
 const foodListRequests = [
-  { endpoint: "/food", params: {}, omitFirstPageParam: true },
-  { endpoint: "/food", params: { include_unavailable: 1, includeUnavailable: 1 } },
   {
     endpoint: "/employee/food",
     params: { include_unavailable: 1, includeUnavailable: 1 },
-    restaurantParam: "Restaurant_id",
-  },
-  { endpoint: "/food", params: { is_available: 0 } },
-  {
-    endpoint: "/employee/food",
-    params: { is_available: 0 },
-    restaurantParam: "Restaurant_id",
   },
 ];
 
@@ -101,7 +92,7 @@ const withRestaurantContext = (items, restaurant) =>
   items.map((item) => ({
     ...item,
     is_available: toBooleanValue(
-      item?.is_available ?? item?.available ?? item?.can_order,
+      item?.can_order ?? item?.is_available ?? item?.available,
       true
     ),
     is_diet: toBooleanValue(item?.is_diet, false),

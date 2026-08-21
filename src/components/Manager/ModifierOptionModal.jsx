@@ -242,10 +242,10 @@ function ModifierOptionModal({
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                خيار معدّل
+                {t("Modifier option")}
               </p>
               <h2 className="text-xl font-black text-white">
-                {option ? t("editOption") : "إضافة خيار"}
+                {option ? t("editOption") : t("Add Option")}
               </h2>
             </div>
           </div>
@@ -264,8 +264,8 @@ function ModifierOptionModal({
           <CompactSelect
             label={t("modifierGroups")}
             value={form.modifier_group_id}
-            placeholder="اختر مجموعة"
-            emptyLabel={groups.length ? "اختر مجموعة" : t("noGroupsAvailable")}
+            placeholder={t("Choose group")}
+            emptyLabel={groups.length ? t("Choose group") : t("noGroupsAvailable")}
             options={groupOptions}
             required
             disabled={saving || !groups.length}
@@ -305,7 +305,7 @@ function ModifierOptionModal({
           {form.translation_mode === TRANSLATION_MODE_AUTOMATIC ? (
           <div>
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-white/55">
-              اسم الخيار
+              {t("Option name")}
             </label>
             <input
               type="text"
@@ -313,7 +313,7 @@ function ModifierOptionModal({
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, name: e.target.value }))
               }
-              placeholder="خبز أسمر، جبنة إضافية، كبير..."
+              placeholder={t("Brown bread, extra cheese, large...")}
               className={fieldClass}
               required
               disabled={saving}
@@ -357,7 +357,7 @@ function ModifierOptionModal({
             <CompactSelect
               label={t("foodIngredients")}
               value={form.ingredient_id}
-              placeholder="اختر مكوناً"
+              placeholder={t("Choose ingredient")}
               emptyLabel={t("noInventoryLink")}
               options={ingredientOptions}
               disabled={saving}
@@ -370,7 +370,7 @@ function ModifierOptionModal({
               }
             />
             <p className="mt-2 text-xs font-semibold text-white/35">
-              اختياري. اربط هذا الخيار بمكون من المخزون.
+              {t("Optional. Link this option to an inventory ingredient.")}
             </p>
           </div>
           <div className="flex justify-end gap-3 border-t border-white/[0.08] pt-5">

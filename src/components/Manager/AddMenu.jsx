@@ -201,10 +201,10 @@ function DeleteConfirmModal({
             </div>
             <div className="min-w-0">
               <h3 className={`text-xl font-black leading-6 ${isLight ? "text-[#241815]" : "text-white"}`}>
-                {t("delete")} {itemType}
+                {t("delete")} {t(itemType)}
               </h3>
               <p className={`mt-1 text-sm font-bold ${isLight ? "text-[#6D5147]" : "text-white/50"}`}>
-                لا يمكن التراجع عن هذا الإجراء.
+                {t("This action cannot be undone.")}
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ function DeleteConfirmModal({
 
         <div className={`px-6 py-5 ${isLight ? "bg-[#FFFDF8]" : "bg-[#0D1214]"}`}>
           <p className={`text-base font-bold leading-7 ${isLight ? "text-[#4F403A]" : "text-white/78"}`}>
-            هل أنت متأكد أنك تريد حذف{" "}
+            {t("Are you sure you want to delete")}{" "}
             <span className={`font-black ${isLight ? "text-[#8F1D1D]" : "text-[#FCA5A5]"}`}>"{itemName}"</span>?
           </p>
 
@@ -248,7 +248,7 @@ function DeleteConfirmModal({
             className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:bg-[#681718] disabled:cursor-wait disabled:opacity-75"
           >
             {isDeleting && <Loader2 size={17} className="animate-spin" />}
-            {isDeleting ? "يتم الحذف..." : t("delete")}
+            {isDeleting ? t("Deleting...") : t("delete")}
           </button>
         </div>
       </div>
@@ -426,7 +426,7 @@ export default function AddMenu() {
   try {
     const restaurantId = await ensureManagerRestaurantId();
 
-    // Manager: عنده مطعم محدد
+    // Manager has a scoped restaurant.
     if (restaurantId) {
       const res = await api.get(
         `/restaurants/${restaurantId}/ingredients`
@@ -439,13 +439,13 @@ export default function AddMenu() {
       return;
     }
 
-    // إذا مش Admin وما في restaurant
+    // Non-admin users without a restaurant cannot load inventory.
     if (!isAdmin) {
       setIngredients([]);
       return;
     }
 
-    // Admin: جيب المطاعم كلها
+    // Admin can collect inventory across restaurants.
     const restaurants = await fetchRestaurantsForAdmin();
 
     const responses = await Promise.allSettled(
@@ -895,7 +895,7 @@ export default function AddMenu() {
           </div>
 
           <div className="rounded-2xl border border-[#166534]/35 bg-[#166534]/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/60">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#166534]">إعداد مباشر</p>
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#166534]">{t("Live setup")}</p>
             <div className="mt-3 flex items-end justify-between">
               <strong className="text-4xl font-black text-white">
                 {activeTab === "groups"
@@ -906,7 +906,7 @@ export default function AddMenu() {
               </strong>
               <span className="rounded-full border border-[#166534]/35 bg-[#166534]/10 px-3 py-1 text-xs font-black text-[#166534]">
                 {activeTab === "groups"
-                  ? `${attachedFoodCount} روابط طعام`
+                  ? `${attachedFoodCount} ${t("food links")}`
                   : activeTab === "options"
                     ? `${modifierGroups.length} ${t("groups")}`
                     : t("activeSetup")}
@@ -946,7 +946,7 @@ export default function AddMenu() {
                 {isActive && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FFD166]/30 bg-[#7F1D1D] px-3 py-1 text-xs font-black uppercase tracking-[0.10em] text-white shadow-[0_10px_22px_rgba(127,29,29,0.22)]">
                     <CheckCircle2 size={14} />
-                    محدد
+                    {t("Selected")}
                   </span>
                 )}
               </div>
@@ -992,7 +992,7 @@ export default function AddMenu() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
-              إضافة تصنيف
+              {t("addCategory")}
             </button>
           )}
 
@@ -1005,7 +1005,7 @@ export default function AddMenu() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
-              إضافة مجموعة
+              {t("Add Group")}
             </button>
           )}
 
@@ -1018,7 +1018,7 @@ export default function AddMenu() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7F1D1D] px-4 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(127,29,29,0.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#681718] active:translate-y-0"
             >
               <Plus size={18} className="transition duration-200 group-hover:rotate-90" />
-              إضافة خيار
+              {t("Add Option")}
             </button>
           )}
         </div>
@@ -1046,8 +1046,8 @@ export default function AddMenu() {
                       </h3>
                       <p className="mt-2 text-sm text-white/50">
                         {normalizedSearch
-                          ? "جرّب اسم تصنيف أو حالة أخرى."
-                          : "ابدأ بالأقسام التي سيستخدمها الكاشير يومياً."}
+                          ? t("Try another category name or status.")
+                          : t("Start with the sections cashiers will use every day.")}
                       </p>
                     </td>
                   </tr>
@@ -1074,7 +1074,7 @@ export default function AddMenu() {
                                 : "border border-[#EF4444]/45 bg-[#DC2626]/14 text-[#FCA5A5]"
                             }`}
                         >
-                          {category.is_active ? t("active") : "غير نشط"}
+                          {category.is_active ? t("active") : t("notActive")}
                         </span>
                       </td>
 
@@ -1146,8 +1146,8 @@ export default function AddMenu() {
                       </h3>
                       <p className="mt-2 text-sm text-white/50">
                         {normalizedSearch
-                          ? "جرّب مجموعة أو اسم طعام آخر."
-                          : "أضف مجموعات مثل الحجم، الصوص، نوع الخبز، أو الإضافات."}
+                          ? t("Try another group or food name.")
+                          : t("Add groups like size, sauce, bread type, or toppings.")}
                       </p>
                     </td>
                   </tr>
@@ -1181,7 +1181,7 @@ export default function AddMenu() {
                               </p>
                               {isVariantGroup(group) && (
                                 <span className="mt-2 inline-flex rounded-full border border-[#FFD166]/30 bg-[#FFD166]/10 px-3 py-1 text-xs font-black text-[#FFD166]">
-                                  إضافات الحجم
+                                  {t("Size add-ons")}
                                 </span>
                               )}
                             </div>
@@ -1198,7 +1198,7 @@ export default function AddMenu() {
                                 >
                                   <button
                                     type="button"
-                                    title="تحميل أسعار الطعام المرتبط"
+                                    title={t("Load linked food prices")}
                                     onClick={() =>
                                       handleFoodSelectionChange(
                                         group,
@@ -1227,7 +1227,7 @@ export default function AddMenu() {
                             </div>
                           ) : (
                             <span className="text-base font-semibold text-white/35">
-                              غير مرتبط بعد
+                              {t("Not linked yet")}
                             </span>
                           )}
                         </td>
@@ -1297,7 +1297,7 @@ export default function AddMenu() {
                                                       : "bg-[#166534]/10 text-[#166534]"
                                                     }`}
                                                 >
-                                                  مرتبط
+                                                  {t("Linked")}
                                                 </span>
                                               )}
                                             </button>
@@ -1374,14 +1374,14 @@ export default function AddMenu() {
                                     }))
                                   }
                                   className="rounded-2xl border border-white/10 bg-[#172124] px-3 py-2 text-sm font-black text-white outline-none focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
-                                  title="الحد الأقصى للاختيار"
+                                  title={t("Maximum selections")}
                                 />
                               </div>
                             )}
 
                             {isVariantGroup(group) && (
                               <p className="rounded-2xl border border-[#FFD166]/18 bg-[#FFD166]/10 px-3 py-2 text-sm font-bold leading-5 text-[#FFD166]">
-                                الحجم الصغير يستخدم سعر الطعام. أدخل فقط المبلغ الإضافي للأحجام الأكبر؛ سيشاهد العميل السعر النهائي.
+                                {t("Small size uses the food price. Enter only the added amount for larger sizes; customers will see the final price.")}
                               </p>
                             )}
 
@@ -1399,7 +1399,7 @@ export default function AddMenu() {
                                       type="number"
                                       {...nonNegativeNumberInputProps}
                                       step="0.01"
-                                      placeholder={isVariantGroup(group) ? "إضافة" : t("price")}
+                                      placeholder={isVariantGroup(group) ? t("Add-on") : t("price")}
                                       value={groupAttachSettings.prices?.[option.id] ?? ""}
                                       onChange={(e) =>
                                         setAttachSettings((prev) => {
@@ -1424,14 +1424,14 @@ export default function AddMenu() {
                                         })
                                       }
                                       className="rounded-xl border border-[#FFD166]/20 bg-[#0D1214] px-2 py-1.5 text-sm font-bold text-[#FFD166] outline-none focus:border-[#FFD166]/70 focus:ring-2 focus:ring-[#FFD166]/10"
-                                      title={isVariantGroup(group) ? "إضافة فوق سعر الطعام" : "سعر إضافي"}
+                                      title={isVariantGroup(group) ? t("Add on top of food price") : t("Additional price")}
                                     />
                                   </div>
                                 ))}
                               </div>
                             ) : (
                               <p className="rounded-2xl border border-[#7F1D1D]/25 bg-[#7F1D1D]/10 px-3 py-2 text-sm font-bold text-[#7F1D1D]">
-                                أضف خيارات لهذه المجموعة أولاً.
+                                {t("Add options to this group first.")}
                               </p>
                             )}
                           </div>
@@ -1451,7 +1451,7 @@ export default function AddMenu() {
                               type="button"
                               onClick={() => openDeleteModal("modifier group", group)}
                               className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
-                              title="حذف المجموعة"
+                              title={t("Delete group")}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -1471,9 +1471,9 @@ export default function AddMenu() {
             <table className="w-full min-w-[760px]">
               <thead className="bg-[#172124] text-sm font-black uppercase tracking-[0.14em] text-white/55">
                 <tr>
-                  <th className="px-5 py-4 text-left">الخيار</th>
+                  <th className="px-5 py-4 text-left">{t("Option")}</th>
                   <th className="px-5 py-4 text-left">{t("group")}</th>
-                  <th className="px-5 py-4 text-left">معرّف الخيار</th>
+                  <th className="px-5 py-4 text-left">{t("Option ID")}</th>
                   <th className="px-5 py-4 text-right">{t("actions")}</th>
                 </tr>
               </thead>
@@ -1490,8 +1490,8 @@ export default function AddMenu() {
                       </h3>
                       <p className="mt-2 text-sm text-white/50">
                         {modifierGroups.length
-                          ? "أضف خيارات داخل مجموعة معدّلات."
-                          : "أنشئ مجموعة معدّلات أولاً، ثم أضف خياراتها."}
+                          ? t("Add options inside a modifier group.")
+                          : t("Create a modifier group first, then add its options.")}
                       </p>
                     </td>
                   </tr>
@@ -1535,7 +1535,7 @@ export default function AddMenu() {
                             type="button"
                             onClick={() => openDeleteModal("modifier option", option)}
                             className="group relative grid h-10 w-10 place-items-center rounded-xl border border-[#7F1D1D]/30 bg-[#172124] text-[#7F1D1D] transition duration-200 hover:scale-110 hover:bg-[#7F1D1D]/12 active:scale-95"
-                            title="حذف الخيار"
+                            title={t("Delete option")}
                           >
                             <Trash2 size={16} />
                           </button>

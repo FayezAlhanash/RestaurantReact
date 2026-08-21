@@ -60,10 +60,10 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                مجموعة معدّلات
+                {t("Modifier group")}
               </p>
               <h2 className="text-xl font-black text-white">
-                {group ? t("editGroup") : "إضافة مجموعة"}
+                {group ? t("editGroup") : t("Add Group")}
               </h2>
             </div>
           </div>
@@ -109,7 +109,7 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="الحجم، الصوص، نوع الخبز..."
+              placeholder={t("Size, sauce, bread type...")}
               className="w-full rounded-2xl border border-white/10 bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10"
               required
               disabled={saving}
@@ -156,10 +156,10 @@ function ModifierGroupModal({ isOpen, onClose, onSave, group, isSaving = false }
             />
             <span>
               <span className="block text-sm font-black text-[#FFD166]">
-                مجموعة تسعير متغيرة
+                {t("Variable pricing group")}
               </span>
               <span className="mt-1 block text-xs font-bold leading-5 text-white/50">
-                تستخدم للأحجام. الصغير يستخدم سعر الطعام؛ والخيارات الأكبر تخزن المبلغ الإضافي فقط.
+                {t("Used for sizes. Small uses the food price; larger options store only the added amount.")}
               </span>
             </span>
           </label>

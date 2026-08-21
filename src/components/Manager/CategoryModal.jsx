@@ -68,10 +68,10 @@ function CategoryModal({
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                تصنيف القائمة
+                {t("Menu category")}
               </p>
               <h2 className="text-xl font-black text-white">
-                {category ? "تعديل التصنيف" : "إضافة تصنيف"}
+                {category ? t("Edit Category") : t("Add Category")}
               </h2>
             </div>
           </div>
@@ -122,7 +122,7 @@ function CategoryModal({
                 setName(e.target.value);
                 onClearError?.();
               }}
-              placeholder="بيتزا، برغر، مشروبات..."
+              placeholder={t("Pizza, burgers, drinks...")}
               className={`w-full rounded-2xl border bg-[#0D1214] p-3 text-sm font-bold text-white outline-none transition duration-200 placeholder:text-white/30 hover:border-[#FFD166]/35 focus:border-[#FFD166]/70 focus:ring-4 focus:ring-[#FFD166]/10 ${
                 errorMessage ? "border-[#EF4444]/70" : "border-white/10"
               }`}
@@ -181,10 +181,10 @@ function CategoryModal({
           <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[#166534]/30 bg-[#166534]/10 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#166534]/55">
             <span>
               <span className="block text-sm font-black text-[#166534]">
-                تصنيف نشط
+                {t("Active category")}
               </span>
               <span className="text-sm text-white/45">
-                إظهار هذا القسم ضمن تدفق القائمة المباشر.
+                {t("Show this section in the live menu flow.")}
               </span>
             </span>
             <input
