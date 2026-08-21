@@ -12,12 +12,13 @@ const RESTAURANT_ROLE_NAMES = [
 ];
 
 const ADMIN_ONLY_PERMISSION_KEYS = [
-    "manage_restaurants",
-    "manage_roles",
-    "force_cancel_orders",
-    "manage_permissions",
-    "view_global_reports",
-    "manage_global_loyalty_settings",
+  "manage_restaurants",
+  "manage_roles",
+  "force_cancel_orders",
+  "manage_permissions",
+  "view_global_reports",
+  "manage_global_loyalty_settings",
+  "manage_global_kitchen_orders",
 ];
 
 const RESTAURANT_ROLE_ALLOWED_ADMIN_KEYS = [
