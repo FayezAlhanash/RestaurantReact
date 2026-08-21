@@ -302,7 +302,12 @@ export default function OrderCard({
 
                 <div className="kitchen-order-scroll mt-3 min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto pl-2 pr-1">
                     {order.items.map((item) => {
-                        const { details, notes } = getItemNoteSections(item.note);
+                        const parsedNoteSections = getItemNoteSections(item.note);
+                        const details = [
+                            ...(Array.isArray(item.details) ? item.details : []),
+                            ...parsedNoteSections.details,
+                        ];
+                        const notes = parsedNoteSections.notes;
 
                         return (
                             <div

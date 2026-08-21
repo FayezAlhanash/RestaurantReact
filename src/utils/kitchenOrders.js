@@ -576,7 +576,6 @@ function normalizeKitchenItem(item, index) {
     const itemDetails = dedupeModifierDetails(
         sizeDetail ? [...modifierDetails, sizeDetail] : modifierDetails
     );
-    const modifierSegments = itemDetails.map((modifier) => modifier.segment);
     const noteSegments = splitNoteSegments(
         item.note ||
             item.notes ||
@@ -584,9 +583,8 @@ function normalizeKitchenItem(item, index) {
             item.pivot?.notes ||
             ""
     ).filter((segment) => !isDuplicateModifierNoteSegment(segment, itemDetails));
-    const note = dedupeNoteSegments(
-        [...modifierSegments, ...noteSegments].join(" · ")
-    );
+    const details = itemDetails.map((modifier) => modifier.segment);
+    const note = dedupeNoteSegments(noteSegments.join(" · "));
 
     return {
         id:
@@ -604,6 +602,7 @@ function normalizeKitchenItem(item, index) {
             item.food_name ||
             "Item",
         quantity: Number(item.quantity ?? item.qty ?? item.count ?? 1),
+        details,
         note: hideTableNotes(note),
     };
 }
