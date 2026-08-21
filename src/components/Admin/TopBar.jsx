@@ -1,7 +1,7 @@
 import { CalendarDays, Menu, PanelLeftClose, PanelLeftOpen, Sparkles } from "lucide-react";
 import EmployeeProfileButton from "../Shared/EmployeeProfileButton";
 import NotificationsButton from "../Shared/NotificationsButton";
-import { getStoredUser } from "../../utils/auth";
+import { ROLE_IDS, getRoleId, getStoredUser } from "../../utils/auth";
 import { useTranslation } from "../../utils/i18n";
 
 function getFirstName(user) {
@@ -21,6 +21,7 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
     const user = getStoredUser();
     const firstName = getFirstName(user);
     const roleName = user?.role?.name || "Team";
+    const showEmployeeShifts = getRoleId(user) !== ROLE_IDS.ADMIN;
     const today = new Date().toLocaleDateString(language === "ar" ? "ar-SY" : undefined, {
         weekday: "short",
         month: "short",
@@ -77,7 +78,7 @@ function TopBar({ onMenu, onToggleSidebar, isSidebarCollapsed = false }) {
 
                     <NotificationsButton />
 
-                    <EmployeeProfileButton floatingPanel showShifts={false} />
+                    <EmployeeProfileButton floatingPanel showShifts={showEmployeeShifts} />
                 </div>
             </div>
         </div>

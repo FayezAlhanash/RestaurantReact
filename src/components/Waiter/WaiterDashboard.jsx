@@ -11,12 +11,14 @@ import {
     Utensils,
     XCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../API/axios";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { clearSession, getStoredUser } from "../../utils/auth";
 import { getUserPermissions } from "../../utils/permissions";
+
+const WAITER_REFRESH_INTERVAL_MS = 7000;
 
 const getList = (data) => {
     if (Array.isArray(data)) return data;
@@ -774,6 +776,7 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
     const [busyKey, setBusyKey] = useState("");
     const [message, setMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const isRefreshingRef = useRef(false);
     const [openedSession, setOpenedSession] = useState(null);
     const navigate = useNavigate();
     const user = getStoredUser();
@@ -831,6 +834,23 @@ export default function WaiterDashboard({ mode = "all", embedded = false }) {
 
         return () => {
             window.clearTimeout(timeoutId);
+        };
+    }, [loadData]);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(async () => {
+            if (isRefreshingRef.current) return;
+
+            isRefreshingRef.current = true;
+            try {
+                await loadData({ showLoader: false });
+            } finally {
+                isRefreshingRef.current = false;
+            }
+        }, WAITER_REFRESH_INTERVAL_MS);
+
+        return () => {
+            window.clearInterval(intervalId);
         };
     }, [loadData]);
 
