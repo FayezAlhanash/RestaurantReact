@@ -81,6 +81,7 @@ export function isKitchenOrderNotification(notification = {}) {
     if (isPickupUpdate) return false;
 
     return (
+        text.includes("kitchen_order") ||
         text.includes("new kitchen order") ||
         text.includes("kitchen order") ||
         text.includes("ready to prepare") ||

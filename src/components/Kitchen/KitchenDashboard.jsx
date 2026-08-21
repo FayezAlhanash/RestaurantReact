@@ -22,6 +22,7 @@ const isCompletedOrder = (order) =>
     ["ready", "completed", "done"].includes(normalizeStatus(order?.status));
 
 const ADMIN_ALL_RESTAURANTS = "all";
+const SILENT_QUEUE_REFRESH_MS = 5000;
 
 const getFirstPresent = (values) =>
     values.find((value) => value !== undefined && value !== null && value !== "");
@@ -68,6 +69,7 @@ export default function KitchenDashboard() {
     const [restaurants, setRestaurants] = useState([]);
     const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
     const shouldPollRef = useRef(true);
+    const isQueueRefreshInFlightRef = useRef(false);
     const user = getStoredUser();
     const isAdmin = Number(user?.role_id ?? user?.role?.id) === ROLE_IDS.ADMIN;
     const selectedRestaurant = restaurants.find(
@@ -79,7 +81,13 @@ export default function KitchenDashboard() {
         [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
         "Ahmed Khaled";
 
-    const loadQueue = useCallback(async () => {
+    const loadQueue = useCallback(async (options = {}) => {
+        const { force = false, silent = false } = options;
+
+        if (isQueueRefreshInFlightRef.current && !force) return;
+
+        isQueueRefreshInFlightRef.current = true;
+
         try {
             if (isAdmin && !selectedRestaurantId) {
                 setOrders([]);
@@ -132,13 +140,19 @@ export default function KitchenDashboard() {
                 shouldPollRef.current = false;
             }
 
-            setErrorMessage(
-                error.response?.status === 403
-                    ? t("Unauthorized. Sign in with a kitchen account or make sure this account has kitchen queue access.")
-                    : error.response?.data?.message || t("Could not load the kitchen queue.")
-            );
+            if (!silent || error.response?.status === 403) {
+                setErrorMessage(
+                    error.response?.status === 403
+                        ? t("Unauthorized. Sign in with a kitchen account or make sure this account has kitchen queue access.")
+                        : error.response?.data?.message || t("Could not load the kitchen queue.")
+                );
+            }
         } finally {
-            setIsLoading(false);
+            isQueueRefreshInFlightRef.current = false;
+
+            if (!silent) {
+                setIsLoading(false);
+            }
         }
     }, [isAdmin, restaurants, selectedRestaurantId, t]);
 
@@ -174,9 +188,32 @@ export default function KitchenDashboard() {
         };
     }, [loadQueue]);
 
+    useEffect(() => {
+        const refreshSilently = () => {
+            if (!shouldPollRef.current) return;
+
+            loadQueue({ silent: true });
+        };
+
+        const intervalId = window.setInterval(
+            refreshSilently,
+            SILENT_QUEUE_REFRESH_MS
+        );
+        const handleFocus = () => {
+            loadQueue({ force: true, silent: true });
+        };
+
+        window.addEventListener("focus", handleFocus);
+
+        return () => {
+            window.clearInterval(intervalId);
+            window.removeEventListener("focus", handleFocus);
+        };
+    }, [loadQueue]);
+
     useRealtimeRefresh(() => {
         shouldPollRef.current = true;
-        loadQueue();
+        loadQueue({ force: true, silent: true });
     });
 
     const handleStartPreparing = async (orderId) => {
@@ -213,7 +250,7 @@ export default function KitchenDashboard() {
                         : currentOrder
                 )
             );
-            await loadQueue();
+            await loadQueue({ force: true });
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message || t("Could not start preparing the order.")
@@ -270,7 +307,7 @@ export default function KitchenDashboard() {
                 );
                 setShowCompleted(false);
             }
-            await loadQueue();
+            await loadQueue({ force: true });
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.message || t("Could not mark the order as ready.")
@@ -421,7 +458,7 @@ export default function KitchenDashboard() {
 
                     <button
                         type="button"
-                        onClick={loadQueue}
+                        onClick={() => loadQueue({ force: true })}
                         className="flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#9b7d06] px-5 text-sm font-black text-[#1f1804] shadow-[0_12px_24px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ac8c08]"
                     >
                         {t("Refresh Queue")}

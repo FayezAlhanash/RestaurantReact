@@ -14,6 +14,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+function notifyOpenClients(payload = {}) {
+    self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clients) => {
+            clients.forEach((client) => {
+                client.postMessage({
+                    type: "big4:fcm-message",
+                    payload,
+                });
+            });
+        });
+}
+
 function isKitchenOrderNotification(data = {}) {
     const text = [
         data.title,
@@ -36,6 +49,7 @@ function isKitchenOrderNotification(data = {}) {
     }
 
     return (
+        text.includes("kitchen_order") ||
         text.includes("new kitchen order") ||
         text.includes("kitchen order") ||
         text.includes("ready to prepare") ||
@@ -75,6 +89,9 @@ function getNotificationTargetUrl(data = {}) {
     return target.href;
 }
 
+messaging.onBackgroundMessage((payload) => {
+    notifyOpenClients(payload);
+});
 
 
 self.addEventListener("notificationclick", (event) => {

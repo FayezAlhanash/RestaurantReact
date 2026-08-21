@@ -3,11 +3,16 @@ import { useLocation } from "react-router-dom";
 import api from "../API/axios";
 import { getStoredToken, getStoredUser } from "../utils/auth";
 import {
+    ORDERS_UPDATED_EVENT,
+    REALTIME_UPDATED_EVENT,
+} from "../services/realtime";
+import {
     listenForForegroundMessages,
     requestFcmToken,
 } from "./firebase";
 import {
     canReceiveNotification,
+    isKitchenOrderNotification,
     resolveNotificationUrl,
 } from "./notificationRouting";
 
@@ -76,6 +81,36 @@ const getNotificationTimestamp = (notification) => {
 
     return Number.isNaN(timestamp) ? null : timestamp;
 };
+
+function dispatchKitchenOrderRefresh(notification = {}) {
+    if (!isKitchenOrderNotification(notification)) return;
+
+    const data = notification.data || {};
+    const detail = {
+        type: "kitchen_order_created",
+        topic: "kitchen_orders",
+        action: "created",
+        order_id:
+            data.order_id ||
+            data.orderId ||
+            notification.order_id ||
+            notification.orderId,
+        restaurant_order_id:
+            data.restaurant_order_id ||
+            data.restaurantOrderId ||
+            notification.restaurant_order_id ||
+            notification.restaurantOrderId,
+        restaurant_id:
+            data.restaurant_id ||
+            data.restaurantId ||
+            notification.restaurant_id ||
+            notification.restaurantId,
+        source: "fcm",
+    };
+
+    window.dispatchEvent(new CustomEvent(REALTIME_UPDATED_EVENT, { detail }));
+    window.dispatchEvent(new CustomEvent(ORDERS_UPDATED_EVENT, { detail }));
+}
 
 const isUnreadNotification = (notification) => {
     if (notification?.read_at || notification?.readAt) return false;
@@ -250,6 +285,13 @@ function startBackendNotificationsPoller() {
                     !seenNotificationIds.has(id) &&
                     wasCreatedAfterWebsiteOpened
                 ) {
+                    dispatchKitchenOrderRefresh(notification);
+
+                    if (isKitchenOrderNotification(notification)) {
+                        nextSeenIds.add(id);
+                        return;
+                    }
+
                     showBrowserNotification(
                         getNotificationTitle(notification),
                         getNotificationBody(notification),
@@ -311,6 +353,7 @@ export default function NotificationManager() {
         let isMounted = true;
 
         listenForForegroundMessages((payload) => {
+            dispatchKitchenOrderRefresh(payload);
             showForegroundNotification(payload);
         }).then((cleanup) => {
             if (isMounted) {
@@ -326,6 +369,28 @@ export default function NotificationManager() {
             unsubscribe();
         };
     }, [location.pathname]);
+
+    useEffect(() => {
+        if (!("serviceWorker" in navigator)) return undefined;
+
+        const handleServiceWorkerMessage = (event) => {
+            if (event.data?.type !== "big4:fcm-message") return;
+
+            dispatchKitchenOrderRefresh(event.data.payload || {});
+        };
+
+        navigator.serviceWorker.addEventListener(
+            "message",
+            handleServiceWorkerMessage
+        );
+
+        return () => {
+            navigator.serviceWorker.removeEventListener(
+                "message",
+                handleServiceWorkerMessage
+            );
+        };
+    }, []);
 
     useEffect(() => {
         if (!getStoredToken()) return undefined;
