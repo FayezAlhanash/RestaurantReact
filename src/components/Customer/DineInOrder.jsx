@@ -164,6 +164,27 @@ const appendIfPresent = (formData, key, value) => {
     }
 };
 
+const getModifierOptionId = (option) =>
+    option?.modifier_option_id ?? option?.modifierOptionId ?? option?.id;
+
+const getModifierGroupId = (option) =>
+    option?.modifier_group_id ?? option?.modifierGroupId ?? option?.groupId;
+
+const getUniqueModifierOptions = (options = []) => {
+    const seen = new Set();
+
+    return options.filter((option) => {
+        const optionId = getModifierOptionId(option);
+        if (!optionId) return false;
+
+        const key = `${getModifierGroupId(option) ?? "group"}:${optionId}`;
+        if (seen.has(key)) return false;
+
+        seen.add(key);
+        return true;
+    });
+};
+
 const getFirstRecord = (data) =>
     getList(data)[0] || data?.table || data?.data || data;
 
@@ -504,7 +525,9 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
     cartItems.forEach((item, index) => {
         const unitPrice = Number(item.price ?? 0);
         const quantity = Number(item.quantity ?? 1);
-        const modifierOptions = item.selectedModifierOptions ?? [];
+        const modifierOptions = getUniqueModifierOptions(
+            item.selectedModifierOptions,
+        );
         const notes = [item.size, item.notes].filter(Boolean).join(" · ");
 
         appendIfPresent(
@@ -533,15 +556,10 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
         appendIfPresent(formData, `items[${index}][notes]`, notes);
 
         modifierOptions.forEach((option, optionIndex) => {
-            const optionId = option.modifier_option_id ?? option.id;
+            const optionId = getModifierOptionId(option);
             const optionPrice = Number(option.price ?? 0);
             const optionFinalPrice = Number(option.finalPrice ?? optionPrice);
 
-            appendIfPresent(
-                formData,
-                `items[${index}][modifiers][${optionIndex}]`,
-                optionId,
-            );
             appendIfPresent(
                 formData,
                 `items[${index}][modifier_options][${optionIndex}]`,
@@ -555,7 +573,7 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
             appendIfPresent(
                 formData,
                 `items[${index}][modifier_option_details][${optionIndex}][modifier_group_id]`,
-                option.modifier_group_id ?? option.groupId,
+                getModifierGroupId(option),
             );
             appendIfPresent(
                 formData,
@@ -575,7 +593,9 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
 
 const buildAddItemFormData = (item, sessionToken) => {
     const formData = new FormData();
-    const modifierOptions = item.selectedModifierOptions ?? [];
+    const modifierOptions = getUniqueModifierOptions(
+        item.selectedModifierOptions,
+    );
 
     appendIfPresent(formData, "food_id", item.food_id || item.id);
     appendIfPresent(formData, "menu_item_id", item.food_id || item.id);
@@ -600,15 +620,10 @@ const buildAddItemFormData = (item, sessionToken) => {
     appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
 
     modifierOptions.forEach((option, optionIndex) => {
-        const optionId = option.modifier_option_id ?? option.id;
+        const optionId = getModifierOptionId(option);
         const optionPrice = Number(option.price ?? 0);
         const optionFinalPrice = Number(option.finalPrice ?? optionPrice);
 
-        appendIfPresent(
-            formData,
-            `modifiers[${optionIndex}]`,
-            optionId,
-        );
         appendIfPresent(
             formData,
             `modifier_options[${optionIndex}]`,
@@ -622,7 +637,7 @@ const buildAddItemFormData = (item, sessionToken) => {
         appendIfPresent(
             formData,
             `modifier_option_details[${optionIndex}][modifier_group_id]`,
-            option.modifier_group_id ?? option.groupId,
+            getModifierGroupId(option),
         );
         appendIfPresent(
             formData,
@@ -3823,13 +3838,6 @@ function DineInOrder() {
 
                 <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start xl:grid-cols-[minmax(0,1fr)_390px]">
                     <div className="min-w-0">
-                        <RestaurantPicker
-                            restaurants={restaurants}
-                            menuItems={menuItems}
-                            activeRestaurant={activeRestaurant}
-                            onSelect={selectRestaurant}
-                        />
-
                         {(successMessage || orderTimings.length > 0) && (
                             <div className="mb-4 space-y-3">
                                 {successMessage && (
@@ -4194,6 +4202,13 @@ function DineInOrder() {
                                 )}
                             </div>
                         )}
+
+                        <RestaurantPicker
+                            restaurants={restaurants}
+                            menuItems={menuItems}
+                            activeRestaurant={activeRestaurant}
+                            onSelect={selectRestaurant}
+                        />
 
                         {errorMessage && (
                             <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-700">

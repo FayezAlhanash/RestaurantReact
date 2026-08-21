@@ -162,7 +162,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
                                     : "border-[#7F1D1D]/30 bg-[#7F1D1D]/10 text-[#7F1D1D]"
                             }`}>
-                                {isActive ? t("active") : "غير نشط"}
+                                {isActive ? t("active") : t("notActive")}
                             </span>
 
                             <div className={`grid h-20 w-20 place-items-center rounded-[24px] border ${
@@ -176,7 +176,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 {t("table")} {tableNumber || "--"}
                             </p>
                             <p className="mt-2 text-sm font-semibold text-white/42">
-                                معاينة مباشرة
+                                {t("tableLivePreview")}
                             </p>
                         </div>
                     </div>
@@ -198,7 +198,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     value={tableNumber}
                                     onChange={(e) => setTableNumber(e.target.value)}
                                     className="min-w-0 flex-1 bg-transparent text-base font-bold text-white outline-none placeholder:text-white/30"
-                                    placeholder="مثال: 12"
+                                    placeholder={t("tableNumberPlaceholder")}
                                 />
                             </div>
                         </label>
@@ -221,7 +221,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                     <span>
                                         <span className="block text-sm font-black">{t("active")}</span>
                                         <span className="text-xs font-semibold opacity-70">
-                                            نشط على مخطط الصالة
+                                            {t("activeOnFloorPlan")}
                                         </span>
                                     </span>
                                 </button>
@@ -237,7 +237,7 @@ function AddTableModal({ isOpen, onClose, refresh, editData }) {
                                 >
                                     <XCircle size={22} />
                                     <span>
-                                        <span className="block text-sm font-black">غير نشط</span>
+                                        <span className="block text-sm font-black">{t("notActive")}</span>
                                         <span className="text-xs font-semibold opacity-70">
                                             {t("unavailable")}
                                         </span>
