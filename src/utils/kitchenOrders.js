@@ -549,6 +549,17 @@ function dedupeModifierDetails(details) {
     });
 }
 
+function isSizeModifierDetail(detail = {}) {
+    const groupName = normalizeNoteToken(detail.groupName);
+    const optionName = normalizeNoteToken(detail.optionName);
+
+    return (
+        groupName === "size" ||
+        groupName === "الحجم" ||
+        (!groupName && sizeNoteTokens.has(optionName))
+    );
+}
+
 function normalizeKitchenItem(item, index) {
     const food = item.food || item.menu_item || item.product || item.item || {};
     const modifierDetails = getModifierNoteDetails(item);
@@ -576,6 +587,10 @@ function normalizeKitchenItem(item, index) {
     const itemDetails = dedupeModifierDetails(
         sizeDetail ? [...modifierDetails, sizeDetail] : modifierDetails
     );
+    const sizeDetails = itemDetails.filter(isSizeModifierDetail);
+    const modifierOptionDetails = itemDetails.filter(
+        (detail) => !isSizeModifierDetail(detail)
+    );
     const noteSegments = splitNoteSegments(
         item.note ||
             item.notes ||
@@ -583,7 +598,8 @@ function normalizeKitchenItem(item, index) {
             item.pivot?.notes ||
             ""
     ).filter((segment) => !isDuplicateModifierNoteSegment(segment, itemDetails));
-    const details = itemDetails.map((modifier) => modifier.segment);
+    const details = sizeDetails.map((modifier) => modifier.segment);
+    const modifiers = modifierOptionDetails.map((modifier) => modifier.segment);
     const note = dedupeNoteSegments(noteSegments.join(" · "));
 
     return {
@@ -603,6 +619,7 @@ function normalizeKitchenItem(item, index) {
             "Item",
         quantity: Number(item.quantity ?? item.qty ?? item.count ?? 1),
         details,
+        modifiers,
         note: hideTableNotes(note),
     };
 }
