@@ -185,6 +185,16 @@ const getUniqueModifierOptions = (options = []) => {
     });
 };
 
+const appendModifierOptionsFormData = (formData, prefix, modifierOptions) => {
+    const field = (name) => (prefix ? `${prefix}[${name}]` : name);
+
+    modifierOptions.forEach((option, optionIndex) => {
+        const optionId = getModifierOptionId(option);
+
+        appendIfPresent(formData, `${field("modifiers")}[${optionIndex}]`, optionId);
+    });
+};
+
 const getFirstRecord = (data) =>
     getList(data)[0] || data?.table || data?.data || data;
 
@@ -555,37 +565,11 @@ const buildOrderFormData = (cartItems, tableId, orderType, sessionToken) => {
         );
         appendIfPresent(formData, `items[${index}][notes]`, notes);
 
-        modifierOptions.forEach((option, optionIndex) => {
-            const optionId = getModifierOptionId(option);
-            const optionPrice = Number(option.price ?? 0);
-            const optionFinalPrice = Number(option.finalPrice ?? optionPrice);
-
-            appendIfPresent(
-                formData,
-                `items[${index}][modifier_options][${optionIndex}]`,
-                optionId,
-            );
-            appendIfPresent(
-                formData,
-                `items[${index}][modifier_option_details][${optionIndex}][modifier_option_id]`,
-                optionId,
-            );
-            appendIfPresent(
-                formData,
-                `items[${index}][modifier_option_details][${optionIndex}][modifier_group_id]`,
-                getModifierGroupId(option),
-            );
-            appendIfPresent(
-                formData,
-                `items[${index}][modifier_option_details][${optionIndex}][price]`,
-                optionPrice,
-            );
-            appendIfPresent(
-                formData,
-                `items[${index}][modifier_option_details][${optionIndex}][final_price]`,
-                optionFinalPrice,
-            );
-        });
+        appendModifierOptionsFormData(
+            formData,
+            `items[${index}]`,
+            modifierOptions,
+        );
     });
 
     return formData;
@@ -619,37 +603,7 @@ const buildAddItemFormData = (item, sessionToken) => {
     appendIfPresent(formData, "token", sessionToken);
     appendIfPresent(formData, "qr_path", `/dine-in/${sessionToken}`);
 
-    modifierOptions.forEach((option, optionIndex) => {
-        const optionId = getModifierOptionId(option);
-        const optionPrice = Number(option.price ?? 0);
-        const optionFinalPrice = Number(option.finalPrice ?? optionPrice);
-
-        appendIfPresent(
-            formData,
-            `modifier_options[${optionIndex}]`,
-            optionId,
-        );
-        appendIfPresent(
-            formData,
-            `modifier_option_details[${optionIndex}][modifier_option_id]`,
-            optionId,
-        );
-        appendIfPresent(
-            formData,
-            `modifier_option_details[${optionIndex}][modifier_group_id]`,
-            getModifierGroupId(option),
-        );
-        appendIfPresent(
-            formData,
-            `modifier_option_details[${optionIndex}][price]`,
-            optionPrice,
-        );
-        appendIfPresent(
-            formData,
-            `modifier_option_details[${optionIndex}][final_price]`,
-            optionFinalPrice,
-        );
-    });
+    appendModifierOptionsFormData(formData, "", modifierOptions);
 
     return formData;
 };
@@ -3752,6 +3706,19 @@ function DineInOrder() {
 
         setErrorMessage("");
         setSuccessMessage("");
+
+        if (paymentMethod === "stripe") {
+            if (!isStripeReady) {
+                setStripeCardMessage(
+                    "Stripe is still loading. Try again in a moment.",
+                );
+                return;
+            }
+
+            submitOrder();
+            return;
+        }
+
         setIsConfirmOrderOpen(true);
     };
 
