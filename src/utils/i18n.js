@@ -479,6 +479,14 @@ const staticPhraseTranslations = {
             .map(([key, value]) => [value, translations.ar[key]])
             .filter(([, value]) => value)
     ),
+    "INVENTORY CONTROL": "إدارة المخزون",
+    "SELECT INGREDIENT": "اختر المكون",
+    "Choose what you want to update": "اختر ما تريد تحديثه",
+    "Prev": "السابق",
+    "Next": "التالي",
+    "Locked": "مقفل",
+    "ACTIVITY": "النشاط",
+    "Stock Movements": "حركات المخزون",
     "Actions": "الإجراءات",
     "Active": "نشط",
     "Add Category": "إضافة تصنيف",

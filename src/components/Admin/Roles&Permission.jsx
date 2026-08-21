@@ -58,7 +58,10 @@ const ADMIN_SHIFT_PERMISSION_KEYS = [
   "manage_employee_shifts",
   "manage_global_employee_shifts",
 ];
-
+const ADMIN_KITCHEN_PERMISSION_KEYS = [
+  "manage_kitchen_orders",
+  "manage_global_kitchen_orders",
+];
 const getUniquePermissions = (roles = []) => {
   const seen = new Set();
 
@@ -191,7 +194,7 @@ export default function RolesPermission() {
         status === 401 || status === 403
           ? "Showing current role permissions only. Restore Manage Permissions to edit role permissions."
           : error.response?.data?.message ||
-              "Permissions could not be loaded. Please try again."
+          "Permissions could not be loaded. Please try again."
       );
       console.log(error.response?.data || error);
     }
@@ -354,7 +357,7 @@ export default function RolesPermission() {
     } catch (error) {
       setEditRoleError(
         error.response?.data?.message ||
-          "Role could not be updated. Please try again."
+        "Role could not be updated. Please try again."
       );
       console.log(error.response?.data || error);
     } finally {
@@ -498,7 +501,7 @@ export default function RolesPermission() {
     } catch (error) {
       setCreateRoleError(
         error.response?.data?.message ||
-          "Role could not be created. Please try again."
+        "Role could not be created. Please try again."
       );
       console.log(error.response?.data || error);
     } finally {
@@ -548,6 +551,11 @@ export default function RolesPermission() {
     const isLockedPermission = LOCKED_PERMISSION_KEYS.includes(
       selectedPermissionKey
     );
+    const isAdminKitchenPermission =
+      isAdminRole(selectedRole) &&
+      ADMIN_KITCHEN_PERMISSION_KEYS.includes(
+        normalizePermissionKey(selectedPermissionKey)
+      );
     const isAdminShiftPermission =
       isAdminRole(selectedRole) &&
       ADMIN_SHIFT_PERMISSION_KEYS.includes(
@@ -565,6 +573,60 @@ export default function RolesPermission() {
     setUpdatingPermissionId(permissionId);
 
     try {
+      if (isAdminKitchenPermission) {
+        const kitchenPermissions = ADMIN_KITCHEN_PERMISSION_KEYS.map((key) =>
+          permissionCatalog.find(
+            (item) => normalizePermissionKey(getPermissionKey(item)) === key
+          )
+        ).filter(Boolean);
+
+        if (
+          kitchenPermissions.length !== ADMIN_KITCHEN_PERMISSION_KEYS.length
+        ) {
+          setPermissionError(
+            "Could not find both kitchen order permissions."
+          );
+          return;
+        }
+
+        if (hasPermission) {
+          await Promise.all(
+            kitchenPermissions
+              .filter((item) =>
+                rolePermissions.includes(String(item.id))
+              )
+              .map((item) =>
+                api.delete(
+                  `/admin/roles/${selectedRole.id}/permissions`,
+                  {
+                    data: { permission_id: item.id },
+                  }
+                )
+              )
+          );
+        } else {
+          await Promise.all(
+            kitchenPermissions
+              .filter(
+                (item) =>
+                  !rolePermissions.includes(String(item.id))
+              )
+              .map((item) => {
+                const formData = new FormData();
+                formData.append("permission_id", item.id);
+
+                return api.post(
+                  `/admin/roles/${selectedRole.id}/permissions`,
+                  formData
+                );
+              })
+          );
+        }
+
+        await refreshCurrentUserPermissions();
+        await fetchRoles();
+        return;
+      }
       if (isAdminShiftPermission) {
         const shiftPermissions = ADMIN_SHIFT_PERMISSION_KEYS.map((key) =>
           permissionCatalog.find(
@@ -609,168 +671,168 @@ export default function RolesPermission() {
       }
 
       if (hasPermission) {
-      if (
-        selectedPermissionKey === "monitor_inventory" &&
-        manageInventoryId &&
-        rolePermissions.includes(String(manageInventoryId))
-      ) {
-        setPermissionError(
-          "Remove manage_inventory before removing monitor_inventory."
-        );
-        return;
-      }
+        if (
+          selectedPermissionKey === "monitor_inventory" &&
+          manageInventoryId &&
+          rolePermissions.includes(String(manageInventoryId))
+        ) {
+          setPermissionError(
+            "Remove manage_inventory before removing monitor_inventory."
+          );
+          return;
+        }
 
-      if (
-        selectedPermissionKey === "view_recipes" &&
-        manageRecipesId &&
-        rolePermissions.includes(String(manageRecipesId))
-      ) {
-        setPermissionError(
-          "Remove manage_recipes before removing view_recipes."
-        );
-        return;
-      }
+        if (
+          selectedPermissionKey === "view_recipes" &&
+          manageRecipesId &&
+          rolePermissions.includes(String(manageRecipesId))
+        ) {
+          setPermissionError(
+            "Remove manage_recipes before removing view_recipes."
+          );
+          return;
+        }
 
-      if (
-        selectedPermissionKey === "process_payments" &&
-        rolePermissions.some((id) => {
-          const item = permissionCatalog.find(
-            (permission) => String(permission.id) === String(id)
+        if (
+          selectedPermissionKey === "process_payments" &&
+          rolePermissions.some((id) => {
+            const item = permissionCatalog.find(
+              (permission) => String(permission.id) === String(id)
+            );
+
+            return getPermissionKey(item) === "serve_dine_in_orders";
+          })
+        ) {
+          setPermissionError(
+            "Remove Serve Dine In Orders before removing Process Payments."
+          );
+          return;
+        }
+
+        const res = await api.delete(`/admin/roles/${selectedRole.id}/permissions`, {
+          data: {
+            permission_id: permissionId,
+          },
+        });
+        const updatedRole = getResponseRole(res.data);
+
+        if (updatedRole) {
+          setSelectedRole(updatedRole);
+          setRolePermissions(getRolePermissionIds(updatedRole));
+
+          setRoles((prev) =>
+            prev.map((role) =>
+              role.id === updatedRole.id ? updatedRole : role
+            )
+          );
+        } else {
+          setRolePermissions((prev) =>
+            prev.filter((id) => id !== permissionKey)
           );
 
-          return getPermissionKey(item) === "serve_dine_in_orders";
-        })
-      ) {
-        setPermissionError(
-          "Remove Serve Dine In Orders before removing Process Payments."
-        );
-        return;
-      }
-
-      const res = await api.delete(`/admin/roles/${selectedRole.id}/permissions`, {
-        data: {
-          permission_id: permissionId,
-        },
-      });
-      const updatedRole = getResponseRole(res.data);
-
-      if (updatedRole) {
-        setSelectedRole(updatedRole);
-        setRolePermissions(getRolePermissionIds(updatedRole));
-
-        setRoles((prev) =>
-          prev.map((role) =>
-            role.id === updatedRole.id ? updatedRole : role
-          )
-        );
-      } else {
-        setRolePermissions((prev) =>
-          prev.filter((id) => id !== permissionKey)
-        );
-
-        setRoles((prev) =>
-          prev.map((role) =>
-            role.id === selectedRole.id
-              ? {
-                  ...role,
-                  permissions: getRolePermissionList(role).filter(
-                    (permission) => String(permission.id) !== permissionKey
-                  ),
-                }
-              : role
-          )
-        );
-      }
-
-      await refreshCurrentUserPermissions();
-    } else {
-      if (
-        selectedPermissionKey === "manage_inventory" &&
-        monitorInventoryId &&
-        !rolePermissions.includes(String(monitorInventoryId))
-      ) {
-        const monitorFormData = new FormData();
-        monitorFormData.append("permission_id", monitorInventoryId);
-        await api.post(
-          `/admin/roles/${selectedRole.id}/permissions`,
-          monitorFormData
-        );
-        setRolePermissions((prev) => [
-          ...new Set([...prev, String(monitorInventoryId)]),
-        ]);
-      }
-
-      if (
-        selectedPermissionKey === "manage_recipes" &&
-        viewRecipesId &&
-        !rolePermissions.includes(String(viewRecipesId))
-      ) {
-        const viewRecipesFormData = new FormData();
-        viewRecipesFormData.append("permission_id", viewRecipesId);
-        await api.post(
-          `/admin/roles/${selectedRole.id}/permissions`,
-          viewRecipesFormData
-        );
-        setRolePermissions((prev) => [
-          ...new Set([...prev, String(viewRecipesId)]),
-        ]);
-      }
-
-      if (
-        selectedPermissionKey === "serve_dine_in_orders" &&
-        processPaymentsId &&
-        !rolePermissions.includes(String(processPaymentsId))
-      ) {
-        const processPaymentsFormData = new FormData();
-        processPaymentsFormData.append("permission_id", processPaymentsId);
-        await api.post(
-          `/admin/roles/${selectedRole.id}/permissions`,
-          processPaymentsFormData
-        );
-        setRolePermissions((prev) => [
-          ...new Set([...prev, String(processPaymentsId)]),
-        ]);
-      }
-
-      const formData = new FormData();
-      formData.append("permission_id", permissionId);
-
-      const res = await api.post(
-        `/admin/roles/${selectedRole.id}/permissions`,
-        formData
-      );
-      const updatedRole = getResponseRole(res.data);
-
-      if (updatedRole) {
-        setSelectedRole(updatedRole);
-        setRolePermissions(getRolePermissionIds(updatedRole));
-        setRoles((prev) =>
-          prev.map((role) =>
-            role.id === updatedRole.id ? updatedRole : role
-          )
-        );
-      } else {
-        setRolePermissions((prev) => [...prev, permissionKey]);
-
-        if (permission) {
           setRoles((prev) =>
             prev.map((role) =>
               role.id === selectedRole.id
                 ? {
                   ...role,
-                  permissions: [
-                      ...getRolePermissionList(role),
-                      permission,
-                    ],
-                  }
+                  permissions: getRolePermissionList(role).filter(
+                    (permission) => String(permission.id) !== permissionKey
+                  ),
+                }
                 : role
             )
           );
         }
-      }
 
-      await refreshCurrentUserPermissions();
-    }
+        await refreshCurrentUserPermissions();
+      } else {
+        if (
+          selectedPermissionKey === "manage_inventory" &&
+          monitorInventoryId &&
+          !rolePermissions.includes(String(monitorInventoryId))
+        ) {
+          const monitorFormData = new FormData();
+          monitorFormData.append("permission_id", monitorInventoryId);
+          await api.post(
+            `/admin/roles/${selectedRole.id}/permissions`,
+            monitorFormData
+          );
+          setRolePermissions((prev) => [
+            ...new Set([...prev, String(monitorInventoryId)]),
+          ]);
+        }
+
+        if (
+          selectedPermissionKey === "manage_recipes" &&
+          viewRecipesId &&
+          !rolePermissions.includes(String(viewRecipesId))
+        ) {
+          const viewRecipesFormData = new FormData();
+          viewRecipesFormData.append("permission_id", viewRecipesId);
+          await api.post(
+            `/admin/roles/${selectedRole.id}/permissions`,
+            viewRecipesFormData
+          );
+          setRolePermissions((prev) => [
+            ...new Set([...prev, String(viewRecipesId)]),
+          ]);
+        }
+
+        if (
+          selectedPermissionKey === "serve_dine_in_orders" &&
+          processPaymentsId &&
+          !rolePermissions.includes(String(processPaymentsId))
+        ) {
+          const processPaymentsFormData = new FormData();
+          processPaymentsFormData.append("permission_id", processPaymentsId);
+          await api.post(
+            `/admin/roles/${selectedRole.id}/permissions`,
+            processPaymentsFormData
+          );
+          setRolePermissions((prev) => [
+            ...new Set([...prev, String(processPaymentsId)]),
+          ]);
+        }
+
+        const formData = new FormData();
+        formData.append("permission_id", permissionId);
+
+        const res = await api.post(
+          `/admin/roles/${selectedRole.id}/permissions`,
+          formData
+        );
+        const updatedRole = getResponseRole(res.data);
+
+        if (updatedRole) {
+          setSelectedRole(updatedRole);
+          setRolePermissions(getRolePermissionIds(updatedRole));
+          setRoles((prev) =>
+            prev.map((role) =>
+              role.id === updatedRole.id ? updatedRole : role
+            )
+          );
+        } else {
+          setRolePermissions((prev) => [...prev, permissionKey]);
+
+          if (permission) {
+            setRoles((prev) =>
+              prev.map((role) =>
+                role.id === selectedRole.id
+                  ? {
+                    ...role,
+                    permissions: [
+                      ...getRolePermissionList(role),
+                      permission,
+                    ],
+                  }
+                  : role
+              )
+            );
+          }
+        }
+
+        await refreshCurrentUserPermissions();
+      }
       await fetchRoles();
     } catch (error) {
       const status = error.response?.status;
@@ -786,7 +848,7 @@ export default function RolesPermission() {
           : status === 401 || status === 403 || message === "Unauthorized."
             ? "You need Manage Permissions to update role permissions."
             : message ||
-              "Permission could not be updated. Please try again."
+            "Permission could not be updated. Please try again."
       );
       console.log(error.response?.data || error);
     } finally {
@@ -922,11 +984,10 @@ export default function RolesPermission() {
                 {showCreateRole && (
                   <form
                     onSubmit={handleCreateRole}
-                    className={`absolute right-0 top-[calc(100%+0.7rem)] z-50 w-[min(82vw,320px)] origin-top-right overflow-hidden rounded-2xl border shadow-[0_28px_70px_rgba(70,45,30,0.18)] ring-1 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                      isCreateRoleShown
+                    className={`absolute right-0 top-[calc(100%+0.7rem)] z-50 w-[min(82vw,320px)] origin-top-right overflow-hidden rounded-2xl border shadow-[0_28px_70px_rgba(70,45,30,0.18)] ring-1 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isCreateRoleShown
                         ? "translate-y-0 scale-100 opacity-100"
                         : "translate-y-1 scale-95 opacity-0"
-                    } ${formSurface} ${isLight ? "ring-[#7F1D1D]/10" : "ring-white/[0.04]"}`}
+                      } ${formSurface} ${isLight ? "ring-[#7F1D1D]/10" : "ring-white/[0.04]"}`}
                   >
                     <div className={`flex items-center justify-between border-b px-3.5 py-3 ${panelHeader}`}>
                       <div>
@@ -1027,20 +1088,18 @@ export default function RolesPermission() {
                   key={role.id}
                   type="button"
                   onClick={() => handleSelectRole(role)}
-                  className={`group flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] ${
-                    isActive
+                  className={`group flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] ${isActive
                       ? selectedRoleSurface
                       : "border-transparent bg-[#101A1D] text-white/74 hover:border-white/10 hover:bg-[#152226] hover:text-white"
-                  }`}
+                    }`}
                 >
                   <span className="min-w-0">
                     <span className="line-clamp-2 text-[clamp(0.82rem,0.72rem+0.22vw,0.95rem)] font-black capitalize leading-tight">
                       {translateStaticText(role.name)}
                     </span>
                     <span
-                      className={`mt-1 block text-xs font-bold ${
-                        isActive ? goldText : isLight ? "text-[#6B5A52]" : "text-white/40"
-                      }`}
+                      className={`mt-1 block text-xs font-bold ${isActive ? goldText : isLight ? "text-[#6B5A52]" : "text-white/40"
+                        }`}
                     >
                       {translateStaticText(`${assignedCount} enabled`)}
                     </span>
@@ -1230,22 +1289,19 @@ export default function RolesPermission() {
                 return (
                   <label
                     key={perm.id}
-                    className={`group flex min-w-0 items-center gap-3 rounded-2xl border p-3 transition ${
-                      isDisabled
+                    className={`group flex min-w-0 items-center gap-3 rounded-2xl border p-3 transition ${isDisabled
                         ? "cursor-not-allowed opacity-70"
                         : "cursor-pointer hover:-translate-y-0.5 active:scale-[0.99]"
-                    } ${
-                      checked
+                      } ${checked
                         ? selectedPermissionSurface
                         : "border-white/10 bg-[#101A1D] hover:border-white/16 hover:bg-[#142125]"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition ${
-                        checked
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition ${checked
                           ? `border ${goldBorder} ${goldBackground} ${goldText}`
                           : "border border-white/10 bg-white/[0.04] text-white/35 group-hover:border-white/18 group-hover:text-white/65"
-                      }`}
+                        }`}
                     >
                       {isUpdating ? (
                         <Loader2 size={18} className="animate-spin" />
@@ -1288,17 +1344,15 @@ export default function RolesPermission() {
 
       {roleToDelete && (
         <div
-          className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-6 ${
-            isDeleteRoleShown ? "opacity-100" : "opacity-0"
-          }`}
+          className={`fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-6 ${isDeleteRoleShown ? "opacity-100" : "opacity-0"
+            }`}
         >
           <form
             onSubmit={handleDeleteRole}
-            className={`w-full max-w-md origin-center overflow-hidden rounded-[26px] border border-white/10 bg-[#182124] text-white shadow-2xl transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-              isDeleteRoleShown
+            className={`w-full max-w-md origin-center overflow-hidden rounded-[26px] border border-white/10 bg-[#182124] text-white shadow-2xl transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isDeleteRoleShown
                 ? "translate-y-0 scale-100 opacity-100"
                 : "translate-y-2 scale-95 opacity-0"
-            }`}
+              }`}
           >
             <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] bg-[radial-gradient(circle_at_100%_0%,rgba(185,28,28,0.24),transparent_36%),rgba(24,33,36,0.96)] px-5 py-4">
               <div className="flex items-center gap-3">
