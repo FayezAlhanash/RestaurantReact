@@ -17,8 +17,7 @@ export default function useFoodAvailabilityRealtime(restaurantIds, onAvailabilit
 
         if (!uniqueRestaurantIds.length) return undefined;
 
-        const existingEcho = window.Echo;
-        const echo = existingEcho || createEcho(getStoredToken() || "");
+        const echo = createEcho(getStoredToken() || "");
 
         if (!echo) return undefined;
 
@@ -44,9 +43,7 @@ export default function useFoodAvailabilityRealtime(restaurantIds, onAvailabilit
                 echo.leave(channelName);
             });
 
-            if (!existingEcho) {
-                echo.disconnect();
-            }
+            echo.disconnect();
         };
     }, [onAvailabilityUpdate, restaurantIds]);
 }

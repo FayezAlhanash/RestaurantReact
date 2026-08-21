@@ -7,6 +7,7 @@ export const AUTH_CHANGED_EVENT = "big4:auth-changed";
 
 const DEFAULT_REVERB_PORT = 443;
 const PLACEHOLDER_APP_KEY = "PUT_REVERB_APP_KEY_HERE";
+const DEFAULT_AUTH_ENDPOINT = "https://big4.me/api/broadcasting/auth";
 
 window.Pusher = Pusher;
 
@@ -22,6 +23,7 @@ export function createEcho(token = "") {
     const port = Number(import.meta.env.VITE_REVERB_PORT || DEFAULT_REVERB_PORT);
     const scheme = import.meta.env.VITE_REVERB_SCHEME || "https";
     const isSecure = scheme === "https";
+    const transports = isSecure ? ["wss"] : ["ws"];
 
     return new Echo({
         broadcaster: "reverb",
@@ -32,9 +34,10 @@ export function createEcho(token = "") {
         wssPort: port,
 
         forceTLS: isSecure,
-        enabledTransports: ["ws", "wss"],
+        enabledTransports: transports,
 
-        authEndpoint: "https://big4.me/api/broadcasting/auth",
+        authEndpoint:
+            import.meta.env.VITE_BROADCAST_AUTH_ENDPOINT || DEFAULT_AUTH_ENDPOINT,
 
         auth: {
             headers: {

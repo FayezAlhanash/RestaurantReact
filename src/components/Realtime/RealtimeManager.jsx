@@ -18,6 +18,29 @@ function normalizeChannelList(channels) {
         : [];
 }
 
+function normalizeSubscriptions(payload) {
+    const subscriptions = payload?.data || payload || {};
+
+    return {
+        event:
+            subscriptions.event ||
+            subscriptions.event_name ||
+            subscriptions.eventName ||
+            REALTIME_EVENT_NAME,
+        privateChannels: [
+            ...normalizeChannelList(subscriptions.private_channels),
+            ...normalizeChannelList(subscriptions.privateChannels),
+            ...normalizeChannelList(subscriptions.private),
+        ],
+        publicChannels: [
+            ...normalizeChannelList(subscriptions.public_channels),
+            ...normalizeChannelList(subscriptions.publicChannels),
+            ...normalizeChannelList(subscriptions.channels),
+            ...normalizeChannelList(subscriptions.public),
+        ],
+    };
+}
+
 export default function RealtimeManager() {
     const [token, setToken] = useState(() => getStoredToken());
     const echoRef = useRef(null);
@@ -75,22 +98,18 @@ export default function RealtimeManager() {
         const subscribe = async () => {
             try {
                 const response = await api.get("/realtime/subscriptions");
-                const subscriptions = response.data || {};
-                const eventName = subscriptions.event || REALTIME_EVENT_NAME;
+                const subscriptions = normalizeSubscriptions(response.data);
+                const eventName = subscriptions.event;
 
-                normalizeChannelList(subscriptions.private_channels).forEach(
-                    (channelName) => {
-                        echo.private(channelName).listen(eventName, emitRealtimeUpdate);
-                        subscribedChannels.add(channelName);
-                    }
-                );
+                subscriptions.privateChannels.forEach((channelName) => {
+                    echo.private(channelName).listen(eventName, emitRealtimeUpdate);
+                    subscribedChannels.add(channelName);
+                });
 
-                normalizeChannelList(subscriptions.public_channels).forEach(
-                    (channelName) => {
-                        echo.channel(channelName).listen(eventName, emitRealtimeUpdate);
-                        subscribedChannels.add(channelName);
-                    }
-                );
+                subscriptions.publicChannels.forEach((channelName) => {
+                    echo.channel(channelName).listen(eventName, emitRealtimeUpdate);
+                    subscribedChannels.add(channelName);
+                });
             } catch (error) {
                 if (!isActive) return;
 

@@ -305,9 +305,9 @@ export default function OrderCard({
                         const parsedNoteSections = getItemNoteSections(item.note);
                         const details = [
                             ...(Array.isArray(item.details) ? item.details : []),
+                            ...(Array.isArray(item.modifiers) ? item.modifiers : []),
                             ...parsedNoteSections.details,
                         ];
-                        const modifiers = Array.isArray(item.modifiers) ? item.modifiers : [];
                         const notes = parsedNoteSections.notes;
 
                         return (
@@ -327,16 +327,6 @@ export default function OrderCard({
                                                         {renderDetail(detail, language)}
                                                     </p>
                                                 ))}
-                                            </div>
-                                        )}
-                                        {modifiers.length > 0 && (
-                                            <div className="mt-2 rounded-lg bg-[#efe5d4] px-3 py-2">
-                                                <p className="text-[11px] font-black uppercase leading-4 tracking-wide text-[#8a7c69]">
-                                                    Modifiers
-                                                </p>
-                                                <p className="break-words text-lg font-black leading-7 text-[#3f3427]">
-                                                    {modifiers.join(" · ")}
-                                                </p>
                                             </div>
                                         )}
                                         {notes.length > 0 && (
