@@ -177,7 +177,7 @@ const getUniqueModifierOptions = (options = []) => {
         const optionId = getModifierOptionId(option);
         if (!optionId) return false;
 
-        const key = `${getModifierGroupId(option) ?? "group"}:${optionId}`;
+        const key = String(optionId);
         if (seen.has(key)) return false;
 
         seen.add(key);
