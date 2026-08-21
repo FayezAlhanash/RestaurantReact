@@ -12,6 +12,24 @@ import { getStoredToken } from "../../utils/auth";
 const REALTIME_EVENT_NAME = ".realtime.updated";
 const REALTIME_DEBOUNCE_MS = 300;
 
+function normalizeRealtimeEvent(event = {}) {
+    const topic = event.topic;
+    const action = event.action;
+    const aliases = Array.isArray(event.topic_aliases) ? event.topic_aliases : [];
+    const isKitchenOrderCreated =
+        event.type === "kitchen_order_created" ||
+        (topic === "restaurant_order" && action === "created") ||
+        (topic === "kitchen_orders" && action === "created");
+
+    if (!isKitchenOrderCreated) return event;
+
+    return {
+        ...event,
+        type: event.type || "kitchen_order_created",
+        topic_aliases: Array.from(new Set([...aliases, "kitchen_orders"])),
+    };
+}
+
 function normalizeChannelList(channels) {
     return Array.isArray(channels)
         ? channels.filter((channel) => typeof channel === "string" && channel.trim())
@@ -80,7 +98,7 @@ export default function RealtimeManager() {
         window.Echo = echo;
 
         const emitRealtimeUpdate = (event) => {
-            latestEventRef.current = event;
+            latestEventRef.current = normalizeRealtimeEvent(event);
             window.clearTimeout(debounceRef.current);
 
             debounceRef.current = window.setTimeout(() => {

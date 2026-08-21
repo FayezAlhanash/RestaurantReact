@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import api from "../../API/axios";
 import { useTheme } from "../../context/ThemeContext";
 import { getStoredUser, storeUser } from "../../utils/auth";
-import { translateStaticText } from "../../utils/i18n";
+import { translateStaticText, useTranslation } from "../../utils/i18n";
 import LanguageToggle from "./LanguageToggle";
 
 function getProfileRecord(data) {
@@ -238,6 +238,7 @@ export default function EmployeeProfileButton({
     const fileInputRef = useRef(null);
     const profileRootRef = useRef(null);
     const { isLight, toggleTheme } = useTheme();
+    const { language } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [isShown, setIsShown] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
@@ -262,7 +263,7 @@ export default function EmployeeProfileButton({
     const [error, setError] = useState("");
 
     const displayUser = profile || {};
-    const text = translateStaticText;
+    const text = (value) => translateStaticText(value, language);
     const userName = getUserName(displayUser);
     const roleName = getRoleName(displayUser);
     const phoneNumber = getPhoneNumber(displayUser);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getAppLanguage } from "./language";
 
 const translations = {
@@ -491,6 +491,7 @@ const staticPhraseTranslations = {
     "Adjust": "تعديل",
     "Adjustment could not be saved. Please try again.": "تعذر حفظ التعديل. حاول مرة أخرى.",
     "Admin": "الأدمن",
+    "Admin kitchen view": "عرض مطبخ الأدمن",
     "Manager": "المدير",
     "Kitchen": "المطبخ",
     "Admin warehouse view": "عرض مخزون الأدمن",
@@ -652,6 +653,7 @@ const staticPhraseTranslations = {
     "Ingredient could not be deleted from the dashboard.": "تعذر حذف المكون من لوحة التحكم.",
     "Ingredients": "المكونات",
     "Inventory": "المخزون",
+    "Items": "الأصناف",
     "Inventory Dashboard": "لوحة المخزون",
     "Job Title": "المسمى الوظيفي",
     "Kg": "كغ",
@@ -670,6 +672,7 @@ const staticPhraseTranslations = {
     "Loading employees...": "جار تحميل الموظفين...",
     "Loading warehouse ingredients...": "جار تحميل مكونات المستودع...",
     "Loading menu...": "يتم تحميل القائمة...",
+    "Loading kitchen orders...": "جار تحميل طلبات المطبخ...",
     "Loading orders...": "يتم تحميل الطلبات...",
     "Loading pickup orders...": "يتم تحميل طلبات الاستلام...",
     "Logout": "تسجيل الخروج",
@@ -696,6 +699,7 @@ const staticPhraseTranslations = {
     "Manage Tables": "إدارة الطاولات",
     "Manage Takeaway Orders": "إدارة طلبات السفري",
     "Manage Users": "إدارة المستخدمين",
+    "Main station": "المحطة الرئيسية",
     "Menu unavailable": "القائمة غير متاحة",
     "Menu": "القائمة",
     "Minimum Quantity": "الكمية الدنيا",
@@ -1041,6 +1045,7 @@ const staticPhraseTranslations = {
     "Checking...": "جار التحقق...",
     "Chef": "الشيف",
     "Choose a restaurant, filter dishes, customize your meal, and add everything to your bill.": "اختر مطعماً، فلتر الأطباق، خصص وجبتك، وأضف كل شيء إلى فاتورتك.",
+    "Choose a restaurant to view its kitchen": "اختر مطعماً لعرض مطبخه",
     "Choose an invoice from the list to open its full admin invoice data.": "اختر فاتورة من القائمة لفتح بياناتها الكاملة للأدمن.",
     "Choose an invoice from the list to open its restaurant invoice data.": "اختر فاتورة من القائمة لفتح بيانات فاتورة المطعم.",
     "Close add employee": "إغلاق إضافة الموظف",
@@ -1153,6 +1158,7 @@ const staticPhraseTranslations = {
     "Ready orders": "طلبات جاهزة",
     "Ready to open": "جاهزة للفتح",
     "Refresh": "تحديث",
+    "Refresh Queue": "تحديث الطابور",
     "Refresh tables": "تحديث الطاولات",
     "Regular": "عادي",
     "Regular portion": "حصة عادية",
@@ -1192,6 +1198,8 @@ const staticPhraseTranslations = {
     "TAKEAWAY": "سفري",
     "Table ID and device key are required.": "معرّف الطاولة ومفتاح الجهاز مطلوبان.",
     "Table sessions": "جلسات الطاولات",
+    "There are no orders for this kitchen right now.": "لا توجد طلبات لهذا المطبخ حالياً.",
+    "There are no ready orders for this kitchen right now.": "لا توجد طلبات جاهزة لهذا المطبخ حالياً.",
     "Tap to customize": "اضغط للتخصيص",
     "Team": "الفريق",
     "This browser blocked clearing the saved table device key.": "المتصفح منع مسح مفتاح جهاز الطاولة المحفوظ.",
@@ -1209,6 +1217,7 @@ const staticPhraseTranslations = {
     "Tuesday": "الثلاثاء",
     "Unauthorized.": "غير مصرح.",
     "Unauthorized. Sign in with a kitchen account or make sure this account has kitchen queue access.": "غير مصرح. سجل الدخول بحساب مطبخ أو تأكد أن الحساب يملك وصول طابور المطبخ.",
+    "active orders": "طلبات نشطة",
     "Uncategorized": "غير مصنف",
     "User permission could not be updated. Please try again.": "تعذر تحديث صلاحية المستخدم. حاول مرة أخرى.",
     "View Global Invoice": "عرض الفاتورة العامة",
@@ -1332,11 +1341,16 @@ const dynamicPhraseRules = [
 
 export function translate(key) {
     const language = getAppLanguage();
-    return translations[language]?.[key] || englishFallbacks[key] || key;
+    return (
+        translations[language]?.[key] ||
+        (language === "ar" ? staticPhraseTranslations[key] : undefined) ||
+        englishFallbacks[key] ||
+        key
+    );
 }
 
-export function translateStaticText(text) {
-    if (getAppLanguage() !== "ar" || typeof text !== "string") return text;
+export function translateStaticText(text, language = getAppLanguage()) {
+    if (language !== "ar" || typeof text !== "string") return text;
 
     const normalizedText = text.replace(/\s+/g, " ").trim();
     if (!normalizedText) return text;
@@ -1366,5 +1380,14 @@ export function useTranslation() {
         return () => window.removeEventListener("app-language-change", handleLanguageChange);
     }, []);
 
-    return { language, t: (key) => translations[language]?.[key] || englishFallbacks[key] || key };
+    const t = useCallback(
+        (key) =>
+            translations[language]?.[key] ||
+            (language === "ar" ? staticPhraseTranslations[key] : undefined) ||
+            englishFallbacks[key] ||
+            key,
+        [language]
+    );
+
+    return { language, t };
 }

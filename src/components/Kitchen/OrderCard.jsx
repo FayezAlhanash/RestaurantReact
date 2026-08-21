@@ -65,8 +65,8 @@ function canMarkReady(status, waitingForPreparation) {
     return normalizeStatus(status) === "preparing" && !waitingForPreparation;
 }
 
-function formatItemCount(count) {
-    return `${count} ${count === 1 ? "item" : "items"}`;
+function formatItemCount(count, t) {
+    return `${count} ${count === 1 ? t("Item") : t("Items")}`;
 }
 
 const sizeNoteTokens = new Set([
@@ -227,7 +227,7 @@ function renderDetail(detail, language) {
     const label = detail.slice(0, separatorIndex).trim();
     const value = detail.slice(separatorIndex + 1).trim();
     const isSize = normalizeNoteToken(label) === "size" || normalizeNoteToken(label) === "الحجم";
-    const displayLabel = isSize && language === "ar" ? "الحجم" : label;
+    const displayLabel = isSize ? (language === "ar" ? "الحجم" : "Size") : label;
     const displayValue = isSize ? localizeSizeValue(value, language) : value;
 
     return (
@@ -245,14 +245,14 @@ export default function OrderCard({
     pendingAction = "",
     className = "",
 }) {
-    const { language } = useTranslation();
+    const { language, t } = useTranslation();
     const type = orderTypeConfig[order.type] || orderTypeConfig.dine_in;
     const TypeIcon = type.icon;
     const normalizedStatus = normalizeStatus(order.status);
     const waitingForPreparation = Boolean(order.waiting_for_preparation);
     const statusLabel = waitingForPreparation
-        ? "Waiting for Preparation"
-        : statusLabels[normalizedStatus];
+        ? t("Waiting for Preparation")
+        : t(statusLabels[normalizedStatus]);
     const isStarting = pendingAction === "start";
     const isMarkingReady = pendingAction === "ready";
     const isUpdating = Boolean(pendingAction);
@@ -276,7 +276,7 @@ export default function OrderCard({
 
                     <div className="flex items-center gap-3 justify-self-end text-left">
                         <p className="text-base font-black leading-none">
-                            {type.label}
+                            {t(type.label)}
                         </p>
                         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/16">
                             <TypeIcon size={24} strokeWidth={2.5} />
@@ -288,11 +288,11 @@ export default function OrderCard({
             <div className="flex min-h-0 flex-1 flex-col px-5 pb-4 pt-4 text-left">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-extrabold uppercase tracking-wide text-[#8a7c69]">
-                            Items
+                        {t("Items")}
                     </span>
 
                     <span className={`rounded-full px-3 py-2 text-sm font-black ${type.badge}`}>
-                        {formatItemCount(order.items.length)}
+                        {formatItemCount(order.items.length, t)}
                     </span>
 
                     <span className={`rounded-full px-4 py-2 text-sm font-black ${statusClasses[normalizedStatus]}`}>
@@ -332,7 +332,7 @@ export default function OrderCard({
                                         {notes.length > 0 && (
                                             <div className="mt-2 rounded-lg border border-[#c7b79f] bg-[#efe5d4] px-3 py-2">
                                                 <p className="text-[11px] font-black uppercase leading-4 tracking-wide text-[#8b0912]">
-                                                    Note
+                                                    {t("Note")}
                                                 </p>
                                                 <p className="break-words text-lg font-black leading-7 text-[#3f3427]">
                                                     {notes.join(" · ")}
@@ -364,7 +364,7 @@ export default function OrderCard({
                             className="flex h-16 items-center justify-center gap-2 rounded-xl border border-[#cbbba5] bg-[#f7efdf] text-base font-black text-[#5f4d34] shadow-sm transition hover:bg-[#fff6e8] active:scale-[0.99] disabled:cursor-wait disabled:opacity-75 disabled:hover:bg-[#f7efdf]"
                         >
                             {isStarting && <Loader2 size={21} className="animate-spin" />}
-                            {isStarting ? "Please wait..." : "Start Preparing"}
+                            {isStarting ? t("Please wait...") : t("Start Preparing")}
                         </button>
                     )}
 
@@ -381,10 +381,10 @@ export default function OrderCard({
                                 <CheckCircle2 size={22} strokeWidth={2.5} />
                             )}
                             {isMarkingReady ? (
-                                "Please wait..."
+                                t("Please wait...")
                             ) : (
                                 <>
-                                    Ready
+                                    {t("Ready")}
                                 </>
                             )}
                         </button>

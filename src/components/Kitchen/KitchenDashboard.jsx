@@ -5,6 +5,7 @@ import OrderCard from "../../components/Kitchen/OrderCard";
 import api from "../../API/axios";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getStoredUser, ROLE_IDS } from "../../utils/auth";
+import { useTranslation } from "../../utils/i18n";
 import {
     fetchKitchenQueue,
     markKitchenOrderReady,
@@ -57,6 +58,7 @@ function applyBackendTimingUpdate(order, updates = []) {
 }
 
 export default function KitchenDashboard() {
+    const { t } = useTranslation();
     const [orders, setOrders] = useState([]);
     const [completedOrders, setCompletedOrders] = useState([]);
     const [showCompleted, setShowCompleted] = useState(false);
@@ -132,13 +134,13 @@ export default function KitchenDashboard() {
 
             setErrorMessage(
                 error.response?.status === 403
-                    ? "Unauthorized. Sign in with a kitchen account or make sure this account has kitchen queue access."
-                    : error.response?.data?.message || "Could not load the kitchen queue."
+                    ? t("Unauthorized. Sign in with a kitchen account or make sure this account has kitchen queue access.")
+                    : error.response?.data?.message || t("Could not load the kitchen queue.")
             );
         } finally {
             setIsLoading(false);
         }
-    }, [isAdmin, restaurants, selectedRestaurantId]);
+    }, [isAdmin, restaurants, selectedRestaurantId, t]);
 
     useEffect(() => {
         if (!isAdmin) return undefined;
@@ -154,14 +156,14 @@ export default function KitchenDashboard() {
                 );
             } catch (error) {
                 setErrorMessage(
-                    error.response?.data?.message || "Could not load restaurants."
+                    error.response?.data?.message || t("Could not load restaurants.")
                 );
             }
         };
 
         fetchRestaurants();
         return undefined;
-    }, [isAdmin]);
+    }, [isAdmin, t]);
 
     useEffect(() => {
         const initialLoadId = window.setTimeout(loadQueue, 0);
@@ -214,7 +216,7 @@ export default function KitchenDashboard() {
             await loadQueue();
         } catch (error) {
             setErrorMessage(
-                error.response?.data?.message || "Could not start preparing the order."
+                error.response?.data?.message || t("Could not start preparing the order.")
             );
         } finally {
             setPendingOrderActions((current) => {
@@ -271,7 +273,7 @@ export default function KitchenDashboard() {
             await loadQueue();
         } catch (error) {
             setErrorMessage(
-                error.response?.data?.message || "Could not mark the order as ready."
+                error.response?.data?.message || t("Could not mark the order as ready.")
             );
         } finally {
             setPendingOrderActions((current) => {
@@ -296,7 +298,7 @@ export default function KitchenDashboard() {
                                 : "border-white/10 bg-[#363c42] text-[#dff7e7] hover:bg-[#414850]"
                         }`}
                     >
-                        Ready Orders
+                        {t("Ready Orders")}
                         <span className="rounded-full bg-white/12 px-2 py-0.5 text-xs">
                             {completedOrders.length}
                         </span>
@@ -309,7 +311,7 @@ export default function KitchenDashboard() {
                         {chefName}
                     </p>
                     <p className="mt-1 text-sm font-extrabold text-[#bbb4aa]">
-                        Head Chef
+                        {t("Chef")}
                     </p>
                 </div>
 
@@ -317,15 +319,15 @@ export default function KitchenDashboard() {
                     <div>
                         <p className="text-lg font-black text-[#f8ded8]">
                             {selectedRestaurant?.name
-                                ? `${selectedRestaurant.name} Kitchen`
+                                ? `${selectedRestaurant.name} ${t("Kitchen")}`
                                 : isAdmin && selectedRestaurantId === ADMIN_ALL_RESTAURANTS
-                                  ? "All Kitchens"
-                                  : "Branch Kitchen"}
+                                  ? t("All Kitchens")
+                                  : t("Branch Kitchen")}
                         </p>
                         <p className="mt-1 text-sm font-extrabold text-[#bbb4aa]">
-                            Main station ·{" "}
+                            {t("Main station")} ·{" "}
                             <span className="text-white">
-                                {orders.length} active orders
+                                {orders.length} {t("active orders")}
                             </span>
                         </p>
                     </div>
@@ -344,10 +346,10 @@ export default function KitchenDashboard() {
                             </div>
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#FFD166]">
-                                    Admin kitchen view
+                                    {t("Admin kitchen view")}
                                 </p>
                                 <h2 className="text-lg font-black text-white">
-                                    Choose a restaurant to view its kitchen
+                                    {t("Choose a restaurant to view its kitchen")}
                                 </h2>
                             </div>
                         </div>
@@ -374,7 +376,7 @@ export default function KitchenDashboard() {
                                                 : "border-white/15 bg-[#1f2326] text-white hover:border-[#FFD166]/45 hover:text-[#FFD166]"
                                         }`}
                                     >
-                                        {restaurant.name || `Restaurant #${restaurant.id}`}
+                                        {restaurant.name || `${t("Restaurant")} #${restaurant.id}`}
                                     </button>
                                 );
                             })}
@@ -394,7 +396,7 @@ export default function KitchenDashboard() {
                                         : "border-white/15 bg-[#1f2326] text-white hover:border-[#FFD166]/45 hover:text-[#FFD166]"
                                 }`}
                             >
-                                All Kitchens
+                                {t("All Kitchens")}
                             </button>
                         </div>
                     </div>
@@ -407,12 +409,12 @@ export default function KitchenDashboard() {
                         </div>
                         <div className="text-left">
                             <p className="text-sm font-black text-white">
-                                {showCompleted ? "Ready Orders" : "Prep Queue"}
+                                {showCompleted ? t("Ready Orders") : t("Prep Queue")}
                             </p>
                             <p className="text-xs font-extrabold text-[#bbb4aa]">
                                 {showCompleted
-                                    ? "Orders that are ready for handoff"
-                                    : "Orders this kitchen is actively tracking"}
+                                    ? t("Orders that are ready for handoff")
+                                    : t("Orders this kitchen is actively tracking")}
                             </p>
                         </div>
                     </div>
@@ -422,7 +424,7 @@ export default function KitchenDashboard() {
                         onClick={loadQueue}
                         className="flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#9b7d06] px-5 text-sm font-black text-[#1f1804] shadow-[0_12px_24px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ac8c08]"
                     >
-                        Refresh Queue
+                        {t("Refresh Queue")}
                         <BellRing size={22} strokeWidth={2.4} />
                     </button>
                 </div>
@@ -435,7 +437,7 @@ export default function KitchenDashboard() {
 
                 {isLoading ? (
                     <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                        Loading kitchen orders...
+                        {t("Loading kitchen orders...")}
                     </div>
                 ) : showCompleted ? (
                     completedOrders.length ? (
@@ -450,7 +452,7 @@ export default function KitchenDashboard() {
                         </div>
                     ) : (
                         <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                            There are no ready orders for this kitchen right now.
+                            {t("There are no ready orders for this kitchen right now.")}
                         </div>
                     )
                 ) : orders.length ? (
@@ -467,7 +469,7 @@ export default function KitchenDashboard() {
                     </div>
                 ) : (
                     <div className="rounded-2xl border border-white/10 bg-[#2a2f34] px-5 py-12 text-center font-black text-[#bbb4aa]">
-                        There are no orders for this kitchen right now.
+                        {t("There are no orders for this kitchen right now.")}
                     </div>
                 )}
             </section>
