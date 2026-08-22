@@ -4,7 +4,33 @@ import { confirmStripePayment, findStripeClientSecret } from "./stripePayments";
 
 const kitchenOrderDetailCache = new Map();
 let cashierOrderListPromise = null;
+let cashierOrderListFetchedAt = 0;
 
+const CASHIER_ORDER_CACHE_TTL = 5000;
+async function fetchCashierOrderList() {
+    const now = Date.now();
+
+    const cacheIsFresh =
+        cashierOrderListPromise &&
+        now - cashierOrderListFetchedAt <
+            CASHIER_ORDER_CACHE_TTL;
+
+    if (!cacheIsFresh) {
+        cashierOrderListFetchedAt = now;
+
+        cashierOrderListPromise = api
+            .get("/cashier/orders")
+            .then((response) =>
+                getList(response.data).map(getRecord)
+            )
+            .catch((error) => {
+                cashierOrderListPromise = null;
+                throw error;
+            });
+    }
+
+    return cashierOrderListPromise;
+}
 function getList(data) {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.data)) return data.data;
@@ -345,7 +371,23 @@ function getModifierTextValue(value) {
 
     return "";
 }
+function findOrderDetailByCandidateIds(
+    detailIds,
+    cashierOrders
+) {
+    for (const detailId of detailIds) {
+        const detail = findOrderDetailInList(
+            detailId,
+            cashierOrders
+        );
 
+        if (detail) {
+            return detail;
+        }
+    }
+
+    return null;
+}
 const sizeNoteTokens = new Set([
     "xs",
     "extra small",
@@ -1011,16 +1053,6 @@ function mergeKitchenOrders(orders) {
     return Array.from(mergedOrders.values());
 }
 
-async function fetchCashierOrderList() {
-    if (!cashierOrderListPromise) {
-        cashierOrderListPromise = api
-            .get("/cashier/orders")
-            .then((response) => getList(response.data).map(getRecord))
-            .catch(() => []);
-    }
-
-    return cashierOrderListPromise;
-}
 
 function findOrderDetailInList(orderId, orders) {
     const id = String(orderId);
@@ -1054,55 +1086,95 @@ export async function fetchCashierOrderDetail(orderId) {
     }
 
     const cashierOrders = await fetchCashierOrderList();
-    const detailFromList = findOrderDetailInList(orderId, cashierOrders);
+
+    const detailFromList = findOrderDetailInList(
+        orderId,
+        cashierOrders
+    );
 
     if (detailFromList) {
-        kitchenOrderDetailCache.set(cacheKey, detailFromList);
+        kitchenOrderDetailCache.set(
+            cacheKey,
+            detailFromList
+        );
+
         return detailFromList;
     }
 
-    try {
-        const response = await api.get(`/cashier/orders/${orderId}`);
-        const detail = getRecord(response.data);
+    kitchenOrderDetailCache.set(cacheKey, null);
 
-        kitchenOrderDetailCache.set(cacheKey, detail);
-        return detail;
-    } catch {
-        kitchenOrderDetailCache.set(cacheKey, null);
-        return null;
-    }
+    return null;
 }
-
-async function enrichKitchenOrdersWithOrderDetails(orders) {
-    const enrichedOrders = await Promise.all(
-        orders.map(async (order) => {
-            if (!order.needsTypeDetail && !needsKitchenItemDetail(order)) {
-                return order;
-            }
-
-            const detailIds = order.detailIds?.length ? order.detailIds : [order.id];
-            let detail = null;
-
-            for (const detailId of detailIds) {
-                detail = await fetchCashierOrderDetail(detailId);
-                if (detail) break;
-            }
-
-            if (!detail) return order;
-
-            const detailItems = getKitchenItems(detail).map(normalizeKitchenItem);
-
-            return {
-                ...order,
-                type: order.needsTypeDetail
-                    ? getResolvedOrderTypeFromRecord(detail)
-                    : order.type,
-                items: mergeKitchenItemDetails(order.items, detailItems),
-            };
-        })
+async function enrichKitchenOrdersWithOrderDetails(
+    orders
+) {
+    const ordersNeedingDetails = orders.some(
+        (order) =>
+            order.needsTypeDetail ||
+            needsKitchenItemDetail(order)
     );
 
-    return enrichedOrders;
+    if (!ordersNeedingDetails) {
+        return orders;
+    }
+
+    let cashierOrders = [];
+
+    try {
+        cashierOrders =
+            await fetchCashierOrderList();
+    } catch (error) {
+        console.error(
+            "Unable to load cashier orders:",
+            error
+        );
+
+        return orders;
+    }
+
+    return orders.map((order) => {
+        if (
+            !order.needsTypeDetail &&
+            !needsKitchenItemDetail(order)
+        ) {
+            return order;
+        }
+
+        const detailIds =
+            order.detailIds?.length
+                ? order.detailIds
+                : [order.id];
+
+        const detail =
+            findOrderDetailByCandidateIds(
+                detailIds,
+                cashierOrders
+            );
+
+        if (!detail) {
+            return order;
+        }
+
+        const detailItems =
+            getKitchenItems(detail).map(
+                normalizeKitchenItem
+            );
+
+        return {
+            ...order,
+
+            type: order.needsTypeDetail
+                ? getResolvedOrderTypeFromRecord(
+                      detail
+                  )
+                : order.type,
+
+            items: mergeKitchenItemDetails(
+                order.items,
+                detailItems
+            ),
+        };
+    });
 }
 
 async function fetchCashierKitchenQueueFallback(restaurantId) {
